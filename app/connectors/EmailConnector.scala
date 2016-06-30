@@ -51,9 +51,6 @@ trait EmailConnector extends ServicesConfig{
     val request = SendTemplatedEmailRequest(List(template.email), "gmp_bulk_upload_processed",
       Map("fileUploadReference" -> template.uploadReference, "uploadDate" -> template.uploadDate.toString("dd MMMM yyyy"), "userId" -> (("*" * 5) + template.userId.takeRight(3))))
 
-    Logger.debug(s"[EmailConnector][user-id] : ${template.userId}")
-    Logger.debug(s"[EmailConnector][user-id-short] : ${(("*" * 5) + template.userId.takeRight(3))}")
-
     sendEmail(request)
   }
 
