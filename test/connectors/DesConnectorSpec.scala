@@ -137,7 +137,6 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
       def response503(Test503DesConnector:DesConnector)  = {
         intercept[Upstream5xxResponse] {
           await(Test503DesConnector.calculate(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)))
-          Thread.sleep(10)
         }
       }
 
