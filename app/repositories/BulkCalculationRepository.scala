@@ -437,41 +437,71 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
 
     val startTime = System.currentTimeMillis()
 
-    val strippedBulk: BulkCalculationRequest = bulkCalculationRequest.copy(calculationRequests = Nil, _id = Some(BSONObjectID.generate.stringify))
-    val calculationRequests = bulkCalculationRequest.calculationRequests.par.map {
-      request => request.copy(bulkId = strippedBulk._id)
-    }
+    findDuplicateUploadReference(bulkCalculationRequest.uploadReference).flatMap {
 
-    val insertResult = Try {
-      val bulkDocs = calculationRequests.map(implicitly[collection.ImplicitlyDocumentProducer](_)).toList
-      val insertResult = collection.insert(strippedBulk).flatMap {
-        result => collection.bulkInsert(ordered = false)(bulkDocs: _*)
-      }
-      insertResult onComplete {
-        case _ => metrics.insertBulkDocumentTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-      }
+      case true => Logger.debug(s"[BulkCalculationRepository][insertBulkDocument : found duplicate ")
+        Future.successful(false)
+      case false => {
+        val strippedBulk: BulkCalculationRequest = bulkCalculationRequest.copy(calculationRequests = Nil, _id = Some(BSONObjectID.generate.stringify))
+        val calculationRequests = bulkCalculationRequest.calculationRequests.map {
+          request => request.copy(bulkId = strippedBulk._id)
+        }
 
-      insertResult
-    }
+        val insertResult = Try {
+          val bulkDocs = calculationRequests.map(implicitly[collection.ImplicitlyDocumentProducer](_)).toList
+          val insertResult = collection.insert(strippedBulk).flatMap {
+            result => collection.bulkInsert(ordered = false)(bulkDocs: _*)
+          }
+          insertResult onComplete {
+            case _ => metrics.insertBulkDocumentTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+          }
 
-    insertResult match {
-      case Success(s) => {
-        s.map {
-          case x: MultiBulkWriteResult if (x.writeErrors == Nil) =>
-            Logger.debug(s"[BulkCalculationRepository][insertBulkDocument : $x] ")
-            true
-        }.recover {
-          case e: Throwable => {
-            Logger.debug("Error inserting document", e)
-            false
+          insertResult
+        }
+
+        insertResult match {
+          case Success(s) => {
+            s.map {
+              case x: MultiBulkWriteResult if (x.writeErrors == Nil) =>
+                Logger.debug(s"[BulkCalculationRepository][insertBulkDocument : $x] ")
+                true
+            }.recover {
+              case e: Throwable => {
+                // $COVERAGE-OFF$
+                Logger.debug("Error inserting document", e)
+                false
+                // $COVERAGE-ON$
+              }
+            }
+          }
+
+          case Failure(f) => {
+            Logger.debug(s"[BulkCalculationRepository][insertBulkDocument] {failed : ${
+              f.getMessage
+            }}")
+            Future.successful(false)
           }
         }
       }
+    }
+  }
 
+  private def findDuplicateUploadReference(uploadReference: String): Future[Boolean] = {
+
+    val tryResult = Try {
+
+      collection.find(Json.obj("uploadReference" -> uploadReference)).cursor[BulkResultsSummary](ReadPreference.primary).collect[List]()
+    }
+
+    tryResult match {
+      case Success(s) => {
+        s.map { x =>
+          Logger.debug(s"[BulkCalculationRepository][findDuplicateUploadReference] : { uploadReference : $uploadReference, result: ${x.nonEmpty} }")
+          x.nonEmpty
+        }
+      }
       case Failure(f) => {
-        Logger.debug(s"[BulkCalculationRepository][insertBulkDocument] {failed : ${
-          f.getMessage
-        }}")
+        Logger.debug(s"[BulkCalculationRepository][findDuplicateUploadReference]  : { uploadReference : $uploadReference, exception: ${f.getMessage} }")
         Future.successful(false)
       }
     }
