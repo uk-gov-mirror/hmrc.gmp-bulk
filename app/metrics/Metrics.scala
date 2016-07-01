@@ -58,31 +58,51 @@ object Metrics extends Metrics {
       }
     })
 
-  override def processRequest(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("processRequest-timer").update(diff, unit)
-  override def registerSuccessfulRequest = MetricsRegistry.defaultRegistry.counter("des-connector-requests-successful").inc()
-  override def registerFailedRequest = MetricsRegistry.defaultRegistry.counter("des-connector-requests-failed").inc()
-  override def registerStatusCode(code: String) = MetricsRegistry.defaultRegistry.counter(s"des-connector-httpstatus-$code").inc()
-  override def desConnectionTime(delta: Long, timeUnit: TimeUnit) = MetricsRegistry.defaultRegistry.timer("des-connector-timer").update(delta, timeUnit)
+  override def processRequest(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("processRequest-timer").update(diff, unit)
 
-  override def insertResponseByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-insertResponseByReference-timer").update(diff, unit)
+  override def registerSuccessfulRequest =
+    MetricsRegistry.defaultRegistry.counter("des-connector-requests-successful").inc()
 
-  override def findRequestsToProcessTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-findRequestsToProcess-timer").update(diff, unit)
+  override def registerFailedRequest =
+    MetricsRegistry.defaultRegistry.counter("des-connector-requests-failed").inc()
 
-  override def findCountRemainingTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-findCountRemaining-timer").update(diff, unit)
+  override def registerStatusCode(code: String) =
+    MetricsRegistry.defaultRegistry.counter(s"des-connector-httpstatus-$code").inc()
 
-  override def findByUserIdTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-findByUserId-timer").update(diff, unit)
+  override def desConnectionTime(delta: Long, timeUnit: TimeUnit) =
+    MetricsRegistry.defaultRegistry.timer("des-connector-timer").update(delta, timeUnit)
 
-  override def insertBulkDocumentTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-insertBulkDocument-timer").update(diff, unit)
+  override def insertResponseByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-insertResponseByReference-timer").update(diff, unit)
 
-  override def findAndCompleteTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-findAndComplete-timer").update(diff, unit)
+  override def findRequestsToProcessTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-findRequestsToProcess-timer").update(diff, unit)
 
-  override def findSummaryByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-findSummaryByReference-timer").update(diff, unit)
+  override def findCountRemainingTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-findCountRemaining-timer").update(diff, unit)
 
-  override def findByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-findByReference-timer").update(diff, unit)
+  override def findByUserIdTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-findByUserId-timer").update(diff, unit)
 
-  override def findAndCompleteChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteChildren-timer").update(diff, unit)
+  override def insertBulkDocumentTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-insertBulkDocument-timer").update(diff, unit)
 
-  override def findAndCompleteParentTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteParent-timer").update(diff, unit)
+  override def findAndCompleteTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-findAndComplete-timer").update(diff, unit)
 
-  override def findAndCompleteAllChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteAllChildren-timer").update(diff, unit)
+  override def findSummaryByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-findSummaryByReference-timer").update(diff, unit)
+
+  override def findByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-findByReference-timer").update(diff, unit)
+
+  override def findAndCompleteChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteChildren-timer").update(diff, unit)
+
+  override def findAndCompleteParentTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteParent-timer").update(diff, unit)
+
+  override def findAndCompleteAllChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit =
+    MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteAllChildren-timer").update(diff, unit)
 }

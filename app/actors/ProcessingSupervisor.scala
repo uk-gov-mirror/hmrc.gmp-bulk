@@ -50,7 +50,7 @@ class ProcessingSupervisor extends Actor with ActorUtils {
     override def tryLock[T](body: => Future[T])(implicit ec : ExecutionContext): Future[Option[T]] = {
       repo.lock(lockId, serverId, forceLockReleaseAfter)
         .flatMap { acquired =>
-          if (acquired) body.map { case x => Some(x) }
+          if (acquired) { body.map { case x => Some(x) } }
           else Future.successful(None)
         }.recoverWith { case ex => repo.releaseLock(lockId, serverId).flatMap(_ => Future.failed(ex)) }
     }
