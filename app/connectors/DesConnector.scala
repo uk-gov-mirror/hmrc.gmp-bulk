@@ -139,11 +139,11 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
   override protected def breakOnException(t: Throwable): Boolean = {
     t match {
+      // $COVERAGE-OFF$
       case e: Upstream5xxResponse if (e.upstreamResponseCode == 503 && !e.message.contains("digital_rate_limit")) => true
-      // $COVERAGE-OFF$ Can't mock undeclared checked exception
       case e: BadGatewayException => true
-      // $COVERAGE-ON$
       case _ => false
+      // $COVERAGE-ON$
     }
   }
 
