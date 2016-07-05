@@ -664,7 +664,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val result = TestBulkController.getCalculationsAsCsv("userId", "reference", CsvFilter.Successful)(fakeRequest)
 
 
-        header("Content-Disposition",result).get must be("attachment; filename=\"reference1_successful.csv\"")
+        header("Content-Disposition",result).get must be("attachment; filename=\"reference1_total_GMP.csv\"")
         contentType(result).get must be("text/csv")
 
       }

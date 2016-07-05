@@ -16,19 +16,24 @@
 
 package models
 
-case class CsvFilter(filterType: String) {
+import org.scalatestplus.play.PlaySpec
 
-  def getFileTypeName: String = {
-    this match {
-      case CsvFilter.All => "all"
-      case CsvFilter.Successful => "total_GMP"
-      case CsvFilter.Failed => "no_total_GMP"
+class CsvFilterTypeSpec extends PlaySpec {
+
+  "CsvFilterType" must {
+    "return correct filename for all filter" in {
+      val filter = CsvFilter("ALL")
+      filter.getFileTypeName must be("all")
+    }
+
+    "return correct filename for successful filter" in {
+      val filter = CsvFilter("SUCCESSFUL")
+      filter.getFileTypeName must be("total_GMP")
+    }
+
+    "return correct filename for failed filter" in {
+      val filter = CsvFilter("FAILED")
+      filter.getFileTypeName must be("no_total_GMP")
     }
   }
-}
-
-object CsvFilter {
-  val All = CsvFilter("ALL")
-  val Successful = CsvFilter("SUCCESSFUL")
-  val Failed = CsvFilter("FAILED")
 }
