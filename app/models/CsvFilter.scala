@@ -16,12 +16,16 @@
 
 package models
 
-import play.api.mvc.{PathBindable, QueryStringBindable}
+case class CsvFilter(filterType: String) {
 
-/**
-  * Created by stevenhobbs on 09/05/2016.
-  */
-case class CsvFilter(filterType: String)
+  def getFileTypeName(filterType: CsvFilter): String = {
+    filterType match {
+      case CsvFilter.All => "all"
+      case CsvFilter.Successful => "total_GMP"
+      case CsvFilter.Failed => "no_total_GMP"
+    }
+  }
+}
 
 object CsvFilter {
   val All = CsvFilter("ALL")

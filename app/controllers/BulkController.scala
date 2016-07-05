@@ -72,7 +72,7 @@ trait BulkController extends BaseController {
         case Some(result) => userId match {
           case result.userId => {
             val textToBeReturned: String = csvGenerator.generateCsv(result, Some(csvFilter))
-            Ok(textToBeReturned).as("text/csv").withHeaders(("Content-Disposition", "attachment; filename=\"" + result.reference + "_" + csvFilter.filterType.toLowerCase() + ".csv\""))
+            Ok(textToBeReturned).as("text/csv").withHeaders(("Content-Disposition", "attachment; filename=\"" + result.reference + "_" + CsvFilter.getFileTypeName(csvFilter) + ".csv\""))
           }
           case _ => Forbidden
         }
