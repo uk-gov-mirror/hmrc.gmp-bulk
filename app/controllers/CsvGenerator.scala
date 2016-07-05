@@ -28,7 +28,7 @@ trait CsvGenerator {
 
     val maxPeriods = result.calculationRequests.map {
       _.calculationResponse match {
-        case Some(x: GmpBulkCalculationResponse) if (x.calculationPeriods.size > 0) => x.calculationPeriods.size
+        case Some(x: GmpBulkCalculationResponse) if x.calculationPeriods.nonEmpty => x.calculationPeriods.size
         case _ => 0
       }
     }.max
@@ -306,11 +306,15 @@ trait CsvGenerator {
     }
   }
 
-  private def calculatePeriodRevalRate(period: CalculationPeriod, index: Int): String = {
+  private def calculatePeriodRevalRate(period: CalculationPeriod, index: Int)(implicit request: ValidCalculationRequest): String = {
     if (!period.endDate.isBefore(LocalDate.now()) && index == 0)
       ""
-    else
-      convertRevalRate(Some(period.revaluationRate))
+    else {
+      request.memberIsInScheme match {
+        case Some(true) if Set(2,3,4) contains request.calctype.get => ""
+        case _ => convertRevalRate(Some(period.revaluationRate))
+      }
+    }
   }
 
   private def convertRevalRate(revalRate: Option[Int]): String = {
@@ -381,7 +385,7 @@ trait CsvGenerator {
                 dod => dod.toString(DATE_FORMAT)
               }.getOrElse("")
 
-              case _ if(!calculationRequest.revaluationDate.isDefined) => calculationResponse.calculationPeriods.headOption.map{
+              case _ if !calculationRequest.revaluationDate.isDefined => calculationResponse.calculationPeriods.headOption.map{
                 period => period.endDate.toString(DATE_FORMAT)
               }.getOrElse("")
 
