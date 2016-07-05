@@ -33,7 +33,7 @@ trait CsvGenerator {
       }
     }.max
 
-    val periodColumns = generatePeriodColumns(maxPeriods, csvFilter)
+    val periodColumns = generatePeriodHeaders(maxPeriods, csvFilter)
     val columnHeaders = csvFilter match {
       case Some(CsvFilter.All) => Messages("gmp.status") + "," + Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," +
         (periodColumns match {
@@ -187,7 +187,7 @@ trait CsvGenerator {
             }) ::: (calculationRequest.calculationResponse match {
               case Some(calcResponse) =>
                 calcResponse.calculationPeriods.zipWithIndex.map { case (period, index) =>
-                  generatePeriodCsv(period, csvFilter, index)(v)
+                  generatePeriodColumnData(period, csvFilter, index)(v)
                 }
               case _ => Nil
             }) ::: (csvFilter match {
@@ -240,7 +240,7 @@ trait CsvGenerator {
     }
   }
 
-  private def generatePeriodColumns(count: Int, csvFilter: Option[CsvFilter]): String = {
+  private def generatePeriodHeaders(count: Int, csvFilter: Option[CsvFilter]): String = {
     (1 to count).map {
       i =>
         (List(s"${
@@ -306,7 +306,7 @@ trait CsvGenerator {
     }
   }
 
-  private def convertPeriodRevalRate(period: CalculationPeriod, index: Int): String = {
+  private def calculatePeriodRevalRate(period: CalculationPeriod, index: Int): String = {
     if (!period.endDate.isBefore(LocalDate.now()) && index == 0)
       ""
     else
@@ -323,7 +323,7 @@ trait CsvGenerator {
     }
   }
 
-  private def generatePeriodCsv(calculationPeriod: CalculationPeriod, csvFilter: Option[CsvFilter], index: Int)(implicit request: ValidCalculationRequest): String = {
+  private def generatePeriodColumnData(calculationPeriod: CalculationPeriod, csvFilter: Option[CsvFilter], index: Int)(implicit request: ValidCalculationRequest): String = {
     (List(calculationPeriod.startDate match {
       case Some(date) => date.toString("dd/MM/yyyy")
       case _ => ""
@@ -340,7 +340,7 @@ trait CsvGenerator {
         case _ => ""
       },
       request.calctype match {
-        case Some(x) if x > 0 => convertPeriodRevalRate(calculationPeriod, index)
+        case Some(x) if x > 0 => calculatePeriodRevalRate(calculationPeriod, index)
         case _ => ""
       }) ::: (csvFilter match {
       case Some(CsvFilter.Successful) => Nil
@@ -440,7 +440,7 @@ trait CsvGenerator {
         case _ => ""
       }) + " - " + period.endDate.toString("dd/MM/yyyy"),
       period.contsAndEarnings match {
-        case Some(c) => {
+        case Some(c) =>
           val map = c.foldLeft(Map[Int, String]()) {
             (m, earnings) => m + (earnings.taxYear -> earnings.contEarnings)
           }
@@ -448,7 +448,6 @@ trait CsvGenerator {
           (1978 to 1998).map {
             map.getOrElse(_, "")
           }.mkString(",")
-        }
         case _ => "," * 20
       }
     ).mkString(",")
@@ -457,7 +456,7 @@ trait CsvGenerator {
 
   private def generateLineSeparator(calcRequest: CalculationRequest): String = {
     calcRequest.calculationResponse match {
-      case Some(response) if (response.calculationPeriods.size > 1) => "\n"
+      case Some(response) if response.calculationPeriods.size > 1 => "\n"
       case _ => ""
     }
   }
