@@ -44,49 +44,18 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     mongo,
     BulkCalculationRequest.formats) with BulkCalculationRepository {
 
+  val timeToLive = 2592000
 
-  val fieldName = "createdAt"
-  val createdIndexName = "bulkCalculationRequestExpiry"
-  val expireAfterSeconds = "expireAfterSeconds"
-  val timeToLive = 2592000 //ApplicationConfig.ttlDuration
+  collection.indexesManager.dropAll()
 
-  collection.indexesManager.dropAll().map {
-    case x =>
-      createIndex(fieldName, createdIndexName, timeToLive)
-      createIndex(Seq("bulkId"),Some("bulkId"))
-      createIndex(Seq("uploadReference"),Some("UploadReference"),sparse=true,unique=true)
-      createIndex(Seq("bulkId","lineId"),Some("BulkAndLine"))
-      createIndex(Seq("userId"),Some("UserId"))
-      createIndex(Seq("lineId"),Some("LineIdDesc"),true)
-}
-
-  private def createIndex(fields: Seq[String], createdIndexName: Option[String],descending: Boolean = false, sparse:Boolean = false, unique:Boolean = false) = {
-    collection.indexesManager.ensure(Index(fields.map {
-      column => (column,
-        descending match {
-          case true => IndexType.Descending
-          case _ => IndexType.Ascending
-        })
-    },createdIndexName,background = true, sparse=sparse, unique=unique))
-  }
-
-
-  private def createIndex(field: String, indexName: String, ttl: Int): Future[Boolean] = {
-    collection.indexesManager.ensure(Index(Seq((field, IndexType.Ascending)), Some(indexName),
-      options = BSONDocument(expireAfterSeconds -> ttl))) map {
-      result => {
-        // $COVERAGE-OFF$
-        Logger.debug(s"set [$indexName] with value $ttl -> result : $result")
-        // $COVERAGE-ON$
-        result
-      }
-    } recover {
-      // $COVERAGE-OFF$
-      case e => Logger.error("Failed to set TTL index", e)
-        false
-      // $COVERAGE-ON$
-    }
-  }
+  override def indexes: Seq[Index] = Seq(
+    Index(Seq("bulkId" -> IndexType.Ascending), Some("bulkId"), background = true),
+    Index(Seq("uploadReference" -> IndexType.Ascending), Some("UploadReference"), sparse = true, unique = true),
+    Index(Seq("bulkId" -> IndexType.Ascending, "lineId" -> IndexType.Ascending), Some("BulkAndLine")),
+    Index(Seq("userId" -> IndexType.Ascending), Some("UserId"), background = true),
+    Index(Seq("lineId" -> IndexType.Descending), Some("LineIdDesc"), background = true),
+    Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> timeToLive), background = true)
+  )
 
   override def insertResponseByReference(bulkId: String, lineId: Int, calculationResponse: GmpBulkCalculationResponse): Future[Boolean] = {
 
