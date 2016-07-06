@@ -40,7 +40,8 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
   val mockEmailConnector = mock[EmailConnector]
   val createdAt = Some(LocalDateTime.now)
 
-  val PERIOD_1_REVAL_COLUMN_INDEX = 21
+  final val PERIOD_1_REVAL_COLUMN_INDEX = 21
+  final val CSV_HEADER_ROWS = 2
 
   object TestBulkController extends BulkController {
     override val repository: BulkCalculationRepository = mockRepo
@@ -48,6 +49,11 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
   }
 
   val nino = RandomNino.generate
+
+  def firstCsvDataLine(result: Future[Result]): Array[String] = {
+    val dataLine = contentAsString(result) split "\n" drop CSV_HEADER_ROWS
+    dataLine(0).split(",", -1) map { _.trim }
+  }
 
   "BulkController" must {
 
@@ -548,7 +554,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val calcRequest = mock[CalculationRequest]
 
         val response = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "4.12", "5.23", 0, 0, None, None, None, None, None)),
+          CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "4.12", "5.23", 1, 0, None, None, None, None, None)),
           0, None, None, None)
 
         val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(3), None, None, None, Some("2016-05-24"), Some(true))
@@ -562,12 +568,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getCalculationsAsCsv("userId", "reference", CsvFilter.All)(fakeRequest)
 
-
-        val dataLine = contentAsString(result) split "\n" drop 2
-        val dataColumns = dataLine(0).split(",", -1) map { _.trim }
-
-        println(Console.BLUE + dataLine(0) + Console.WHITE)
-        dataColumns(PERIOD_1_REVAL_COLUMN_INDEX) mustBe ""
+        firstCsvDataLine(result)(PERIOD_1_REVAL_COLUMN_INDEX) mustBe ""
       }
 
       "insert an empty reval rate when member in scheme, and calc type is SPA" in {
@@ -576,7 +577,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val calcRequest = mock[CalculationRequest]
 
         val response = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "4.12", "5.23", 0, 0, None, None, None, None, None)),
+          CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "4.12", "5.23", 1, 0, None, None, None, None, None)),
           0, None, None, None)
 
         val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(4), None, None, None, Some("2016-05-24"), Some(true))
@@ -589,10 +590,8 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getCalculationsAsCsv("userId", "reference", CsvFilter.All)(fakeRequest)
-        val dataLine = contentAsString(result) split "\n" drop 2
-        val dataColumns = dataLine(0).split(",", -1) map { _.trim }
 
-        dataColumns(PERIOD_1_REVAL_COLUMN_INDEX) mustBe ""
+        firstCsvDataLine(result)(PERIOD_1_REVAL_COLUMN_INDEX) mustBe ""
       }
 
       "insert an empty reval rate when member in scheme, and calc type is PA" in {
@@ -601,7 +600,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val calcRequest = mock[CalculationRequest]
 
         val response = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "4.12", "5.23", 0, 0, None, None, None, None, None)),
+          CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "4.12", "5.23", 1, 0, None, None, None, None, None)),
           0, None, None, None)
 
         val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(2), None, None, None, Some("2016-05-24"), Some(true))
@@ -614,10 +613,32 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getCalculationsAsCsv("userId", "reference", CsvFilter.All)(fakeRequest)
-        val dataLine = contentAsString(result) split "\n" drop 2
-        val dataColumns = dataLine(0).split(",", -1) map { _.trim }
 
-        dataColumns(PERIOD_1_REVAL_COLUMN_INDEX) mustBe ""
+        firstCsvDataLine(result)(PERIOD_1_REVAL_COLUMN_INDEX) mustBe ""
+      }
+
+      "insert an empty reval rate into the period when the rate is HMRC" in {
+
+        val bulkRequest = mock[BulkCalculationRequest]
+        val calcRequest = mock[CalculationRequest]
+
+        val response = GmpBulkCalculationResponse(List(
+          CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "0", "0", 0, 2, None, None, None, None, None)),
+          0, None, None, None)
+
+        val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(3), Some("2018-05-10"), None, None, Some("2016-08-24"), None)
+
+        when(calcRequest.validCalculationRequest) thenReturn Some(validCalc)
+        when(calcRequest.calculationResponse) thenReturn Some(response)
+        when(bulkRequest.calculationRequests) thenReturn List(calcRequest)
+        when(bulkRequest.userId) thenReturn "userId"
+        when(mockRepo.findByReference(Matchers.any(), Matchers.any())) thenReturn Future.successful(Some(bulkRequest))
+
+        val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
+        val result = TestBulkController.getCalculationsAsCsv("userId", "reference", CsvFilter.All)(fakeRequest)
+
+        firstCsvDataLine(result)(PERIOD_1_REVAL_COLUMN_INDEX) mustBe ""
+
       }
     }
 
