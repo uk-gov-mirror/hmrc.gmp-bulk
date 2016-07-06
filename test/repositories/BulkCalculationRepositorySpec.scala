@@ -20,23 +20,28 @@ import java.util.UUID
 
 import connectors.{EmailConnector, ProcessedUploadTemplate}
 import helpers.RandomNino
-import models.{BulkCalculationRequest, CalculationRequest, CsvFilter, GmpBulkCalculationResponse}
+import metrics.Metrics
+import models._
 import org.joda.time.LocalDateTime
 import org.mockito.Mockito._
-import org.mockito.{ArgumentCaptor, Matchers}
+import org.mockito.Matchers
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
+import reactivemongo.api.Cursor
 import reactivemongo.api.commands.UpdateWriteResult
 import reactivemongo.api.indexes.CollectionIndexesManager
 import reactivemongo.json._
-import reactivemongo.json.collection.JSONCollection
+import reactivemongo.json.collection.{JSONQueryBuilder, JSONCollection}
 import uk.gov.hmrc.mongo.{Awaiting, MongoSpecSupport}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.http.HeaderCarrier
+import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
 
-import scala.concurrent.Future
+import scala.collection.generic.CanBuildFrom
+import scala.concurrent.{ExecutionContext, Future}
 
 class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with MongoSpecSupport with Awaiting with MockitoSugar with BeforeAndAfterEach {
 
@@ -44,6 +49,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
   val mockAuditConnector = mock[AuditConnector]
   val mockEmailConnector = mock[EmailConnector]
   val bulkCalculationRepository = new TestBulkCalculationMongoRepository
+  val mockMetrics = mock[Metrics]
 
   override protected def beforeEach() {
     await(bulkCalculationRepository.collection.remove(Json.obj()))
@@ -53,11 +59,13 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
   class TestCalculationRepository extends BulkCalculationMongoRepository {
     override lazy val collection = mockCollection
+    override val metrics = mockMetrics
   }
 
   class TestBulkCalculationMongoRepository extends BulkCalculationMongoRepository{
     override val auditConnector = mockAuditConnector
     override val emailConnector = mockEmailConnector
+    override val metrics = mockMetrics
   }
 
   val nino = RandomNino.generate
@@ -111,7 +119,8 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
                 "userId" : "123456",
                 "timestamp" : "2016-04-26T14:53:18.308",
                 "complete" : true,
-                "createdAt": "2016-04-26T14:53:18.308"
+                "createdAt" : "2016-04-26T14:53:18.308",
+                "processedDateTime" : "2016-04-26T14:53:18.308"
               }
     """)
 
@@ -305,8 +314,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
         when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
 
         when (mockCollection.insert(Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any())).thenThrow(new RuntimeException)
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-        when(mockCollection.indexesManager.dropAll()).thenReturn(Future.successful(1))
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.ImplicitlyDocumentProducer).thenThrow(new RuntimeException)
         val testRepository = new TestCalculationRepository
 
@@ -323,8 +331,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
         when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
 
         when (mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-        when(mockCollection.indexesManager.dropAll()).thenReturn(Future.successful(1))
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockEmailConnector.sendProcessedTemplatedEmail(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))
         val testRepository = new TestCalculationRepository
 
@@ -343,8 +350,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
         when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
         when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-        when(mockCollection.indexesManager.dropAll()).thenReturn(Future.successful(1))
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
 
         when(mockEmailConnector.sendProcessedTemplatedEmail(Matchers.any[ProcessedUploadTemplate])(Matchers.any[HeaderCarrier])).thenReturn(Future.successful(true))
 
@@ -374,8 +380,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
         when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
         when(mockCollection.aggregate(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-        when(mockCollection.indexesManager.dropAll()).thenReturn(Future.successful(1))
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
 
@@ -402,8 +407,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
         when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
         when (mockCollection.count[CalculationRequest](Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any())).thenThrow(new RuntimeException)
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-        when(mockCollection.indexesManager.dropAll()).thenReturn(Future.successful(1))
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         val testRepository = new TestCalculationRepository
 
         val found = await(testRepository.findCountRemaining)
@@ -454,12 +458,11 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
         when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
         when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-        when(mockCollection.indexesManager.dropAll()).thenReturn(Future.successful(1))
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
 
-        val request = BulkCalculationRequest(None,"ur", "jimemail", "thing", Nil, "", LocalDateTime.now(), Some(false), None, None, None)
+        val request = BulkCalculationRequest(None,"ur", "jimemail", "thing", Nil, "", LocalDateTime.now(), Some(false), None, None)
 
         val found = await(testRepository.findByReference(request.uploadReference))
         found must be(None)
@@ -468,10 +471,20 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
     "finding requests" must {
       "return the found calculation" in {
-        val request = json.as[BulkCalculationRequest]
-        await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString)))
-        val result = await(bulkCalculationRepository.findByUserId("123456"))
-        result.size must be(1)
+
+        val mockIndexesManager = mock[CollectionIndexesManager]
+
+        val timeStamp = LocalDateTime.now()
+        val processedDateTime = LocalDateTime.now()
+
+        when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
+        setupFindFor(mockCollection, Seq(BulkPreviousRequest("", "", timeStamp, processedDateTime)))
+
+        val testRepository = new TestCalculationRepository
+
+        val found = await(testRepository.findByUserId("A1234567"))
+        found must be(Some(List(BulkPreviousRequest("", "", timeStamp, processedDateTime))))
       }
 
       "return None when mongo find by user id returns error" in {
@@ -480,12 +493,11 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
         when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
         when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-        when(mockCollection.indexesManager.dropAll()).thenReturn(Future.successful(1))
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
 
-        val request = BulkCalculationRequest(None,"ur", "jimemail", "thing", Nil, "", LocalDateTime.now(), Some(false), None, None, None)
+        val request = BulkCalculationRequest(None,"ur", "jimemail", "thing", Nil, "", LocalDateTime.now(), Some(false), None, None)
 
         val found = await(testRepository.findByUserId(request.userId))
         found must be(None)
@@ -552,12 +564,11 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
         when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
         when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-        when(mockCollection.indexesManager.dropAll()).thenReturn(Future.successful(1))
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
 
-        val request = BulkCalculationRequest(None,"ur", "jimemail", "thing", Nil, "", LocalDateTime.now(), Some(false), None, None, None)
+        val request = BulkCalculationRequest(None,"ur", "jimemail", "thing", Nil, "", LocalDateTime.now(), Some(false), None, None)
 
         val found = await(testRepository.findSummaryByReference(request.uploadReference))
         found must be(None)
@@ -624,8 +635,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
         when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
         when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-        when(mockCollection.indexesManager.dropAll()).thenReturn(Future.successful(1))
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
 
@@ -650,5 +660,26 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
         found.get.failed.get must be(3)
       }
     }
+  }
+
+  def setupFindFor[T](collection: JSONCollection, returns: Traversable[T])(implicit manifest: Manifest[T]) = {
+
+    val queryBuilder = mock[JSONQueryBuilder]
+    val cursor = mock[Cursor[T]]
+
+    when(
+      collection.find(Matchers.any[JsObject], Matchers.any())(Matchers.any(), Matchers.any())
+    ) thenReturn queryBuilder
+
+    when(
+      queryBuilder.cursor[T](Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any[ExecutionContext], Matchers.any())
+    ) thenAnswer new Answer[Cursor[T]] {
+      def answer(i: InvocationOnMock) = cursor
+    }
+
+    when(
+      cursor.collect[Traversable](Matchers.anyInt(), Matchers.anyBoolean())(Matchers.any[CanBuildFrom[Traversable[_], T, Traversable[T]]], Matchers.any[ExecutionContext])
+    ) thenReturn Future.successful(returns)
+
   }
 }

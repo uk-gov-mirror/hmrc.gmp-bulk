@@ -17,9 +17,10 @@
 package models
 
 import org.joda.time.LocalDateTime
-import play.api.libs.json.{JsString, Writes, Reads, Json}
+import play.api.libs.json._
+import reactivemongo.bson.{BSONDateTime, BSONReader}
 
-case class BulkPreviousRequest(uploadReference: String, reference: String, timestamp: LocalDateTime, createdAt: LocalDateTime)
+case class BulkPreviousRequest(uploadReference: String, reference: String, timestamp: LocalDateTime, processedDateTime: LocalDateTime)
 
 object BulkPreviousRequest {
   implicit val timestampReads = Reads[LocalDateTime](js =>
@@ -31,5 +32,6 @@ object BulkPreviousRequest {
   implicit val timestampWrites = new Writes[LocalDateTime]{
     def writes(localDateTime: LocalDateTime) = JsString(localDateTime.toString)
   }
+
   implicit val formats = Json.format[BulkPreviousRequest]
 }

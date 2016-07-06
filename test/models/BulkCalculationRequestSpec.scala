@@ -248,7 +248,7 @@ class BulkCalculationRequestSpec extends PlaySpec {
               "uploadReference":"",
               "reference":"",
               "timestamp":"2016-05-18T17:50:55.511",
-              "createdAt":"2016-05-18T17:50:55.511"
+              "processedDateTime":"2016-05-18T17:50:55.511"
             }
       """
     )

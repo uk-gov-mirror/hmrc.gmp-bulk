@@ -23,14 +23,14 @@ import connectors.{EmailConnector, ProcessedUploadTemplate}
 import events.BulkEvent
 import metrics.Metrics
 import models._
-import org.joda.time.LocalDateTime
+import org.joda.time.{LocalDateTime, DateTime}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.commands.MultiBulkWriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{DefaultDB, ReadPreference}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -44,17 +44,13 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     mongo,
     BulkCalculationRequest.formats) with BulkCalculationRepository {
 
-  val timeToLive = 2592000
-
-  collection.indexesManager.dropAll()
-
   override def indexes: Seq[Index] = Seq(
+    Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> 2592000), sparse = true, background = true),
     Index(Seq("bulkId" -> IndexType.Ascending), Some("bulkId"), background = true),
     Index(Seq("uploadReference" -> IndexType.Ascending), Some("UploadReference"), sparse = true, unique = true),
     Index(Seq("bulkId" -> IndexType.Ascending, "lineId" -> IndexType.Ascending), Some("BulkAndLine")),
     Index(Seq("userId" -> IndexType.Ascending), Some("UserId"), background = true),
-    Index(Seq("lineId" -> IndexType.Descending), Some("LineIdDesc"), background = true),
-    Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> timeToLive), background = true)
+    Index(Seq("lineId" -> IndexType.Descending), Some("LineIdDesc"), background = true)
   )
 
   override def insertResponseByReference(bulkId: String, lineId: Int, calculationResponse: GmpBulkCalculationResponse): Future[Boolean] = {
@@ -157,7 +153,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     val startTime = System.currentTimeMillis()
 
     val tryResult = Try {
-      val result = collection.find(Json.obj("userId" -> userId, "complete" -> true), Json.obj("uploadReference" -> 1, "reference" -> 1, "timestamp" -> 1, "createdAt" -> 1)).cursor[BulkPreviousRequest](ReadPreference.primary).collect[List]()
+      val result = collection.find(Json.obj("userId" -> userId, "complete" -> true), Json.obj("uploadReference" -> 1, "reference" -> 1, "timestamp" -> 1, "processedDateTime" -> 1)).cursor[BulkPreviousRequest](ReadPreference.primary).collect[List]()
 
       result onComplete {
         case _ => metrics.findByUserIdTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -291,7 +287,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
             val failedRequests = request.get.failedRequestCount
 
             val selector = Json.obj("uploadReference" -> request.get.uploadReference)
-            val modifier = Json.obj("$set" -> Json.obj("complete" -> true, "total" -> totalRequests, "failed" -> failedRequests, "createdAt" -> LocalDateTime.now().toString))
+            val modifier = Json.obj("$set" -> Json.obj("complete" -> true, "total" -> totalRequests, "failed" -> failedRequests, "createdAt" -> BSONDateTime(DateTime.now().getMillis), "processedDateTime" -> LocalDateTime.now().toString))
 
             val result = collection.update(selector, modifier)
 
@@ -325,7 +321,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
                   }
 
                   val childSelector = Json.obj("bulkId" -> request.get._id.get)
-                  val childModifier = Json.obj("$set" -> Json.obj("createdAt" -> LocalDateTime.now().toString))
+                  val childModifier = Json.obj("$set" -> Json.obj("createdAt" -> BSONDateTime(DateTime.now().getMillis)))
                   val childResult = collection.update(childSelector, childModifier, multi = true)
                   childResult.map {
                     childWriteResult => Logger.debug(s"[BulkCalculationRepository][findAndComplete] : { childResult : $childWriteResult }")
@@ -334,7 +330,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
                   emailConnector.sendProcessedTemplatedEmail(ProcessedUploadTemplate(
                     request.get.email,
                     request.get.reference,
-                    request.get.createdAt.getOrElse(new LocalDateTime()).toLocalDate,
+                    request.get.timestamp.toLocalDate,
                     request.get.userId))
                 }
                 // $COVERAGE-ON$
