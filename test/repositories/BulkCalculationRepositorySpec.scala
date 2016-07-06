@@ -83,7 +83,8 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
                       "revaluationRate": 2,
                       "requestEarnings": 1,
                       "dualCalc" : 1,
-                      "terminationDate" : "2016-07-07"
+                      "terminationDate" : "2016-07-07",
+                      "memberIsInScheme": false
                     }
                   },
                   {
@@ -492,13 +493,11 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
       }
     }
 
-
     "updating a calculation" must {
 
       "inserting a calculation" must {
 
         "persist a calculation in the repo" in {
-
 
           val request = json.as[BulkCalculationRequest].copy(uploadReference = UUID.randomUUID().toString)
           val response = GmpBulkCalculationResponse(Nil, 0, None, None, None)

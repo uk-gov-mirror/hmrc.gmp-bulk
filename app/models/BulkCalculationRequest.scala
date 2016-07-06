@@ -30,7 +30,8 @@ case class ValidCalculationRequest(scon: String,
                                    revaluationDate: Option[String] = None,
                                    revaluationRate: Option[Int] = None,
                                    dualCalc: Option[Int] = None,
-                                   terminationDate: Option[String] = None)
+                                   terminationDate: Option[String] = None,
+                                   memberIsInScheme: Option[Boolean] = None)
 
 object ValidCalculationRequest {
   implicit val formats = Json.format[ValidCalculationRequest]

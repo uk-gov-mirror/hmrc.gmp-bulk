@@ -28,12 +28,12 @@ trait CsvGenerator {
 
     val maxPeriods = result.calculationRequests.map {
       _.calculationResponse match {
-        case Some(x: GmpBulkCalculationResponse) if (x.calculationPeriods.size > 0) => x.calculationPeriods.size
+        case Some(x: GmpBulkCalculationResponse) if x.calculationPeriods.nonEmpty => x.calculationPeriods.size
         case _ => 0
       }
     }.max
 
-    val periodColumns = generatePeriodColumns(maxPeriods, csvFilter)
+    val periodColumns = generatePeriodHeaders(maxPeriods, csvFilter)
     val columnHeaders = csvFilter match {
       case Some(CsvFilter.All) => Messages("gmp.status") + "," + Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," +
         (periodColumns match {
@@ -187,7 +187,7 @@ trait CsvGenerator {
             }) ::: (calculationRequest.calculationResponse match {
               case Some(calcResponse) =>
                 calcResponse.calculationPeriods.zipWithIndex.map { case (period, index) =>
-                  generatePeriodCsv(period, csvFilter, index)(v)
+                  generatePeriodColumnData(period, csvFilter, index)(v)
                 }
               case _ => Nil
             }) ::: (csvFilter match {
@@ -240,7 +240,7 @@ trait CsvGenerator {
     }
   }
 
-  private def generatePeriodColumns(count: Int, csvFilter: Option[CsvFilter]): String = {
+  private def generatePeriodHeaders(count: Int, csvFilter: Option[CsvFilter]): String = {
     (1 to count).map {
       i =>
         (List(s"${
@@ -306,11 +306,15 @@ trait CsvGenerator {
     }
   }
 
-  private def convertPeriodRevalRate(period: CalculationPeriod, index: Int): String = {
+  private def calculatePeriodRevalRate(period: CalculationPeriod, index: Int)(implicit request: ValidCalculationRequest): String = {
     if (!period.endDate.isBefore(LocalDate.now()) && index == 0)
       ""
-    else
-      convertRevalRate(Some(period.revaluationRate))
+    else {
+      request.memberIsInScheme match {
+        case Some(true) if Set(2,3,4) contains request.calctype.get => ""
+        case _ => convertRevalRate(Some(period.revaluationRate))
+      }
+    }
   }
 
   private def convertRevalRate(revalRate: Option[Int]): String = {
@@ -323,7 +327,7 @@ trait CsvGenerator {
     }
   }
 
-  private def generatePeriodCsv(calculationPeriod: CalculationPeriod, csvFilter: Option[CsvFilter], index: Int)(implicit request: ValidCalculationRequest): String = {
+  private def generatePeriodColumnData(calculationPeriod: CalculationPeriod, csvFilter: Option[CsvFilter], index: Int)(implicit request: ValidCalculationRequest): String = {
     (List(calculationPeriod.startDate match {
       case Some(date) => date.toString("dd/MM/yyyy")
       case _ => ""
@@ -340,7 +344,7 @@ trait CsvGenerator {
         case _ => ""
       },
       request.calctype match {
-        case Some(x) if x > 0 => convertPeriodRevalRate(calculationPeriod, index)
+        case Some(x) if x > 0 => calculatePeriodRevalRate(calculationPeriod, index)
         case _ => ""
       }) ::: (csvFilter match {
       case Some(CsvFilter.Successful) => Nil
@@ -381,7 +385,7 @@ trait CsvGenerator {
                 dod => dod.toString(DATE_FORMAT)
               }.getOrElse("")
 
-              case _ if(!calculationRequest.revaluationDate.isDefined) => calculationResponse.calculationPeriods.headOption.map{
+              case _ if !calculationRequest.revaluationDate.isDefined => calculationResponse.calculationPeriods.headOption.map{
                 period => period.endDate.toString(DATE_FORMAT)
               }.getOrElse("")
 
@@ -440,7 +444,7 @@ trait CsvGenerator {
         case _ => ""
       }) + " - " + period.endDate.toString("dd/MM/yyyy"),
       period.contsAndEarnings match {
-        case Some(c) => {
+        case Some(c) =>
           val map = c.foldLeft(Map[Int, String]()) {
             (m, earnings) => m + (earnings.taxYear -> earnings.contEarnings)
           }
@@ -448,7 +452,6 @@ trait CsvGenerator {
           (1978 to 1998).map {
             map.getOrElse(_, "")
           }.mkString(",")
-        }
         case _ => "," * 20
       }
     ).mkString(",")
@@ -457,7 +460,7 @@ trait CsvGenerator {
 
   private def generateLineSeparator(calcRequest: CalculationRequest): String = {
     calcRequest.calculationResponse match {
-      case Some(response) if (response.calculationPeriods.size > 1) => "\n"
+      case Some(response) if response.calculationPeriods.size > 1 => "\n"
       case _ => ""
     }
   }
