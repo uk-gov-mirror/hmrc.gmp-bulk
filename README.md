@@ -3,6 +3,8 @@ GMP-BULK
 
 Guaranteed Minimum Pension Bulk micro service
 
+[![Build Status](https://travis-ci.org/hmrc/gmp-bulk.svg)](https://travis-ci.org/hmrc/gmp-bulk) [ ![Download](https://api.bintray.com/packages/hmrc/releases/gmp-bulk/images/download.svg) ](https://bintray.com/hmrc/releases/gmp-bulk/_latestVersion)
+
 ##API
 
 | PATH | Supported Methods | Description |
