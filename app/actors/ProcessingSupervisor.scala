@@ -32,10 +32,10 @@ import scala.concurrent.{ExecutionContext, Future}
 class ProcessingSupervisor extends Actor with ActorUtils {
 
   val connection = {
-
     import play.api.Play.current
     ReactiveMongoPlugin.mongoConnector.db
   }
+
   val lockrepo = LockMongoRepository(connection)
 
   val lockKeeper = new LockKeeper {
@@ -58,11 +58,13 @@ class ProcessingSupervisor extends Actor with ActorUtils {
   }
   // $COVERAGE-OFF$
   lazy val repository: BulkCalculationRepository = BulkCalculationRepository()
+  lazy val requestActor: ActorRef = context.actorOf(CalculationRequestActor.props, "calculation-requester")
 
   lazy val throttler: ActorRef = context.actorOf(Props(classOf[TimerBasedThrottler],
     ApplicationConfig.bulkProcessingTps msgsPer 1.seconds), "throttler")
+
   throttler ! SetTarget(Some(requestActor))
-  lazy val requestActor: ActorRef = context.actorOf(CalculationRequestActor.props, "calculation-requester")
+
   // $COVERAGE-ON$
 
   override def receive: Receive = {
@@ -79,9 +81,8 @@ class ProcessingSupervisor extends Actor with ActorUtils {
         context become receiveWhenProcessRunning
         Logger.debug("Starting Processing")
 
-
         repository.findRequestsToProcess().map {
-          case Some(requests) if (requests.size > 0) => {
+          case Some(requests) if requests.nonEmpty => {
             Logger.debug(s"[ProcessingSupervisor][receive : took ${requests.size} requests]")
             for (request <- requests.take(ApplicationConfig.bulkProcessingBatchSize)) {
 

@@ -22,11 +22,15 @@ import akka.testkit._
 import helpers.RandomNino
 import models.{ValidCalculationRequest, ProcessReadyCalculationRequest}
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll}
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
+import reactivemongo.api.DefaultDB
+import reactivemongo.json.collection.JSONCollection
 import repositories.BulkCalculationRepository
+import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.play.test.UnitSpec
+import org.mockito.Matchers._
 
 import scala.concurrent.duration._
 
@@ -36,9 +40,14 @@ import scala.concurrent.Future
 class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with UnitSpec with MockitoSugar with OneServerPerSuite
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils {
 
+  val mockLockRepo = mock[LockRepository]
+
+  override def beforeAll = {
+    when(mockLockRepo.lock(anyString, anyString, any[org.joda.time.Duration])) thenReturn true
+  }
+
   override def afterAll: Unit = {
     shutdown()
-
   }
 
   "processing supervisor" must {
@@ -47,15 +56,15 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
 
       val throttlerProbe = TestProbe()
       val calculationActorProbe = TestProbe()
-
       val mockRepository = mock[BulkCalculationRepository]
 
       val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor {
-
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
+        override val lockrepo = mockLockRepo
       }),"process-supervisor")
+
 
       val processReadyCalculationRequest = ProcessReadyCalculationRequest("test upload",1,
         ValidCalculationRequest("scon",RandomNino.generate,"smith","jim",None,None,None,None,None,None))
@@ -64,7 +73,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
 
       within(5 seconds) {
 
-          println("sending start")
+        println("sending start")
         processingSupervisor ! START
         println("sending start again")
         processingSupervisor ! START
@@ -79,33 +88,33 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
     }
 
     "send request to start with no requests queued" in {
+
       val throttlerProbe = TestProbe()
       val calculationActorProbe = TestProbe()
-
       val mockRepository = mock[BulkCalculationRepository]
 
       val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor {
-
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
+        override val lockrepo = mockLockRepo
       }),"process-supervisor2")
 
       when(mockRepository.findRequestsToProcess()).thenReturn(Future.successful(Some(Nil)))
 
       within(5 seconds) {
-
         processingSupervisor ! START
         throttlerProbe.expectMsgClass(classOf[SetTarget])
         throttlerProbe.expectMsg(STOP)
         processingSupervisor ! STOP // simulate stop coming from calc requestor
       }
+
     }
 
     "start processing and then stop when finished" in {
+
       val throttlerProbe = TestProbe()
       val calculationActorProbe = TestProbe()
-
       val mockRepository = mock[BulkCalculationRepository]
 
       val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor {
@@ -113,11 +122,12 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
+        override val lockrepo = mockLockRepo
       }),"process-supervisor3")
 
       val processReadyCalculationRequest = ProcessReadyCalculationRequest("test upload",1,
         ValidCalculationRequest("scon",RandomNino.generate,"smith","jim",None,None,None,None,None,None))
-
+      
       when(mockRepository.findRequestsToProcess()).thenReturn(Future.successful(Some(List(processReadyCalculationRequest))))
 
       within(5 seconds) {
