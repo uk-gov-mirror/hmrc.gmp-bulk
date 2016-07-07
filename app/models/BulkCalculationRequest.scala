@@ -80,8 +80,7 @@ case class BulkCalculationRequest(_id: Option[String],
                                   timestamp: LocalDateTime,
                                   complete: Option[Boolean],
                                   total: Option[Int],
-                                  failed: Option[Int],
-                                  createdAt: Option[LocalDateTime]) {
+                                  failed: Option[Int]) {
 
   def failedRequestCount: Int = {
     calculationRequests.filter(x => x.validationErrors.isDefined || (x.calculationResponse.isDefined && x.calculationResponse.get.hasErrors)).size
@@ -98,6 +97,7 @@ object BulkCalculationRequest {
   implicit val timestampWrites = new Writes[LocalDateTime]{
     def writes(localDateTime: LocalDateTime) = JsString(localDateTime.toString)
   }
+
   implicit val formats = Json.format[BulkCalculationRequest]
   implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
   implicit val idFormat = ReactiveMongoFormats.objectIdFormats

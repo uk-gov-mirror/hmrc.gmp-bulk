@@ -232,7 +232,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
       val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
       val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
 
-      val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+      val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
       "return bulk result as a csv string" in {
 
@@ -261,7 +261,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         ), 0, None, None, None)
 
         val calcRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
-        val request = BulkCalculationRequest(None, "ref-1", "test@test.com", "ref-1", calcRequests, "user1", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val request = BulkCalculationRequest(None, "ref-1", "test@test.com", "ref-1", calcRequests, "user1", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(request)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -283,7 +283,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
 
-        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         "return bulk result as a csv string" in {
           val periodColumns = "Period 1 (start date),Period 1 (end date),Period 1 (total GMP),Period 1 (post 1988),Period 1 (post 1990 - true gender),"+
@@ -324,7 +324,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
           CalculationRequest(None, 1, Some(validCalculationRequest.copy(calctype = Some(2))), None, Some(gmpBulkCalculationResponse)),
           CalculationRequest(None, 1, Some(validCalculationRequest.copy(calctype = Some(3))), None, Some(gmpBulkCalculationResponse)),
           CalculationRequest(None, 1, Some(validCalculationRequest.copy(calctype = Some(4))), None, Some(gmpBulkCalculationResponse)))
-        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -340,7 +340,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List.empty, 0, None, None, None)
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest.copy(calctype = Some(1))), None, Some(gmpBulkCalculationResponse)))
-        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         val periodColumns = "Period 1 (start date),Period 1 (end date),Period 1 (total GMP),Period 1 (post 1988),Period 1 (post 1990 - true gender),"+
           "Period 1 (post 1990 - opposite gender),Period 1 (revaluation rate),Period 1 Error,Period 1 What to do"
@@ -357,7 +357,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List.empty, 0, None, None, None)
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest.copy(calctype = Some(1))), None, Some(gmpBulkCalculationResponse)))
-        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -376,7 +376,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
           CalculationRequest(None,1, Some(validCalculationRequest), Some(Map(RequestFieldKey.SCON.toString -> "This row has an error")), None)
         )
 
-        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -398,7 +398,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
 
-        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -419,7 +419,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
 
-        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -446,7 +446,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
           CalculationRequest(None, 1, None, None, None)
         )
 
-        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -481,7 +481,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
                                                RequestFieldKey.OPPOSITE_GENDER.toString -> "This dual_calc has an error")), None)
         )
 
-        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd","mail@mail.com","reference1",calculationRequests,"userId",LocalDateTime.now(),Some(true),Some(1),Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd","mail@mail.com","reference1",calculationRequests,"userId",LocalDateTime.now(),Some(true),Some(1),Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -511,7 +511,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val calculationRequests = List(CalculationRequest(None,1, Some(validCalculationRequest), Some(Map(RequestFieldKey.SURNAME.toString -> "Please enter a valid surname")), None))
 
-        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd","mail@mail.com","reference1",calculationRequests,"userId",LocalDateTime.now(),Some(true),Some(1),Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None,"abcd","mail@mail.com","reference1",calculationRequests,"userId",LocalDateTime.now(),Some(true),Some(1),Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -524,7 +524,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val errors = Map(RequestFieldKey.LINE_ERROR_TOO_FEW.toString -> "The line has an error")
         val requests = List(CalculationRequest(None, 1, None, Some(errors), None))
-        val bulkRequest = BulkCalculationRequest(None, "ref1", "mail@mail.com", "reference1", requests, "userId", LocalDateTime.now(), Some(true), Some(0), Some(1), createdAt)
+        val bulkRequest = BulkCalculationRequest(None, "ref1", "mail@mail.com", "reference1", requests, "userId", LocalDateTime.now(), Some(true), Some(0), Some(1))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -538,7 +538,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val errors = Map(RequestFieldKey.LINE_ERROR_TOO_MANY.toString -> "The line has an error")
         val requests = List(CalculationRequest(None, 1, None, Some(errors), None))
-        val bulkRequest = BulkCalculationRequest(None, "ref1", "mail@mail.com", "reference1", requests, "userId", LocalDateTime.now(), Some(true), Some(0), Some(1), createdAt)
+        val bulkRequest = BulkCalculationRequest(None, "ref1", "mail@mail.com", "reference1", requests, "userId", LocalDateTime.now(), Some(true), Some(0), Some(1))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -654,7 +654,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
-        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -679,7 +679,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
-        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -697,7 +697,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
       "return Forbidden if no user is found" in {
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(
           Future.successful(Some(BulkCalculationRequest(None,"Ref", "email", "ref2",
-            List.empty[CalculationRequest], "USER-ID", LocalDateTime.now, None, None, None, None))))
+            List.empty[CalculationRequest], "USER-ID", LocalDateTime.now, None, None, None))))
 
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = AnyContentAsEmpty)
         val result = TestBulkController.getContributionsAndEarningsAsCsv("WRONG_USER_ID","thing-ref")(fakeRequest)
@@ -727,7 +727,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
-        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -757,7 +757,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
-        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
@@ -778,7 +778,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
         val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
-        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0), createdAt)
+        val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
