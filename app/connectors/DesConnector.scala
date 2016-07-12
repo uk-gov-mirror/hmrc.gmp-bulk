@@ -43,7 +43,6 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
   private val SuffixStart = 8
   private val SuffixEnd = 9
 
-
   val serviceKey = getConfString("nps.key", "")
   val serviceEnvironment = getConfString("nps.environment", "")
 
@@ -57,9 +56,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
   val calcURI = s"$serviceURL/$baseURI"
 
-
   def calculate(request: ValidCalculationRequest): Future[CalculationResponse] = {
-
 
     val paramMap: Map[String, Option[Any]] = Map(
       "revalrate" -> request.revaluationRate, "revaldate" -> request.revaluationDate, "calctype" -> request.calctype,
@@ -87,6 +84,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
 
     Logger.debug(s"[DesConnector][calculate] : $uri")
+
     val startTime = System.currentTimeMillis()
 
     val result = withCircuitBreaker(http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads).map { response =>
@@ -106,17 +104,15 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
           metrics.registerFailedRequest
           throw new Upstream5xxResponse("NPS connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
         }
-
       }
-
     })
-    result
 
+    result
   }
 
   private def npsRequestHeaderCarrier: HeaderCarrier = {
 
-    (HeaderCarrier()).withExtraHeaders("Authorization" -> s"Bearer $serviceKey")
+    HeaderCarrier().withExtraHeaders("Authorization" -> s"Bearer $serviceKey")
       .withExtraHeaders("Environment" -> serviceEnvironment)
 
   }
@@ -133,20 +129,21 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
   }
 
   override protected def circuitBreakerConfig: CircuitBreakerConfig = {
-    CircuitBreakerConfig("DesConnector", ApplicationConfig.numberOfCallsToTriggerStateChange, ApplicationConfig.unavailablePeriodDuration,
+    CircuitBreakerConfig("DesConnector",
+      ApplicationConfig.numberOfCallsToTriggerStateChange,
+      ApplicationConfig.unavailablePeriodDuration,
       ApplicationConfig.unstablePeriodDuration)
   }
 
   override protected def breakOnException(t: Throwable): Boolean = {
     t match {
       // $COVERAGE-OFF$
-      case e: Upstream5xxResponse if (e.upstreamResponseCode == 503 && !e.message.contains("digital_rate_limit")) => true
+      case e: Upstream5xxResponse if e.upstreamResponseCode == 503 && !e.message.contains("digital_rate_limit") => true
       case e: BadGatewayException => true
       case _ => false
       // $COVERAGE-ON$
     }
   }
-
 
 }
 
