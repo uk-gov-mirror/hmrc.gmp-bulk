@@ -89,7 +89,8 @@ case class GmpBulkCalculationResponse(
                                        spaDate: Option[LocalDate],
                                        payableAgeDate: Option[LocalDate],
                                        dateOfDeath: Option[LocalDate],
-                                       containsErrors: Boolean = false
+                                       containsErrors: Boolean = false,
+                                       responseMessage: Option[String] = None
                                      ) {
 
   def hasErrors: Boolean = calculationPeriods.foldLeft(globalErrorCode) {

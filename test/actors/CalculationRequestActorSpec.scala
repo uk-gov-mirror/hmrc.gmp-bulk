@@ -21,10 +21,10 @@ import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 import connectors.DesConnector
 import helpers.RandomNino
 import metrics.Metrics
-import models.{ProcessReadyCalculationRequest, CalculationResponse, Scon, ValidCalculationRequest}
+import models._
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.mock.MockitoSugar
 import repositories.BulkCalculationRepository
 import uk.gov.hmrc.play.test.UnitSpec
@@ -37,7 +37,7 @@ class CalculationRequestActorMock(val desConnector: DesConnector, val repository
 
 
 class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationActorSystem")) with UnitSpec with MockitoSugar
-  with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils {
+  with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils with BeforeAndAfter {
 
   val mockDesConnector = mock[DesConnector]
   val mockRepository = mock[BulkCalculationRepository]
@@ -47,6 +47,11 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
     def props(desConnector: DesConnector, repository: BulkCalculationRepository, metrics: Metrics) = Props(classOf[CalculationRequestActorMock], desConnector, repository,metrics)
   }
 
+  before {
+    reset(mockDesConnector)
+    reset(mockRepository)
+    reset(mockMetrics)
+  }
 
   override def afterAll: Unit = {
     shutdown()
@@ -74,7 +79,8 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
     "get failure when fails to send to DES" in {
 
-      when(mockDesConnector.calculate(Matchers.any())).thenThrow(new RuntimeException)
+      when(mockDesConnector.calculate(Matchers.any())).thenThrow(new RuntimeException("The calculation failed"))
+      when(mockRepository.insertResponseByReference(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(true))
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
@@ -82,6 +88,9 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
         actorRef ! ProcessReadyCalculationRequest("test", 1, ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None))
         expectMsgClass(classOf[akka.actor.Status.Failure])
+
+        verify(mockRepository).insertResponseByReference("test", 1,
+          GmpBulkCalculationResponse(List(), 0, None, None, None, containsErrors = true, responseMessage = Some("The calculation failed")))
       }
 
     }

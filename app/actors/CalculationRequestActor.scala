@@ -77,7 +77,23 @@ class CalculationRequestActor extends Actor with ActorUtils {
           // $COVERAGE-OFF$
           Logger.debug(s"[CalculationRequestActor][Calling DES failed with error ${f.getMessage}]")
           // $COVERAGE-ON$
-          origSender ! akka.actor.Status.Failure(f)
+
+          // Record the response as a failure, which will help out with cyclic processing of messages
+          repository.insertResponseByReference(request.bulkId, request.lineId,
+            GmpBulkCalculationResponse(List(), 0, None, None, None, containsErrors = true, responseMessage = Some(f.getMessage))).map { result =>
+
+              origSender ! akka.actor.Status.Failure(f)
+
+            }.recover {
+              case e: Exception => {
+                // $COVERAGE-OFF$
+                Logger.debug(s"[CalculationRequestActor][Inserting Failure response failed with error : { exception : $e}]")
+                // $COVERAGE-ON$
+
+                origSender ! akka.actor.Status.Failure(f)
+              }
+            }
+
         }
 
       }
@@ -116,5 +132,6 @@ trait DefaultCalculationRequestComponent extends CalculationRequestActorComponen
 object CalculationRequestActor {
   // $COVERAGE-OFF$
   def props = Props(classOf[DefaultCalculationRequestActor])
+
   // $COVERAGE-ON$
 }
