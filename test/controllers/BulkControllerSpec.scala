@@ -545,7 +545,19 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
         val result = TestBulkController.getCalculationsAsCsv("userId", "reference", CsvFilter.Failed)(fakeRequest)
 
         contentAsString(result) must include("The line has an error,See the instruction file on the GMP checker dashboard. Resend the calculation request without the extra field(s)")
+      }
 
+      "contain the correct line error when there are no calculations" in {
+        val errors = Map(RequestFieldKey.LINE_ERROR_EMPTY.toString -> "The line is empty")
+        val requests = List(CalculationRequest(None, 1, None, Some(errors), None))
+        val bulkRequest = BulkCalculationRequest(None, "ref1", "mail@mail.com", "ref1", requests, "userId", LocalDateTime.now(), Some(true), Some(0), Some(1))
+
+        when(mockRepo.findByReference(Matchers.any(), Matchers.any())) thenReturn Future.successful(Some(bulkRequest))
+        val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
+        val result = TestBulkController.getCalculationsAsCsv("userId", "reference", CsvFilter.Failed)(fakeRequest)
+        val content = contentAsString(result)
+
+        content must include("The line is empty")
       }
 
       "insert an empty reval rate when member in scheme, and calc type is Survivor" in {

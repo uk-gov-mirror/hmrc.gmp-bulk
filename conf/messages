@@ -29,6 +29,7 @@ gmp.period.what = What to do
 
 gmp.error.line.too_few = See the instruction file on the GMP checker dashboard. Resend the calculation request with the missing field(s)
 gmp.error.line.too_many = See the instruction file on the GMP checker dashboard. Resend the calculation request without the extra field(s)
+gmp.error.line.empty = No information submitted
 
 48160.reason = No online calculation possible
 48160.what = Contact HMRC through Shared Workspace
