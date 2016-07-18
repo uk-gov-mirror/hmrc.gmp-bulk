@@ -74,20 +74,6 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
     "get failure when fails to send to DES" in {
 
-      when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.failed(new RuntimeException))
-
-      val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
-
-      within(5 seconds) {
-
-        actorRef ! ProcessReadyCalculationRequest("test", 1, ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None))
-
-      }
-
-    }
-
-    "get failure when fails to send to DES 2" in {
-
       when(mockDesConnector.calculate(Matchers.any())).thenThrow(new RuntimeException)
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
@@ -111,7 +97,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       }
     }
 
-    "send STOP message to sender when recieve the STOP message" in {
+    "send STOP message to sender when receive the STOP message" in {
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
