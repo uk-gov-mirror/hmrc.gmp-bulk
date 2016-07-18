@@ -90,7 +90,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
         expectMsgClass(classOf[akka.actor.Status.Failure])
 
         verify(mockRepository).insertResponseByReference("test", 1,
-          GmpBulkCalculationResponse(List(), 0, None, None, None, containsErrors = true, responseMessage = Some("The calculation failed")))
+          GmpBulkCalculationResponse(List(), 48160, None, None, None, containsErrors = true, responseMessage = Some("The calculation failed")))
       }
 
     }
