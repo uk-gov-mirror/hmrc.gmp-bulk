@@ -124,28 +124,22 @@ trait CsvGenerator {
                 case _ => dataRow
               }).mkString(",")
             }
-            case _ => {
-              if (validationError.isDefinedAt(RequestFieldKey.LINE_ERROR_TOO_FEW.toString)) {
-                validationError.isDefinedAt(RequestFieldKey.LINE_ERROR_TOO_FEW.toString) match {
-                  case true => csvFilter match {
-                    case Some(CsvFilter.All) => s"${Messages("gmp.error")}${"," * (errorColumn)}${validationError(RequestFieldKey.LINE_ERROR_TOO_FEW.toString)},${Messages("gmp.error.line.too_few")}"
-                    case Some(CsvFilter.Failed) => s"${"," * errorColumn}${validationError(RequestFieldKey.LINE_ERROR_TOO_FEW.toString)},${Messages("gmp.error.line.too_few")}"
+            case _ =>
+              Seq(
+                (RequestFieldKey.LINE_ERROR_TOO_FEW.toString, Messages("gmp.error.line.too_few")),
+                (RequestFieldKey.LINE_ERROR_TOO_MANY.toString, Messages("gmp.error.line.too_many")),
+                (RequestFieldKey.LINE_ERROR_EMPTY.toString, "" /* Intentionally empty */)
+              ) collectFirst {
+                case x if validationError.isDefinedAt(x._1) => x
+              } match {
+                case Some(err) =>
+                  csvFilter match {
+                    case Some(CsvFilter.All) => s"${Messages("gmp.error")}${"," * errorColumn}${validationError(err._1)},${err._2}"
+                    case Some(CsvFilter.Failed) => s"${"," * errorColumn}${validationError(err._1)},${err._2}"
                     case _ => ""
                   }
-                  case _ => ""
-                }
+                case _ => ""
               }
-              else if (validationError.isDefinedAt(RequestFieldKey.LINE_ERROR_TOO_MANY.toString)) {
-                validationError.isDefinedAt(RequestFieldKey.LINE_ERROR_TOO_MANY.toString) match {
-                  case true => csvFilter match {
-                    case Some(CsvFilter.All) => s"${Messages("gmp.error")}${"," * (errorColumn)}${validationError(RequestFieldKey.LINE_ERROR_TOO_MANY.toString)},${Messages("gmp.error.line.too_many")}"
-                    case Some(CsvFilter.Failed) => s"${"," * errorColumn}${validationError(RequestFieldKey.LINE_ERROR_TOO_MANY.toString)},${Messages("gmp.error.line.too_many")}"
-                    case _ => ""
-                  }
-                  case _ => ""
-                }
-              }
-            }
           }
         }
         case _ => calculationRequest.validCalculationRequest match {

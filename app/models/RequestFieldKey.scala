@@ -21,6 +21,7 @@ case class RequestFieldKey(fieldKey: Int)
 object RequestFieldKey {
   val LINE_ERROR_TOO_FEW = -1
   val LINE_ERROR_TOO_MANY = -2
+  val LINE_ERROR_EMPTY = -3
   val SCON = 0
   val NINO = 1
   val SURNAME = 3
