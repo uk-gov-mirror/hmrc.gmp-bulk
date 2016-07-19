@@ -93,7 +93,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
     }
 
-    "inserts a failed response when a 400 code is returned from DES" in {
+    "insert a failed response when a 400 code is returned from DES" in {
 
       val ex = mock[Upstream4xxResponse]
       when(ex.reportAs) thenReturn 400
@@ -106,10 +106,9 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       within(5 seconds) {
 
         actorRef ! ProcessReadyCalculationRequest("test", 1, ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None))
-        expectMsgClass(classOf[akka.actor.Status.Failure])
+        expectMsg(true)
 
-        verify(mockRepository).insertResponseByReference("test", 1,
-          GmpBulkCalculationResponse(List(), 400, None, None, None, containsErrors = true))
+        verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 400, None, None, None, containsErrors = true))
       }
 
     }

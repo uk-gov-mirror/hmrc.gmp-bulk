@@ -76,7 +76,8 @@ class CalculationRequestActor extends Actor with ActorUtils {
               repository.insertResponseByReference(request.bulkId, request.lineId,
                 GmpBulkCalculationResponse(List(), 400, None, None, None, containsErrors = true)).map { result =>
 
-                origSender ! akka.actor.Status.Failure(e)
+                origSender ! result
+
               }
             }
 
