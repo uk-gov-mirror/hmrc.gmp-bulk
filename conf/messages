@@ -31,6 +31,9 @@ gmp.error.line.too_few = See the instruction file on the GMP checker dashboard. 
 gmp.error.line.too_many = See the instruction file on the GMP checker dashboard. Resend the calculation request without the extra field(s)
 gmp.error.line.empty = No information submitted
 
+400.reason = No online calculation possible
+400.what = Contact HMRC through Shared Workspace
+
 48160.reason = No online calculation possible
 48160.what = Contact HMRC through Shared Workspace
 56012.reason = No online calculation possible

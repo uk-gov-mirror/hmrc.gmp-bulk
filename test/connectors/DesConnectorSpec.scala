@@ -109,6 +109,21 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
               }
       }
 
+      "return an error when 400 returned" in {
+
+        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(400, None)))
+
+        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
+
+        intercept[Upstream4xxResponse] {
+          await(result)
+          verify(TestDesConnector.metrics).registerFailedRequest
+        }
+      }
+
       "return an unhealthy service exception when 503 returned more than {numberOfCallsToTriggerStateChange} times" in {
 
         object Test503DesConnector extends DesConnector {
