@@ -24,6 +24,8 @@ import metrics.Metrics
 import models.{ProcessReadyCalculationRequest, CalculationResponse, GmpBulkCalculationResponse, ValidCalculationRequest}
 import play.api.Logger
 import repositories.BulkCalculationRepository
+import uk.gov.hmrc.play.http._
+import play.api.http.Status
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -36,9 +38,7 @@ trait CalculationRequestActorComponent {
 
 class CalculationRequestActor extends Actor with ActorUtils {
 
-
   self: CalculationRequestActorComponent =>
-
 
   override def receive: Receive = {
     case request: ProcessReadyCalculationRequest => {
@@ -65,11 +65,31 @@ class CalculationRequestActor extends Actor with ActorUtils {
               }
             }
           }.recover {
-            case e: Exception => {
-              // $COVERAGE-OFF$
-              Logger.debug(s"[CalculationRequestActor] Exception : { exception : $e}")
-              // $COVERAGE-ON$
+
+            case e: Upstream4xxResponse if e.reportAs == Status.BAD_REQUEST => {
+
+              // Record the response as a failure, which will help out with cyclic processing of messages
+              repository.insertResponseByReference(request.bulkId, request.lineId,
+                GmpBulkCalculationResponse(List(), 48160, None, None, None, containsErrors = true, responseMessage = Some(e.getMessage))).map { result =>
+
+                origSender ! akka.actor.Status.Failure(e)
+
+              }.recover {
+                case e: Exception => {
+                  // $COVERAGE-OFF$
+                  Logger.debug(s"[CalculationRequestActor][Inserting Failure response failed with error : { exception : $e}]")
+                  // $COVERAGE-ON$
+
+                  origSender ! akka.actor.Status.Failure(e)
+                }
+              }
             }
+
+            case e =>
+              // $COVERAGE-OFF$
+              Logger.debug(s"[CalculationRequestActor][Inserting Failure response failed with error : { exception : $e}]")
+              origSender ! akka.actor.Status.Failure(e)
+              // $COVERAGE-ON$
           }
         }
 
@@ -77,23 +97,6 @@ class CalculationRequestActor extends Actor with ActorUtils {
           // $COVERAGE-OFF$
           Logger.debug(s"[CalculationRequestActor][Calling DES failed with error ${f.getMessage}]")
           // $COVERAGE-ON$
-
-          // Record the response as a failure, which will help out with cyclic processing of messages
-          repository.insertResponseByReference(request.bulkId, request.lineId,
-            GmpBulkCalculationResponse(List(), 48160, None, None, None, containsErrors = true, responseMessage = Some(f.getMessage))).map { result =>
-
-              origSender ! akka.actor.Status.Failure(f)
-
-            }.recover {
-              case e: Exception => {
-                // $COVERAGE-OFF$
-                Logger.debug(s"[CalculationRequestActor][Inserting Failure response failed with error : { exception : $e}]")
-                // $COVERAGE-ON$
-
-                origSender ! akka.actor.Status.Failure(f)
-              }
-            }
-
         }
 
       }
