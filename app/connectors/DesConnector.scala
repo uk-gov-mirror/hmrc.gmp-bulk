@@ -21,18 +21,14 @@ import java.util.concurrent.TimeUnit
 
 import config.{ApplicationConfig, WSHttp}
 import metrics.Metrics
-import models.{ValidCalculationRequest, CalculationResponse, CalculationRequest}
+import models.{CalculationResponse, ValidCalculationRequest}
 import play.api.Logger
-import play.api.i18n.Messages
-import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.audit.model.{EventTypes, DataEvent}
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.config.ServicesConfig
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.play.audit.AuditExtensions._
 import play.api.http.Status._
+import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
+import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.http._
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircuitBreaker {

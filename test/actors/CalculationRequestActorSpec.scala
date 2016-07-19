@@ -27,6 +27,7 @@ import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.mock.MockitoSugar
 import repositories.BulkCalculationRepository
+import uk.gov.hmrc.play.http.Upstream4xxResponse
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
@@ -80,6 +81,24 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
     "get failure when fails to send to DES" in {
 
       when(mockDesConnector.calculate(Matchers.any())).thenThrow(new RuntimeException("The calculation failed"))
+
+      val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
+
+      within(5 seconds) {
+
+        actorRef ! ProcessReadyCalculationRequest("test", 1, ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None))
+        expectMsgClass(classOf[akka.actor.Status.Failure])
+
+      }
+
+    }
+
+    "inserts a failed response when a 400 code is returned from DES" in {
+
+      val ex = mock[Upstream4xxResponse]
+      when(ex.reportAs) thenReturn 400
+
+      when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.failed(ex))
       when(mockRepository.insertResponseByReference(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(true))
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
@@ -90,7 +109,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
         expectMsgClass(classOf[akka.actor.Status.Failure])
 
         verify(mockRepository).insertResponseByReference("test", 1,
-          GmpBulkCalculationResponse(List(), 48160, None, None, None, containsErrors = true))
+          GmpBulkCalculationResponse(List(), 400, None, None, None, containsErrors = true))
       }
 
     }

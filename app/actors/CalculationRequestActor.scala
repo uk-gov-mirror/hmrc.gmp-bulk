@@ -68,20 +68,15 @@ class CalculationRequestActor extends Actor with ActorUtils {
 
             case e: Upstream4xxResponse if e.reportAs == Status.BAD_REQUEST => {
 
+              // $COVERAGE-OFF$
+              Logger.debug(s"[CalculationRequestActor][Inserting Failure response failed with error : { exception : $e}]")
+              // $COVERAGE-ON$
+
               // Record the response as a failure, which will help out with cyclic processing of messages
               repository.insertResponseByReference(request.bulkId, request.lineId,
                 GmpBulkCalculationResponse(List(), 400, None, None, None, containsErrors = true)).map { result =>
 
                 origSender ! akka.actor.Status.Failure(e)
-
-              }.recover {
-                case e: Exception => {
-                  // $COVERAGE-OFF$
-                  Logger.debug(s"[CalculationRequestActor][Inserting Failure response failed with error : { exception : $e}]")
-                  // $COVERAGE-ON$
-
-                  origSender ! akka.actor.Status.Failure(e)
-                }
               }
             }
 
@@ -97,6 +92,8 @@ class CalculationRequestActor extends Actor with ActorUtils {
           // $COVERAGE-OFF$
           Logger.debug(s"[CalculationRequestActor][Calling DES failed with error ${f.getMessage}]")
           // $COVERAGE-ON$
+
+          origSender ! akka.actor.Status.Failure(f)
         }
 
       }
