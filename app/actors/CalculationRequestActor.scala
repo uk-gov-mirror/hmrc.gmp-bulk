@@ -70,7 +70,7 @@ class CalculationRequestActor extends Actor with ActorUtils {
 
               // Record the response as a failure, which will help out with cyclic processing of messages
               repository.insertResponseByReference(request.bulkId, request.lineId,
-                GmpBulkCalculationResponse(List(), 48160, None, None, None, containsErrors = true, responseMessage = Some(e.getMessage))).map { result =>
+                GmpBulkCalculationResponse(List(), 400, None, None, None, containsErrors = true)).map { result =>
 
                 origSender ! akka.actor.Status.Failure(e)
 
