@@ -186,25 +186,7 @@ trait CsvGenerator {
                   generatePeriodColumnData(period, csvFilter, index)(v)
                 }
               case _ => Nil
-            }) ::: (csvFilter match {
-              case Some(CsvFilter.Successful) => Nil
-              case _ =>
-                val periods = calculationRequest.calculationResponse match {
-                  case Some(calcResponse) => calcResponse.calculationPeriods.size
-                  case _ => 0
-                }
-                List.fill(maxPeriods - periods)(",,,,,,,,") :::
-                  List(
-                    calculationRequest.getGlobalErrorMessageReason match {
-                      case Some(msg) => msg
-                      case _ => ""
-                    },
-                    calculationRequest.getGlobalErrorMessageWhat match {
-                      case Some(msg) => msg
-                      case _ => ""
-                    }
-                  )
-            })
+            }) ::: (fillTrailingCommas(csvFilter,calculationRequest,maxPeriods))
 
             (csvFilter match {
               case Some(CsvFilter.All) => {
@@ -221,12 +203,35 @@ trait CsvGenerator {
       }
     }.mkString("\n")
 
-    println("$$$$$$$$$$$$$$$$$$$$\n" + dataRows + "\n$$$$$$$$$$$$$$$$$$$$")
-    println("&&&&&&&&&&&&&&&&&&&&\n" + guidanceText + ("," * (columnCount - 1)) + "\n" + columnHeaders + "\n" + dataRows + "\n&&&&&&&&&&&&&&&&&&&&&&")
-
     guidanceText + ("," * (columnCount - 1)) + "\n" + columnHeaders + "\n" + dataRows
 
+  }
 
+  private def fillTrailingCommas(csvFilter: Option[CsvFilter],calculationRequest: CalculationRequest,maxPeriods:Int):List[String] = {
+    csvFilter match {
+      case Some(CsvFilter.Successful) =>
+        addTrailingCommas(calculationRequest, maxPeriods)
+      case _ =>
+        addTrailingCommas(calculationRequest, maxPeriods) :::
+          List(
+            calculationRequest.getGlobalErrorMessageReason match {
+              case Some(msg) => msg
+              case _ => ""
+            },
+            calculationRequest.getGlobalErrorMessageWhat match {
+              case Some(msg) => msg
+              case _ => ""
+            }
+          )
+    }
+  }
+
+  private def addTrailingCommas(calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
+    val periods = calculationRequest.calculationResponse match {
+      case Some(calcResponse) => calcResponse.calculationPeriods.size
+      case _ => 0
+    }
+    List.fill(maxPeriods - periods)(",,,,,,,,")
   }
 
   private def convertCalcType(calcType: Option[Int]): String = {

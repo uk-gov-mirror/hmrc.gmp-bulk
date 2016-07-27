@@ -48,24 +48,40 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
   "CsvGeneratorSpec" must {
 
-    "return correct number of trailing commas for single period line" in {
+    "return correct number of trailing commas for single period line when successful calculations requested" in {
 
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,"
+      val expectedResult = s"S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestSingle,Some(CsvFilter.Successful))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
       rows must be(expectedResult)
     }
 
-    "return correct number of trailing commas for multiple period line" in {
+    "return correct number of trailing commas for multiple period line when successful calculations requested" in {
 
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,9.36,3.69,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,," +
-                    "\n" + s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,,,,,,,,,,,,,,,,,,,"
+      val expectedResult = s"S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,9.36,3.69,,,${date},${date},3.12,1.23,,,,${date},${date},3.12,1.23,,,,${date},${date},3.12,1.23,,," +
+                    "\n" + s"S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,,,,,,,,,,,,,,,"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestMultiple,Some(CsvFilter.Successful))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
-//      println("*********\n" + rows + "\n********")
-//      println("*********\n" + expectedResult + "\n********")
+      rows must be(expectedResult)
+    }
+
+    "return correct number of trailing commas for single period line when all calculation requested" in {
+
+      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,"
+      val result = TestCsvGenerator.generateCsv(bulkCalculationRequestSingle,Some(CsvFilter.All))
+      val rows = result.split("\n").tail.tail.mkString("\n")
+
+      rows must be(expectedResult)
+    }
+
+    "return correct number of trailing commas for multiple period line when all calculations requested" in {
+
+      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,9.36,3.69,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,," +
+        "\n" + s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,,,,,,,,,,,,,,,,,,,"
+      val result = TestCsvGenerator.generateCsv(bulkCalculationRequestMultiple,Some(CsvFilter.All))
+      val rows = result.split("\n").tail.tail.mkString("\n")
 
       rows must be(expectedResult)
     }
