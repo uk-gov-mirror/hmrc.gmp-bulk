@@ -34,6 +34,7 @@ trait CsvGenerator {
     }.max
 
     val periodColumns = generatePeriodHeaders(maxPeriods, csvFilter)
+
     val columnHeaders = csvFilter match {
       case Some(CsvFilter.All) => Messages("gmp.status") + "," + Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," +
         (periodColumns match {
@@ -49,6 +50,7 @@ trait CsvGenerator {
         Messages("gmp.bulk.csv.globalerror.headers")
       case _ => Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," + periodColumns
     }
+
     val columnCount = columnHeaders.split(",").size
     val errorColumn = columnCount - 2
 
@@ -218,6 +220,9 @@ trait CsvGenerator {
         }
       }
     }.mkString("\n")
+
+    println("$$$$$$$$$$$$$$$$$$$$\n" + dataRows + "\n$$$$$$$$$$$$$$$$$$$$")
+    println("&&&&&&&&&&&&&&&&&&&&\n" + guidanceText + ("," * (columnCount - 1)) + "\n" + columnHeaders + "\n" + dataRows + "\n&&&&&&&&&&&&&&&&&&&&&&")
 
     guidanceText + ("," * (columnCount - 1)) + "\n" + columnHeaders + "\n" + dataRows
 
