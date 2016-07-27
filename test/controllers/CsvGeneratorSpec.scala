@@ -46,7 +46,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
   val bulkCalculationRequestSingle = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestsSingle, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
   val bulkCalculationRequestMultiple = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestsMultiple, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
-  "CsvGeneratorSpec" must {
+  "CsvGenerator" must {
 
     "return correct number of trailing commas for single period line when successful calculations requested" in {
 
