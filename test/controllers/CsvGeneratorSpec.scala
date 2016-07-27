@@ -38,11 +38,12 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
     CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
     CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
 
+  val calculationRequestNoResponse = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, None))
   val calculationRequestsSingle = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(singlePeriodGmpBulkCalculationResponse)))
-
   val calculationRequestsMultiple = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(multiplePeriodGmpBulkCalculationResponse)),
                                          CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(singlePeriodGmpBulkCalculationResponse)))
 
+  val bulkCalculationRequestNoReponse = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestNoResponse, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
   val bulkCalculationRequestSingle = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestsSingle, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
   val bulkCalculationRequestMultiple = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestsMultiple, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
@@ -86,6 +87,15 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
       rows must be(expectedResult)
     }
 
+    "add no commas when no calculation response" in {
+
+      val expectedResult = s"S2730000B,${nino},John,Smith,ref1,Date of leaving,,,,No,0,0,,"
+      val result = TestCsvGenerator.generateCsv(bulkCalculationRequestNoReponse,Some(CsvFilter.Successful))
+      val rows = result.split("\n").tail.tail.mkString("\n")
+
+      rows must be(expectedResult)
+
+    }
   }
 
 }
