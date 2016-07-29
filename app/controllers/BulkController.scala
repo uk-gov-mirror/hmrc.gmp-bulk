@@ -39,7 +39,7 @@ trait BulkController extends BaseController {
             emailConnector.sendReceivedTemplatedEmail(ReceivedUploadTemplate(bulkCalculationRequest.email,bulkCalculationRequest.reference))
             Ok
           }
-          case _ => BadRequest
+          case _ => Conflict //trying to insert a duplicate
         }
       }
   }
