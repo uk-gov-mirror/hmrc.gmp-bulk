@@ -231,7 +231,7 @@ trait CsvGenerator {
       case Some(calcResponse) => calcResponse.calculationPeriods.size
       case _ => 0
     }
-    List.fill(maxPeriods - periods)(",,,,,,,,")
+    List.fill(maxPeriods - periods)(",,,,,,")
   }
 
   private def convertCalcType(calcType: Option[Int]): String = {
