@@ -53,7 +53,6 @@ trait BulkController extends BaseController {
       }
   }
 
-
   def getResultsSummary(userId: String, uploadReference: String) = Action.async {
     implicit request =>
       repository.findSummaryByReference(uploadReference).map {
