@@ -238,7 +238,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val periodColumns = "Period 1 (start date),Period 1 (end date),Period 1 (total GMP),Period 1 (post 1988),Period 1 (post 1990 - true gender),"+
           "Period 1 (post 1990 - opposite gender),Period 1 (revaluation rate),Period 1 Error,Period 1 What to do"
-        val csvRows = s"""Success,S2730000B,$nino,John,Smith,ref1,Date of leaving,,${LocalDate.now().toString("dd/MM/yyyy")},,No,3.12,1.23,,,"""
+        val csvRows = s"""Success,S2730000B,$nino,John,Smith,ref1,Date of leaving,,${LocalDate.now().toString("dd/MM/yyyy")},,No,3.12,1.23"""
         val guidanceText = s"${Messages("gmp.bulk.csv.guidance")}"
         val columnHeaders = Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," + periodColumns
 
