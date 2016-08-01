@@ -116,11 +116,11 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
           status(result) must be(OK)
         }
 
-        "return bad request when inserting a duplicate" in {
+        "return conflict when inserting a duplicate" in {
           when(mockRepo.insertBulkDocument(Matchers.any())).thenReturn(Future.successful(false))
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(json))
           val result = TestBulkController.post("USER_ID").apply(fakeRequest)
-          status(result) must be(BAD_REQUEST)
+          status(result) must be(CONFLICT)
         }
 
         "when unable to save into mongo" must {
