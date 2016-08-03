@@ -91,10 +91,6 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestMultiple,Some(CsvFilter.All))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
-      println("*******\n" + expectedResult)
-      println("*******\n" + rows)
-
-
       rows must be(expectedResult)
     }
 
