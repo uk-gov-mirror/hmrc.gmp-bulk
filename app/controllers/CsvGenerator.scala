@@ -316,8 +316,6 @@ trait CsvGenerator {
   private def calculatePeriodRevalRate(period: CalculationPeriod, index: Int)(implicit request: ValidCalculationRequest): String = {
     if (period.revaluationRate == 0)
       ""
-    else if (!period.endDate.isBefore(LocalDate.now()) && index == 0)
-      ""
     else {
       request.memberIsInScheme match {
         case Some(true) if Set(2,3,4) contains request.calctype.get => ""

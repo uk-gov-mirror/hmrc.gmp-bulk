@@ -39,7 +39,7 @@ trait BulkController extends BaseController {
             emailConnector.sendReceivedTemplatedEmail(ReceivedUploadTemplate(bulkCalculationRequest.email,bulkCalculationRequest.reference))
             Ok
           }
-          case _ => BadRequest
+          case _ => Conflict //trying to insert a duplicate
         }
       }
   }
@@ -52,7 +52,6 @@ trait BulkController extends BaseController {
         }
       }
   }
-
 
   def getResultsSummary(userId: String, uploadReference: String) = Action.async {
     implicit request =>

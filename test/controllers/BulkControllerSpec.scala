@@ -116,11 +116,11 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
           status(result) must be(OK)
         }
 
-        "return bad request when inserting a duplicate" in {
+        "return conflict when inserting a duplicate" in {
           when(mockRepo.insertBulkDocument(Matchers.any())).thenReturn(Future.successful(false))
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(json))
           val result = TestBulkController.post("USER_ID").apply(fakeRequest)
-          status(result) must be(BAD_REQUEST)
+          status(result) must be(CONFLICT)
         }
 
         "when unable to save into mongo" must {
@@ -292,7 +292,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
             "Period 2 Error,Period 2 What to do,Period 3 (start date),Period 3 (end date),Period 3 (total GMP),Period 3 (post 1988),"+
             "Period 3 (post 1990 - true gender),Period 3 (post 1990 - opposite gender),Period 3 (revaluation rate),Period 3 Error,Period 3 What to do"
 
-          val csvRows = """Success,S2730000B,BH000007A,John,Smith,ref1,GMP specific date,,21/08/2035,HMRC,No,12.48,4.92,,,21/08/2040,21/08/2035,3.12,1.23,,,,,,21/08/2000,21/08/2005,3.12,1.23,,,Fixed,,,21/08/1999,21/08/2000,3.12,1.23,,,Limited,,,21/08/1999,21/08/2000,3.12,1.23,,,s148,,,,"""
+          val csvRows = """Success,S2730000B,BH000007A,John,Smith,ref1,GMP specific date,,21/08/2035,HMRC,No,12.48,4.92,,,21/08/2040,21/08/2035,3.12,1.23,,,s148,,,21/08/2000,21/08/2005,3.12,1.23,,,Fixed,,,21/08/1999,21/08/2000,3.12,1.23,,,Limited,,,21/08/1999,21/08/2000,3.12,1.23,,,s148,,,,"""
           val guidanceText = s"${Messages("gmp.bulk.csv.guidance")},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
           val columnHeaders = Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," + periodColumns
 
