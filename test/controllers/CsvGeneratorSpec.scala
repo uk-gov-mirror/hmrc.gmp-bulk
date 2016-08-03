@@ -121,6 +121,46 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
       rows must be(expectedResult)
     }
+
+    "show no reval rate for calctype 1 and member still in scheme" in {
+      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,${date},${date},,No,3.12,1.23,,,07/03/1983,${date},3.12,1.23,,,,,,,"
+      val validCalcRequest = ValidCalculationRequest("S2730000B",s"${nino}","Smith","John",Some("ref1"),Some(1),Some(LocalDate.now().toString()),None,Some(0),Some(LocalDate.now().toString()),Some(true))
+      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.now(), "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
+      val listCalcRequests = List(CalculationRequest(None, 1, Some(validCalcRequest), None, Some(calcResponse)))
+      val bulkRequest = bulkCalculationRequestSingle.copy(calculationRequests = listCalcRequests)
+
+      val result = TestCsvGenerator.generateCsv(bulkRequest,Some(CsvFilter.All))
+      val rows = result.split("\n").tail.tail.mkString("\n")
+
+      rows must be(expectedResult)
+    }
+
+    "show no reval rate for calctype 1 and member not still in scheme but first period still open" in {
+      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,${date},${date},,No,3.12,1.23,,,07/03/1983,${date},3.12,1.23,,,,,,,"
+      val validCalcRequest = ValidCalculationRequest("S2730000B",s"${nino}","Smith","John",Some("ref1"),Some(1),Some(LocalDate.now.toString()),None,Some(0),Some(LocalDate.now().toString()),Some(false))
+      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.now, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
+      val listCalcRequests = List(CalculationRequest(None, 1, Some(validCalcRequest), None, Some(calcResponse)))
+      val bulkRequest = bulkCalculationRequestSingle.copy(calculationRequests = listCalcRequests)
+
+      val result = TestCsvGenerator.generateCsv(bulkRequest,Some(CsvFilter.All))
+      val rows = result.split("\n").tail.tail.mkString("\n")
+
+      rows must be(expectedResult)
+    }
+
+    "show correct reval rate for calctype 1 and member not still in scheme and period closed" in {
+      val yesterdaysDate = LocalDate.now.minusDays(1)
+      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,${date},${yesterdaysDate.toString("dd/MM/yyyy")},,No,3.12,1.23,,,07/03/1983,${yesterdaysDate.toString("dd/MM/yyyy")},3.12,1.23,,,s148,,,,"
+      val validCalcRequest = ValidCalculationRequest("S2730000B",s"${nino}","Smith","John",Some("ref1"),Some(1),Some(yesterdaysDate.toString()),None,Some(0),Some(LocalDate.now().toString()),Some(false))
+      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), yesterdaysDate, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
+      val listCalcRequests = List(CalculationRequest(None, 1, Some(validCalcRequest), None, Some(calcResponse)))
+      val bulkRequest = bulkCalculationRequestSingle.copy(calculationRequests = listCalcRequests)
+
+      val result = TestCsvGenerator.generateCsv(bulkRequest,Some(CsvFilter.All))
+      val rows = result.split("\n").tail.tail.mkString("\n")
+
+      rows must be(expectedResult)
+    }
   }
 
 }

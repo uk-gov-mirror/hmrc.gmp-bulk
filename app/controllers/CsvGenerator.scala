@@ -319,6 +319,12 @@ trait CsvGenerator {
     else {
       request.memberIsInScheme match {
         case Some(true) if Set(2,3,4) contains request.calctype.get => ""
+        case Some(true) if request.calctype.get == 1 && index == 0 => ""
+        case Some(false) =>
+          if (request.calctype.get == 1 && index == 0 && !period.endDate.isBefore(LocalDate.now))
+            ""
+          else
+            convertRevalRate(Some(period.revaluationRate))
         case _ => convertRevalRate(Some(period.revaluationRate))
       }
     }
