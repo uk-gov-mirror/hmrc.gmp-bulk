@@ -210,9 +210,9 @@ trait CsvGenerator {
   private def fillTrailingCommas(csvFilter: Option[CsvFilter],calculationRequest: CalculationRequest,maxPeriods:Int):List[String] = {
     csvFilter match {
       case Some(CsvFilter.Successful) =>
-        addTrailingCommas(calculationRequest, maxPeriods)
+        addTrailingCommas(csvFilter, calculationRequest, maxPeriods)
       case _ =>
-        addTrailingCommas(calculationRequest, maxPeriods) :::
+        addTrailingCommas(csvFilter, calculationRequest, maxPeriods) :::
           List(
             calculationRequest.getGlobalErrorMessageReason match {
               case Some(msg) => msg
@@ -226,12 +226,15 @@ trait CsvGenerator {
     }
   }
 
-  private def addTrailingCommas(calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
+  private def addTrailingCommas(csvFilter: Option[CsvFilter],calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
     val periods = calculationRequest.calculationResponse match {
       case Some(calcResponse) => calcResponse.calculationPeriods.size
       case _ => 0
     }
-    List.fill(maxPeriods - periods)(",,,,,,,,")
+    csvFilter match {
+      case Some(CsvFilter.Successful) => List.fill(maxPeriods - periods)(",,,,,,")
+      case _ => List.fill(maxPeriods - periods)(",,,,,,,,")
+    }
   }
 
   private def convertCalcType(calcType: Option[Int]): String = {
