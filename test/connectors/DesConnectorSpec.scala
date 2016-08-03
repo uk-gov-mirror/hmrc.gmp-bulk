@@ -22,12 +22,13 @@ import config.ApplicationConfig
 import helpers.RandomNino
 import metrics.Metrics
 import models.ValidCalculationRequest
+import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest._
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play._
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -35,6 +36,7 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.SessionId
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
 
@@ -71,6 +73,62 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
            ]
         }""")
 
+  val desResponse = Json.parse(
+    """{
+        "brailleOutputRequired" : false,
+        "deceased" : false,
+        "dateOfBirth" : "1969-03-05",
+        "manualCorrespondenceInd" : false,
+        "hasSelfAssessmentAccount" : false,
+        "dateOfRegistration" : "2000-01-01",
+        "ninoSuffix" : "C",
+        "phoneNumber" : {
+          "1" : {
+          "telephoneNumber" : "01999123456",
+          "telephoneType" : 1
+        }
+        },
+        "registrationType" : 0,
+        "names" : {
+          "1" : {
+          "sequenceNumber" : 12345,
+          "firstForenameOrInitial" : "Angus",
+          "secondForenameOrInitial" : "John",
+          "startDate" : "2000-01-01",
+          "surname" : "Smith",
+          "title" : 1,
+          "honours" : null
+        }
+        },
+        "nino" : "AB123456",
+        "audioOutputRequired" : false,
+        "welshOutputRequired" : false,
+        "sex" : "M",
+        "dateOfEntry" : "2000-01-01",
+        "addresses" : {
+          "1" : {
+          "sequenceNumber" : 1,
+          "line1" : 123456,
+          "line2" : 23456,
+          "line3" : 3456,
+          "line4" : 456,
+          "postcode" : 98765,
+          "startDate" : "2000-01-01"
+        },
+          "2" : {
+          "sequenceNumber" : 1,
+          "line1" : "1 Main Street",
+          "line2" : "Central",
+          "line3" : "Anothertown",
+          "line4" : "Anothershire",
+          "postcode" : "NE27 5FG",
+          "startDate" : "2012-07-01"
+        }
+        },
+        "largePrintOutputRequired" : false,
+        "accountStatus" : 0
+      }"""
+  )
 
   before {
     reset(mockHttp)
@@ -86,7 +144,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
 
         val result = TestDesConnector.calculate(ValidCalculationRequest("S1234567T", nino, "Bixby", "Bill", None, Some(0), None, Some(1), None, None))
         val calcResponse = await(result)
@@ -100,13 +158,13 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(HttpResponse(500,Some(calcResponseJson))))
+          .thenReturn(Future.successful(HttpResponse(500, Some(calcResponseJson))))
 
         val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
         intercept[Upstream5xxResponse] {
-                await(result)
-                verify(TestDesConnector.metrics).registerFailedRequest
-              }
+          await(result)
+          verify(TestDesConnector.metrics).registerFailedRequest
+        }
       }
 
       "return an error when 400 returned" in {
@@ -141,14 +199,14 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
         when(mockHttp.GET[HttpResponse](Matchers.anyString)(Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(503, Some(calcResponseJson))))
 
-        for(x <- 1 to ApplicationConfig.numberOfCallsToTriggerStateChange){
+        for (x <- 1 to ApplicationConfig.numberOfCallsToTriggerStateChange) {
           intercept[Upstream5xxResponse] {
             await(Test503DesConnector.calculate(request))
             Thread.sleep(2)
           }
         }
 
-        intercept[UnhealthyServiceException]{
+        intercept[UnhealthyServiceException] {
           await(Test503DesConnector.calculate(request))
           verify(Test503DesConnector.metrics).registerFailedRequest
           verify(Test503DesConnector.metrics) registerStatusCode "503"
@@ -160,9 +218,9 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(HttpResponse(422,Some(calcResponseJson))))
+          .thenReturn(Future.successful(HttpResponse(422, Some(calcResponseJson))))
 
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None,Some(0), None, None ,None, None))
+        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None))
         val calcResponse = await(result)
 
         calcResponse.rejection_reason must be(0)
@@ -174,8 +232,8 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
       "generate a DES url" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None ,None, None))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
 
@@ -186,8 +244,8 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None ,None, None))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
 
@@ -197,7 +255,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
       "truncate surname to 3 chars if length greater than 3 chars" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
@@ -208,7 +266,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
       "not truncate surname if length less than 3 chars" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Fr", "Bill", None, Some(0), None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
@@ -219,7 +277,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
       "remove any whitespace from names" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "LE BON", "Bill", None, Some(0), None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
@@ -232,7 +290,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "O'Smith", "Bill", None, Some(0), None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
@@ -244,7 +302,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino.toLowerCase, "Smith", "Bill", None, Some(0), None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
@@ -256,7 +314,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate(ValidCalculationRequest("s1401234q", nino, "Smith", "Bill", None, None, None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
@@ -268,7 +326,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate(ValidCalculationRequest("s1401234q", nino, "Smith", "Bill", None, Some(1), None, Some(1), None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
@@ -280,7 +338,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate(ValidCalculationRequest("s1401234q", nino, "Smith", "Bill", None, Some(1), None, Some(1), Some(1), None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
@@ -299,12 +357,64 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200,Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate(ValidCalculationRequest("s1401234q", nino, "Smith", "Bill", None, Some(1), None, Some(1), None, None))
 
       }
     }
 
+    "Calling getPersonDetails" should {
+
+      val nino = "AB123456C"
+
+      "return a DesHiddenRecordResponse when manualCorrespondenceInd=true" in {
+        val badPerson = desResponse.as[JsObject] + ("manualCorrespondenceInd" -> JsBoolean(true))
+        val r = HttpResponse(200, Some(badPerson), Map("ETag" -> Seq("115")))
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+          Future.successful(r)
+        }
+
+        val pd = TestDesConnector.getPersonDetails(nino)
+
+        await(pd) must be(DesGetHiddenRecordResponse)
+      }
+
+      "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {
+
+        val r = HttpResponse(200, Some(desResponse.as[JsObject]), Map("ETag" -> Seq("115")))
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+          Future.successful(r)
+        }
+
+        val pd = TestDesConnector.getPersonDetails("AB123456C")
+
+        await(pd) must be(DesGetSuccessResponse)
+      }
+
+      "return a DesNotFoundResponse when HOD returns 404" in {
+
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+          Future.failed(new NotFoundException("Not found"))
+        }
+
+        val pd = TestDesConnector.getPersonDetails("AB123456C")
+
+        await(pd) must be(DesGetNotFoundResponse)
+      }
+
+      "return a DesErrorResponse if any other issues" in {
+        val ex = new Exception("Exception")
+        val r = HttpResponse(200, Some(desResponse.as[JsObject]), Map("ETag" -> Seq("115")))
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+          Future.failed(ex)
+        }
+
+        val pd = TestDesConnector.getPersonDetails("AB123456C")
+
+        await(pd) must be(DesGetErrorResponse(ex))
+
+      }
+    }
   }
 
   private def successfulCalcHttpResponse(responseJson: Option[JsValue]): JsValue = {

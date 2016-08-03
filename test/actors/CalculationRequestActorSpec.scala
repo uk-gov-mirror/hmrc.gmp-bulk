@@ -18,16 +18,17 @@ package actors
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
-import connectors.DesConnector
+import connectors.{DesGetSuccessResponse, DesGetHiddenRecordResponse, DesConnector}
 import helpers.RandomNino
 import metrics.Metrics
 import models._
 import org.mockito.Matchers
 import org.mockito.Mockito._
+import org.mockito.internal.verification.Times
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.mock.MockitoSugar
 import repositories.BulkCalculationRepository
-import uk.gov.hmrc.play.http.Upstream4xxResponse
+import uk.gov.hmrc.play.http.{HeaderCarrier, Upstream4xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
@@ -52,6 +53,8 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
     reset(mockDesConnector)
     reset(mockRepository)
     reset(mockMetrics)
+
+    when(mockDesConnector.getPersonDetails(Matchers.any())(Matchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
   }
 
   override def afterAll: Unit = {
@@ -109,6 +112,26 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
         expectMsg(true)
 
         verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 400, None, None, None, containsErrors = true))
+      }
+
+    }
+
+    "insert a 423 failed response when a 423 code is returned from DES" in {
+
+      val nino = "ST281614D"
+      when(mockDesConnector.getPersonDetails(Matchers.eq(nino))(Matchers.any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+      when(mockRepository.insertResponseByReference(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(true))
+
+      val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
+
+      within(5 seconds) {
+
+        actorRef ! ProcessReadyCalculationRequest("test", 1, ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
+        expectMsg(true)
+
+        verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 423, None, None, None, containsErrors = true))
+        verify(mockDesConnector).getPersonDetails(Matchers.eq(nino))(Matchers.any[HeaderCarrier])
+        verify(mockDesConnector, times(0)).calculate(Matchers.any[ValidCalculationRequest])
       }
 
     }

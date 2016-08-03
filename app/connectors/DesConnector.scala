@@ -31,6 +31,14 @@ import uk.gov.hmrc.play.http._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+sealed trait DesGetResponse
+sealed trait DesPostResponse
+
+case object DesGetSuccessResponse extends DesGetResponse
+case object DesGetHiddenRecordResponse extends DesGetResponse
+case object DesGetNotFoundResponse extends DesGetResponse
+case class DesGetErrorResponse(e: Exception) extends DesGetResponse
+
 trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircuitBreaker {
 
   private val PrefixStart = 0
@@ -42,12 +50,12 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
   val serviceKey = getConfString("nps.key", "")
   val serviceEnvironment = getConfString("nps.environment", "")
-
   val http: HttpGet = WSHttp
-
   val metrics: Metrics
 
   lazy val serviceURL = baseUrl("nps")
+  lazy val desUrl = baseUrl("des")
+
   val baseURI = "pensions/individuals/gmp"
   val baseSconURI = "pensions/gmp/scon"
 
@@ -144,6 +152,28 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
       case e: BadGatewayException => true
       case _ => false
       // $COVERAGE-ON$
+    }
+  }
+
+  def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
+
+    val newHc = HeaderCarrier(extraHeaders = Seq(
+      "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
+      "Authorization" -> ("Bearer " + getConfString("des.bearer-token","")),
+      "Environment" -> getConfString("des.environment","")))
+
+    http.GET[HttpResponse](s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}")(implicitly[HttpReads[HttpResponse]], newHc) map {
+      r =>
+        (r.json \ "manualCorrespondenceInd").as[Boolean] match {
+          case false => DesGetSuccessResponse
+          case true  => DesGetHiddenRecordResponse
+        }
+
+    } recover {
+      case e: NotFoundException => DesGetNotFoundResponse
+      case e: Exception =>
+        Logger.warn("Exception thrown getting individual record from DES", e)
+        DesGetErrorResponse(e)
     }
   }
 
