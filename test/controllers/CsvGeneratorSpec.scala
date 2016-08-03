@@ -37,15 +37,22 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
     CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
     CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
     CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
+  val calculationResponseWithError = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 56010, None, None, None)
+  val calculationResponseWithNpsError = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 56018, None, None, None, None, None)), 0, None, None, None)
 
   val calculationRequestNoResponse = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, None))
   val calculationRequestsSingle = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(singlePeriodGmpBulkCalculationResponse)))
   val calculationRequestsMultiple = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(multiplePeriodGmpBulkCalculationResponse)),
                                          CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(singlePeriodGmpBulkCalculationResponse)))
+  val calculationRequestWithError = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(calculationResponseWithError)))
+  val calculationRequestWithNpsError = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(calculationResponseWithNpsError)))
+
 
   val bulkCalculationRequestNoReponse = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestNoResponse, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
   val bulkCalculationRequestSingle = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestsSingle, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
   val bulkCalculationRequestMultiple = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestsMultiple, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
+  val bulkCalculationRequestWithError = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestWithError, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
+  val bulkCalculationRequestWithNpsError = BulkCalculationRequest(None,"abcd", "mail@mail.com", "reference1", calculationRequestWithNpsError, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
   "CsvGenerator" must {
 
@@ -95,6 +102,24 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
       rows must be(expectedResult)
 
+    }
+
+    "add 8 commas when calculation error exists" in {
+
+      val expectedResult = s"Error,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,Member must confirm their date of birth,Contact HMRC through Shared Workspace"
+      val result = TestCsvGenerator.generateCsv(bulkCalculationRequestWithError,Some(CsvFilter.All))
+      val rows = result.split("\n").tail.tail.mkString("\n")
+
+      rows must be(expectedResult)
+    }
+
+    "add 6 commas when nps error exists" in {
+
+      val expectedResult = s"Error,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,Member has a Married Woman's Reduced Rate Election for contracted out period,Nothing - there is no GMP liability,,"
+      val result = TestCsvGenerator.generateCsv(bulkCalculationRequestWithNpsError,Some(CsvFilter.All))
+      val rows = result.split("\n").tail.tail.mkString("\n")
+
+      rows must be(expectedResult)
     }
   }
 
