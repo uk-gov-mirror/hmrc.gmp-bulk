@@ -87,7 +87,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
     "return correct number of trailing commas for multiple period line when all calculations requested" in {
 
       val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,9.36,3.69,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,," +
-        "\n" + s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,,,,,,,,,,,,,,,"
+                    "\n" + s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,,,,,,,,,,,,,,,,,,,"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestMultiple,Some(CsvFilter.All))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
