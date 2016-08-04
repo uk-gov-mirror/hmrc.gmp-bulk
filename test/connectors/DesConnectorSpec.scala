@@ -36,7 +36,6 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.SessionId
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
 
@@ -368,8 +367,10 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
       val nino = "AB123456C"
 
       "return a DesHiddenRecordResponse when manualCorrespondenceInd=true" in {
+
         val badPerson = desResponse.as[JsObject] + ("manualCorrespondenceInd" -> JsBoolean(true))
         val r = HttpResponse(200, Some(badPerson), Map("ETag" -> Seq("115")))
+
         when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
           Future.successful(r)
         }
@@ -377,6 +378,8 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
         val pd = TestDesConnector.getPersonDetails(nino)
 
         await(pd) must be(DesGetHiddenRecordResponse)
+
+        verify(TestDesConnector.metrics, times(1)).registerMciLockResult()
       }
 
       "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {

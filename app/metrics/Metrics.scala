@@ -38,10 +38,12 @@ trait Metrics {
   def findAndCompleteTimer(diff: Long, unit: TimeUnit): Unit
   def insertBulkDocumentTimer(diff: Long, unit: TimeUnit): Unit
   def processRequest(diff: Long, unit: TimeUnit): Unit
-  def registerSuccessfulRequest
-  def registerFailedRequest
+  def registerSuccessfulRequest()
+  def registerFailedRequest()
   def registerStatusCode(code: String)
   def desConnectionTime(delta: Long, timeUnit: TimeUnit)
+  def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit
+  def registerMciLockResult(): Unit
 }
 
 trait MetricsGauge extends Gauge[Int] {
@@ -61,10 +63,10 @@ object Metrics extends Metrics {
   override def processRequest(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("processRequest-timer").update(diff, unit)
 
-  override def registerSuccessfulRequest =
+  override def registerSuccessfulRequest() =
     MetricsRegistry.defaultRegistry.counter("des-connector-requests-successful").inc()
 
-  override def registerFailedRequest =
+  override def registerFailedRequest() =
     MetricsRegistry.defaultRegistry.counter("des-connector-requests-failed").inc()
 
   override def registerStatusCode(code: String) =
@@ -105,4 +107,10 @@ object Metrics extends Metrics {
 
   override def findAndCompleteAllChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteAllChildren-timer").update(diff, unit)
+
+  override def mciConnectionTimer(diff: Long, unit: TimeUnit) =
+    MetricsRegistry.defaultRegistry.timer("mci-connection-timer").update(diff, unit)
+
+  override def registerMciLockResult() =
+    MetricsRegistry.defaultRegistry.counter("mci-lock-result-count").inc()
 }

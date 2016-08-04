@@ -162,11 +162,17 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
       "Authorization" -> ("Bearer " + getConfString("des.bearer-token","")),
       "Environment" -> getConfString("des.environment","")))
 
-    http.GET[HttpResponse](s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}")(implicitly[HttpReads[HttpResponse]], newHc) map {
-      r =>
-        (r.json \ "manualCorrespondenceInd").as[Boolean] match {
+    val startTime = System.currentTimeMillis()
+
+    http.GET[HttpResponse](s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}")(implicitly[HttpReads[HttpResponse]], newHc) map { r =>
+
+      metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+
+      (r.json \ "manualCorrespondenceInd").as[Boolean] match {
           case false => DesGetSuccessResponse
-          case true  => DesGetHiddenRecordResponse
+          case true  =>
+            metrics.registerMciLockResult()
+            DesGetHiddenRecordResponse
         }
 
     } recover {
