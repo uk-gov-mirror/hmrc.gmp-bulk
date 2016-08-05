@@ -21,10 +21,86 @@ import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
 import play.api.i18n.Messages
 
+import scala.collection.mutable.ListBuffer
+
 trait CsvGenerator {
+
+  case class Cell(text: String)
+
+  case class Row(cells: Traversable[Cell]) {
+    override def toString = {
+      cells map {
+        _.text
+      } mkString ","
+    }
+  }
+
+  class RowBuilder {
+
+    val cells = new ListBuffer[Cell]()
+
+    def addMsgCell(text: String) = addCell(Messages(text))
+
+    def addCell(text: String): RowBuilder = addCell(Cell(text))
+
+    def addCell(cell: Cell) = {
+      cells += cell
+      this
+    }
+
+    def addFilteredCell(f: PartialFunction[CsvFilter, String])(implicit filter: CsvFilter) = {
+      if (f.isDefinedAt(filter))
+        addCell(Cell(f(filter)))
+      this
+    }
+
+    def addRows(rows: Traversable[Row]) = {
+      rows map { row =>
+        row.cells map addCell
+      }
+      this
+    }
+
+    def build: Row = Row(cells)
+  }
+
+  class PeriodHeaderRowBuilder(periodIndex: Int) extends RowBuilder {
+    override def addMsgCell(text: String) = {
+      super.addCell(buildCellText(text))
+    }
+
+    def buildCellText(text: String): String = {
+      s"${Messages("gmp.period")} $periodIndex ${Messages(text)}"
+    }
+  }
+
+  class CsvBuilder {
+
+    val rows = new ListBuffer[Row]()
+
+    def addRow(row: Row) = {
+      rows += row
+      this
+    }
+
+    def build: String = {
+      rows map {
+        _.toString
+      } mkString "\n"
+    }
+  }
+
+  class CsvFile(rows: Traversable[Row]) {
+
+  }
 
   def generateCsv(result: BulkCalculationRequest, csvFilter: Option[CsvFilter]): String = {
     val guidanceText = Messages("gmp.bulk.csv.guidance")
+
+    val builder = new CsvBuilder
+    val headerBuilder = new RowBuilder
+
+    implicit val filter = csvFilter.get
 
     val maxPeriods = result.calculationRequests.map {
       _.calculationResponse match {
@@ -33,23 +109,38 @@ trait CsvGenerator {
       }
     }.max
 
-    val periodColumns = generatePeriodHeaders(maxPeriods, csvFilter)
+    val headerRow = headerBuilder.addFilteredCell({
+        case CsvFilter.All => Messages("gmp.status")      // Add status column only for all
+      })
+      .addMsgCell("gmp.bulk.csv.headers")                 // headers for all
+      .addFilteredCell({
+        case CsvFilter.All | CsvFilter.Successful => Messages("gmp.bulk.totals.headers")  // totals for all
+      })
+      .addRows(generatePeriodHeaders(maxPeriods))
+      .addFilteredCell({
+        case CsvFilter.All | CsvFilter.Failed => Messages("gmp.bulk.csv.globalerror.headers")   // global errors for all and failed
+      })
+      .build
 
-    val columnHeaders = csvFilter match {
-      case Some(CsvFilter.All) => Messages("gmp.status") + "," + Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," +
-        (periodColumns match {
-          case "" => "";
-          case _ => periodColumns + ","
-        }) +
-        Messages("gmp.bulk.csv.globalerror.headers")
-      case Some(CsvFilter.Failed) => Messages("gmp.bulk.csv.headers") + "," +
-        (periodColumns match {
-          case "" => "";
-          case _ => periodColumns + ","
-        }) +
-        Messages("gmp.bulk.csv.globalerror.headers")
-      case _ => Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," + periodColumns
-    }
+    val columnHeaders = headerRow.toString
+
+//    val periodColumns = generatePeriodHeaders(maxPeriods, csvFilter)
+
+//    val columnHeaders = csvFilter match {
+//      case Some(CsvFilter.All) => Messages("gmp.status") + "," + Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," +
+//        (periodColumns match {
+//          case "" => "";
+//          case _ => periodColumns + ","
+//        }) +
+//        Messages("gmp.bulk.csv.globalerror.headers")
+//      case Some(CsvFilter.Failed) => Messages("gmp.bulk.csv.headers") + "," +
+//        (periodColumns match {
+//          case "" => "";
+//          case _ => periodColumns + ","
+//        }) +
+//        Messages("gmp.bulk.csv.globalerror.headers")
+//      case _ => Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," + periodColumns
+    //}
 
     val columnCount = columnHeaders.split(",").size
     val errorColumn = columnCount - 2
@@ -130,7 +221,7 @@ trait CsvGenerator {
               Seq(
                 (RequestFieldKey.LINE_ERROR_TOO_FEW.toString, Messages("gmp.error.line.too_few")),
                 (RequestFieldKey.LINE_ERROR_TOO_MANY.toString, Messages("gmp.error.line.too_many")),
-                (RequestFieldKey.LINE_ERROR_EMPTY.toString, "" /* Intentionally empty */)
+                (RequestFieldKey.LINE_ERROR_EMPTY.toString, "" /* Intentionally empty */ )
               ) collectFirst {
                 case x if validationError.isDefinedAt(x._1) => x
               } match {
@@ -186,7 +277,7 @@ trait CsvGenerator {
                   generatePeriodColumnData(period, csvFilter, index)(v)
                 }
               case _ => Nil
-            }) ::: (fillTrailingCommas(csvFilter,calculationRequest,maxPeriods))
+            }) ::: (fillTrailingCommas(csvFilter, calculationRequest, maxPeriods))
 
             (csvFilter match {
               case Some(CsvFilter.All) => {
@@ -207,7 +298,7 @@ trait CsvGenerator {
 
   }
 
-  private def fillTrailingCommas(csvFilter: Option[CsvFilter],calculationRequest: CalculationRequest,maxPeriods:Int):List[String] = {
+  private def fillTrailingCommas(csvFilter: Option[CsvFilter], calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
     csvFilter match {
       case Some(CsvFilter.Successful) =>
         addTrailingCommas(csvFilter, calculationRequest, maxPeriods)
@@ -226,7 +317,7 @@ trait CsvGenerator {
     }
   }
 
-  private def addTrailingCommas(csvFilter: Option[CsvFilter],calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
+  private def addTrailingCommas(csvFilter: Option[CsvFilter], calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
     val periods = calculationRequest.calculationResponse match {
       case Some(calcResponse) => calcResponse.calculationPeriods.size
       case _ => 0
@@ -247,60 +338,85 @@ trait CsvGenerator {
     }
   }
 
-  private def generatePeriodHeaders(count: Int, csvFilter: Option[CsvFilter]): String = {
-    (1 to count).map {
-      i =>
-        (List(s"${
-          Messages("gmp.period")
-        } $i ${
-          Messages("gmp.period.start_date")
-        }",
-          s"${
-            Messages("gmp.period")
-          } $i ${
-            Messages("gmp.period.end_date")
-          }",
-          s"${
-            Messages("gmp.period")
-          } $i ${
-            Messages("gmp.period.total")
-          }",
-          s"${
-            Messages("gmp.period")
-          } $i ${
-            Messages("gmp.period.post_88")
-          }",
-          s"${
-            Messages("gmp.period")
-          } $i ${
-            Messages("gmp.period.post_90_true")
-          }",
-          s"${
-            Messages("gmp.period")
-          } $i ${
-            Messages("gmp.period.post_90_opp")
-          }",
-          s"${
-            Messages("gmp.period")
-          } $i ${
-            Messages("gmp.period.reval_rate")
-          }") ::: (csvFilter match {
-          case Some(CsvFilter.Successful) => Nil
-          case _ => List(
-            s"${
-              Messages("gmp.period")
-            } $i ${
-              Messages("gmp.period.error")
-            }",
-            s"${
-              Messages("gmp.period")
-            } $i ${
-              Messages("gmp.period.what")
-            }"
-          )
-        })).mkString(",")
-    }.mkString(",")
+  private def generatePeriodHeaders(periodCount: Int)(implicit filter: CsvFilter): Traversable[Row] = {
+
+    (1 to periodCount).map { index =>
+
+      val builder = new PeriodHeaderRowBuilder(index)
+
+      builder.addMsgCell("gmp.period.start_date")
+        .addMsgCell("gmp.period.end_date")
+        .addMsgCell("gmp.period.total")
+        .addMsgCell("gmp.period.post_88")
+        .addMsgCell("gmp.period.post_90_true")
+        .addMsgCell("gmp.period.post_90_opp")
+        .addMsgCell("gmp.period.reval_rate")
+        .addFilteredCell({
+          case CsvFilter.All | CsvFilter.Failed => builder.buildCellText("gmp.period.error")
+        })
+        .addFilteredCell({
+          case CsvFilter.All | CsvFilter.Failed => builder.buildCellText("gmp.period.what")
+        })
+
+      builder.build
+    }
+
   }
+
+//  private def generatePeriodHeaders(count: Int, csvFilter: Option[CsvFilter]): String = {
+//    (1 to count).map {
+//      i =>
+//        (List(s"${
+//          Messages("gmp.period")
+//        } $i ${
+//          Messages("gmp.period.start_date")
+//        }",
+//          s"${
+//            Messages("gmp.period")
+//          } $i ${
+//            Messages("gmp.period.end_date")
+//          }",
+//          s"${
+//            Messages("gmp.period")
+//          } $i ${
+//            Messages("gmp.period.total")
+//          }",
+//          s"${
+//            Messages("gmp.period")
+//          } $i ${
+//            Messages("gmp.period.post_88")
+//          }",
+//          s"${
+//            Messages("gmp.period")
+//          } $i ${
+//            Messages("gmp.period.post_90_true")
+//          }",
+//          s"${
+//            Messages("gmp.period")
+//          } $i ${
+//            Messages("gmp.period.post_90_opp")
+//          }",
+//          s"${
+//            Messages("gmp.period")
+//          } $i ${
+//            Messages("gmp.period.reval_rate")
+//          }") ::: (csvFilter match {
+//          case Some(CsvFilter.Successful) => Nil
+//          case _ => List(
+//            s"${
+//              Messages("gmp.period")
+//            } $i ${
+//              Messages("gmp.period.error")
+//            }",
+//            s"${
+//              Messages("gmp.period")
+//            } $i ${
+//              Messages("gmp.period.what")
+//            }"
+//          )
+//        })).mkString(",")
+//    }.mkString(",")
+//  }
 
   private def convertDate(date: Option[String]): String = {
 
@@ -318,7 +434,7 @@ trait CsvGenerator {
       ""
     else {
       request.memberIsInScheme match {
-        case Some(true) if Set(2,3,4) contains request.calctype.get => ""
+        case Some(true) if Set(2, 3, 4) contains request.calctype.get => ""
         case Some(true) if request.calctype.get == 1 && index == 0 => ""
         case Some(false) =>
           if (request.calctype.get == 1 && index == 0 && !period.endDate.isBefore(LocalDate.now))
@@ -379,17 +495,17 @@ trait CsvGenerator {
         request.calculationResponse.map {
           calculationResponse =>
 
-           calculationRequest.calctype match {
+            calculationRequest.calctype match {
 
               case Some(2) => calculationResponse.payableAgeDate.map {
-                  dod => dod.toString(DATE_FORMAT)
-                }.getOrElse("")
+                dod => dod.toString(DATE_FORMAT)
+              }.getOrElse("")
 
 
               case Some(3) => {
-               calculationRequest.revaluationDate.map {
-                 d => LocalDate.parse(d, inputDateFormatter).toString(DATE_FORMAT)
-               }.getOrElse(calculationResponse.dateOfDeath.map {
+                calculationRequest.revaluationDate.map {
+                  d => LocalDate.parse(d, inputDateFormatter).toString(DATE_FORMAT)
+                }.getOrElse(calculationResponse.dateOfDeath.map {
                   dod => dod.toString(DATE_FORMAT)
                 }.getOrElse(""))
               }
@@ -398,7 +514,7 @@ trait CsvGenerator {
                 dod => dod.toString(DATE_FORMAT)
               }.getOrElse("")
 
-              case _ if !calculationRequest.revaluationDate.isDefined => calculationResponse.calculationPeriods.headOption.map{
+              case _ if !calculationRequest.revaluationDate.isDefined => calculationResponse.calculationPeriods.headOption.map {
                 period => period.endDate.toString(DATE_FORMAT)
               }.getOrElse("")
 
