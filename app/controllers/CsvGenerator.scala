@@ -16,17 +16,18 @@
 
 package controllers
 
-import java.io.{BufferedWriter, FileWriter, File}
+import java.io.{BufferedWriter, File, FileWriter}
 
 import models._
 import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
-import play.api.data.validation.ValidationError
 import play.api.i18n.Messages
 
 import scala.collection.mutable.ListBuffer
 
 trait CsvGenerator {
+
+  val DATE_DEFAULT_FORMAT = "dd/MM/yyyy"
 
   case class Cell(text: String)
 
@@ -76,7 +77,6 @@ trait CsvGenerator {
     def addFilteredCells(f: PartialFunction[CsvFilter, Traversable[String]])(implicit filter: CsvFilter) = {
       if (f.isDefinedAt(filter))
         f(filter) foreach addCell
-
       this
     }
 
@@ -227,18 +227,16 @@ trait CsvGenerator {
 
     private def convertDate(date: Option[String]): String = {
 
-      val DATE_FORMAT: String = "dd/MM/yyyy"
       val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
 
       date match {
-        case Some(d) => LocalDate.parse(d, inputDateFormatter).toString(DATE_FORMAT)
+        case Some(d) => LocalDate.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
         case _ => ""
       }
     }
 
     private def determineGmpAtDate(request: CalculationRequest): String = {
 
-      val DATE_FORMAT: String = "dd/MM/yyyy"
       val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
       request.validCalculationRequest.map {
 
@@ -250,24 +248,24 @@ trait CsvGenerator {
               calculationRequest.calctype match {
 
                 case Some(2) => calculationResponse.payableAgeDate.map {
-                  dod => dod.toString(DATE_FORMAT)
+                  dod => dod.toString(DATE_DEFAULT_FORMAT)
                 }.getOrElse("")
 
 
                 case Some(3) => {
                   calculationRequest.revaluationDate.map {
-                    d => LocalDate.parse(d, inputDateFormatter).toString(DATE_FORMAT)
+                    d => LocalDate.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
                   }.getOrElse(calculationResponse.dateOfDeath.map {
-                    dod => dod.toString(DATE_FORMAT)
+                    dod => dod.toString(DATE_DEFAULT_FORMAT)
                   }.getOrElse(""))
                 }
 
                 case Some(4) => calculationResponse.spaDate.map {
-                  dod => dod.toString(DATE_FORMAT)
+                  dod => dod.toString(DATE_DEFAULT_FORMAT)
                 }.getOrElse("")
 
-                case _ if !calculationRequest.revaluationDate.isDefined => calculationResponse.calculationPeriods.headOption.map {
-                  period => period.endDate.toString(DATE_FORMAT)
+                case _ if calculationRequest.revaluationDate.isEmpty => calculationResponse.calculationPeriods.headOption.map {
+                  period => period.endDate.toString(DATE_DEFAULT_FORMAT)
                 }.getOrElse("")
 
                 case _ => convertDate(calculationRequest.revaluationDate)
@@ -292,11 +290,11 @@ trait CsvGenerator {
   class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
 
     addCell(calculationPeriod.startDate match {
-      case Some(date) => date.toString("dd/MM/yyyy")
+      case Some(date) => date.toString(DATE_DEFAULT_FORMAT)
       case _ => ""
     })
 
-    addCell(calculationPeriod.endDate.toString("dd/MM/yyyy"))
+    addCell(calculationPeriod.endDate.toString(DATE_DEFAULT_FORMAT))
     addCell(calculationPeriod.gmpTotal)
     addCell(calculationPeriod.post88GMPTotal)
 
