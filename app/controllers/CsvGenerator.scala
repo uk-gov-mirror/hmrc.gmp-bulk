@@ -448,14 +448,7 @@ trait CsvGenerator {
       csvBuilder.addRow(requestBuilder.build)
     }
 
-    val csv = csvBuilder.build
-
-    val file = new File("/Users/stevenhobbs/output.csv")
-    val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(csv)
-    bw.close()
-
-    csv
+    csvBuilder.build
 
     //    val periodColumns = generatePeriodHeaders(maxPeriods, csvFilter)
 
