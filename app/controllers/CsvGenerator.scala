@@ -16,8 +16,6 @@
 
 package controllers
 
-import java.io.{BufferedWriter, File, FileWriter}
-
 import models._
 import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
@@ -29,15 +27,55 @@ trait CsvGenerator {
 
   val DATE_DEFAULT_FORMAT = "dd/MM/yyyy"
 
-  case class Cell(text: String)
+  case class Cell(text: String) {
+    override def toString() = text
+  }
 
-  case class Row(cells: Traversable[Cell]) {
-    override def toString = {
+  trait Row {
+
+    val cells: Traversable[Cell]
+
+    def toCsvString(cellCount: Int)(implicit csvFilter: CsvFilter) = {
       cells map {
         _.text
       } mkString ","
     }
+
   }
+
+  //  case class Row(cells: Traversable[Cell], error: Option[Cell] = None, whatToDo: Option[Cell] = None) {
+  //    override def toString = {
+  //      cells map {
+  //        _.text
+  //      } mkString ","
+  //    }
+  //  }
+
+  case class ResponseRow(cells: Traversable[Cell], error: Option[Cell] = None, whatToDo: Option[Cell] = None) extends Row {
+
+    override def toCsvString(cellCount: Int)(implicit csvFilter: CsvFilter) = {
+
+      val c = (csvFilter match {
+        case CsvFilter.Successful => cellCount
+        case _ => cellCount - 2
+      }) - cells.size
+
+      cells.toList ::: List.fill(c)(",") ::: (csvFilter match {
+        case CsvFilter.Successful => List()
+        case _ => List(error.getOrElse(""), whatToDo.getOrElse(""))
+      }) mkString ","
+
+//      (cells map {
+//        _.text
+//      } mkString ",") + ("," * (cellCount - cells.size - 2)) + (csvFilter match {
+//        case CsvFilter.Successful => ",,"
+//        case _ => "," + error.getOrElse("") + "," + whatToDo.getOrElse("")
+//      })
+    }
+
+  }
+
+  case class HeaderRow(cells: Traversable[Cell]) extends Row
 
   class RowBuilder {
 
@@ -94,7 +132,7 @@ trait CsvGenerator {
 
     def setErrorResolutionCell(cell: Cell) = errorResolutionCell = cell
 
-    def build: Row = Row(cells)
+    def build: Row = ResponseRow(cells, Some(errorCell), Some(errorResolutionCell))
 
     def getCells = cells.toList
   }
@@ -229,13 +267,6 @@ trait CsvGenerator {
 
       addCell(cell)
       cell
-    }
-
-    override def build = {
-      filter match {
-        case CsvFilter.Successful => Row(cells)
-        case _ => Row(cells ++= Seq(errorCell, errorResolutionCell))
-      }
     }
 
     private def sumPeriod(request: CalculationRequest, selector: (CalculationPeriod) => String) = {
@@ -393,7 +424,7 @@ trait CsvGenerator {
 
   }
 
-  class CsvBuilder(cellCount: Int) {
+  class CsvBuilder(cellCount: Int)(implicit csvFilter: CsvFilter) {
 
     val rows = new ListBuffer[Row]()
 
@@ -402,13 +433,21 @@ trait CsvGenerator {
       this
     }
 
-    def addRow(text: String): CsvBuilder = addRow(Row(List(Cell(text))))
+    def addRow(text: String): CsvBuilder = addRow(ResponseRow(List(Cell(text))))
 
     def build: String = {
       rows map { row =>
-        row.toString + ("," * (cellCount - row.cells.size))
+//        csvFilter match {
+//          case CsvFilter.Successful => row.toString + ("," * (cellCount - row.cells.size))
+//          case _ => {
+//            row.getClass match {
+//              case HeaderRow => row.toString + ("," * (cellCount - row.cells.size - 2))
+//              case _ => row.toString + ("," * (cellCount - row.cells.size - 2)) + "," + row.error.getOrElse("") + "," + row.whatToDo.getOrElse("")
+//            }
+//          }
+          row.toCsvString(cellCount)
+        }
       } mkString "\n"
-    }
   }
 
   def generateCsv(result: BulkCalculationRequest, csvFilter: Option[CsvFilter]): String = {
