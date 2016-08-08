@@ -164,20 +164,19 @@ trait CsvGenerator {
 
           request.calculationResponse match {
             case Some(response) => {
-
               response.calculationPeriods.zipWithIndex.map {
                 case (period, index) => {
                   val periodBuilder = new PeriodRowBuilder(period, index, x)
                   addRow(periodBuilder.build)
                 }
               }
-
             }
+            case _ => Nil
           }
         }
 
       }
-      case _ => {
+      case _ if request.validationErrors.isDefined => {
         Seq(
           (RequestFieldKey.LINE_ERROR_TOO_FEW.toString, Messages("gmp.error.line.too_few")),
           (RequestFieldKey.LINE_ERROR_TOO_MANY.toString, Messages("gmp.error.line.too_many")),
@@ -191,6 +190,7 @@ trait CsvGenerator {
           case _ => Nil
         }
       }
+      case _ => Nil
     }
 
     this
