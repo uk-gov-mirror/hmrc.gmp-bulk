@@ -532,6 +532,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         contentAsString(result) must include("The line has an error,See the instruction file on the GMP checker dashboard. Resend the calculation request with the missing field(s)")
 
+        println(Console.RED + contentAsString(result) + Console.WHITE)
       }
 
       "contain the line error when present in the correct column with failed results" in {
