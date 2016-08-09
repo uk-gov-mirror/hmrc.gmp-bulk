@@ -64,7 +64,6 @@ trait CsvGenerator {
         case _ => List(error.getOrElse(BlankCell), whatToDo.getOrElse(BlankCell))
       })) mkString ","
     }
-
   }
 
   case class HeaderRow(cells: Traversable[Cell]) extends Row
@@ -324,6 +323,7 @@ trait CsvGenerator {
         case _ => ""
       }
     }
+
   }
 
   class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
@@ -386,6 +386,8 @@ trait CsvGenerator {
       .addFilteredCells({
         case CsvFilter.All | CsvFilter.Failed => Messages("gmp.bulk.csv.globalerror.headers") split "," // global errors for all and failed
       })
+
+    override def build = HeaderRow(cells)
 
   }
 
