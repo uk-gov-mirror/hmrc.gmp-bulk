@@ -155,7 +155,12 @@ trait CsvGenerator {
         addValidatedCell(x.memberReference.getOrElse(""), RequestFieldKey.MEMBER_REFERENCE)
         addValidatedCell(convertCalcType(x.calctype), RequestFieldKey.CALC_TYPE)
         addValidatedCell(convertDate(x.terminationDate), RequestFieldKey.DATE_OF_LEAVING)
-        addValidatedCell(determineGmpAtDate(request), RequestFieldKey.GMP_DATE)
+
+        addValidatedCell(hasValidationError(RequestFieldKey.GMP_DATE) match {
+          case true => convertDate(x.revaluationDate)
+          case _ => determineGmpAtDate(request)
+        }, RequestFieldKey.GMP_DATE)
+
         addValidatedCell(convertRevalRate(x.revaluationRate), RequestFieldKey.REVALUATION_RATE)
 
         addValidatedCell(x.dualCalc match {
@@ -245,6 +250,13 @@ trait CsvGenerator {
 
       addCell(cell)
       cell
+    }
+
+    private def hasValidationError(columnIndex: Int): Boolean = {
+      request.validationErrors match {
+        case Some(errors) => errors.isDefinedAt(columnIndex.toString)
+        case _ => false
+      }
     }
 
     private def sumPeriod(request: CalculationRequest, selector: (CalculationPeriod) => String) = {
