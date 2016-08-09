@@ -17,13 +17,12 @@
 package metrics
 
 import java.util.concurrent.TimeUnit
-
-
 import com.codahale.metrics.Gauge
 import com.kenshoo.play.metrics.MetricsRegistry
 import repositories.BulkCalculationRepository
 import scala.concurrent.{duration, Await}
 import scala.concurrent.duration._
+import play.api.Logger
 
 trait Metrics {
   def findAndCompleteChildrenTimer(l: Long, MILLISECONDS: duration.TimeUnit)
@@ -60,57 +59,93 @@ object Metrics extends Metrics {
       }
     })
 
-  override def processRequest(diff: Long, unit: duration.TimeUnit): Unit =
+  override def processRequest(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][processRequest]: $diff")
     MetricsRegistry.defaultRegistry.timer("processRequest-timer").update(diff, unit)
+  }
 
-  override def registerSuccessfulRequest() =
+  override def registerSuccessfulRequest() = {
+    Logger.info("[Metrics][registerSuccessfulRequest]")
     MetricsRegistry.defaultRegistry.counter("des-connector-requests-successful").inc()
+  }
 
-  override def registerFailedRequest() =
+  override def registerFailedRequest() = {
+    Logger.info("[Metrics][registerFailedRequest]")
     MetricsRegistry.defaultRegistry.counter("des-connector-requests-failed").inc()
+  }
 
-  override def registerStatusCode(code: String) =
+  override def registerStatusCode(code: String) = {
+    Logger.info("[Metrics][registerStatusCode]")
     MetricsRegistry.defaultRegistry.counter(s"des-connector-httpstatus-$code").inc()
+  }
 
-  override def desConnectionTime(delta: Long, timeUnit: TimeUnit) =
-    MetricsRegistry.defaultRegistry.timer("des-connector-timer").update(delta, timeUnit)
+  override def desConnectionTime(diff: Long, timeUnit: TimeUnit) = {
+    Logger.info(s"[Metrics][desConnectionTime]: $diff")
+    MetricsRegistry.defaultRegistry.timer("des-connector-timer").update(diff, timeUnit)
+  }
 
-  override def insertResponseByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def insertResponseByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][insertResponseByReferenceTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-insertResponseByReference-timer").update(diff, unit)
+  }
 
-  override def findRequestsToProcessTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def findRequestsToProcessTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][findRequestsToProcessTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-findRequestsToProcess-timer").update(diff, unit)
+  }
 
-  override def findCountRemainingTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def findCountRemainingTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][findCountRemainingTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-findCountRemaining-timer").update(diff, unit)
+  }
 
-  override def findByUserIdTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def findByUserIdTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][findByUserIdTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-findByUserId-timer").update(diff, unit)
+  }
 
-  override def insertBulkDocumentTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def insertBulkDocumentTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][insertBulkDocumentTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-insertBulkDocument-timer").update(diff, unit)
+  }
 
-  override def findAndCompleteTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def findAndCompleteTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][findAndCompleteTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-findAndComplete-timer").update(diff, unit)
+  }
 
-  override def findSummaryByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def findSummaryByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][findSummaryByReferenceTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-findSummaryByReference-timer").update(diff, unit)
+  }
 
-  override def findByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def findByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][findByReferenceTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-findByReference-timer").update(diff, unit)
+  }
 
-  override def findAndCompleteChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def findAndCompleteChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][findAndCompleteChildrenTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteChildren-timer").update(diff, unit)
+  }
 
-  override def findAndCompleteParentTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def findAndCompleteParentTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][findAndCompleteParentTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteParent-timer").update(diff, unit)
+  }
 
-  override def findAndCompleteAllChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit =
+  override def findAndCompleteAllChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit = {
+    Logger.info(s"[Metrics][findAndCompleteAllChildrenTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteAllChildren-timer").update(diff, unit)
+  }
 
-  override def mciConnectionTimer(diff: Long, unit: TimeUnit) =
+  override def mciConnectionTimer(diff: Long, unit: TimeUnit) = {
+    Logger.info(s"[Metrics][mciConnectionTimer]: $diff")
     MetricsRegistry.defaultRegistry.timer("mci-connection-timer").update(diff, unit)
+  }
 
-  override def registerMciLockResult() =
+  override def registerMciLockResult() = {
+    Logger.info("[Metrics][registerMciLockResult]")
     MetricsRegistry.defaultRegistry.counter("mci-lock-result-count").inc()
+  }
 }

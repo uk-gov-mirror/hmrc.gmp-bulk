@@ -373,9 +373,9 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
       val result = collection.count(Some(Json.obj("validCalculationRequest" -> Json.obj("$exists" -> true), "calculationResponse" -> Json.obj("$exists" -> false),
         "validationErrors" -> Json.obj("$exists" -> false))))
 
-      result onComplete {
-        case _ => metrics.findCountRemainingTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-      }
+//      result onComplete {
+//        case _ => metrics.findCountRemainingTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+//      }
 
       result
     }
@@ -399,6 +399,8 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
   }
 
   override def insertBulkDocument(bulkCalculationRequest: BulkCalculationRequest): Future[Boolean] = {
+
+    Logger.info(s"[BulkCalculationRepository][insertBulkDocument][numDocuments]: " + bulkCalculationRequest.calculationRequests.size)
 
     val startTime = System.currentTimeMillis()
 
