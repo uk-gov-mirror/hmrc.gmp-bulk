@@ -194,7 +194,7 @@ trait CsvGenerator {
               }).toString
               case _ => ""
             })
-          case _ => (1 to 4) foreach { _ => addCell(BlankCell) }
+          case _ => (1 to 4) foreach { _ => addCell(BlankCell) } // Add 4 cells to compensate for not adding the 4 totals cells
         }
 
         request.calculationResponse match {
@@ -214,9 +214,11 @@ trait CsvGenerator {
 
         request.getGlobalErrorMessageWhat match {
           case Some(msg) => setErrorResolutionCell(TextCell(msg))
-          case _ => Nil
+          case _ =>
         }
+
       case _ if request.validationErrors.isDefined =>
+
         Seq(
           (RequestFieldKey.LINE_ERROR_TOO_FEW.toString, Messages("gmp.error.line.too_few")),
           (RequestFieldKey.LINE_ERROR_TOO_MANY.toString, Messages("gmp.error.line.too_many")),
@@ -227,12 +229,11 @@ trait CsvGenerator {
           case Some(err) =>
             setErrorCell(TextCell(request.validationErrors.get(err._1)))
             setErrorResolutionCell(TextCell(err._2))
-          case _ => Nil
+          case _ =>
         }
-      case _ => Nil
-    }
 
-    this
+      case _ =>
+    }
 
     def addValidatedCell(value: Any, validationColumn: Int): Cell = {
 
@@ -354,32 +355,6 @@ trait CsvGenerator {
       addCell(calculationPeriod.getPeriodErrorMessageWhat.getOrElse(""))
     }
 
-    //    (List(calculationPeriod.startDate match {
-    //      case Some(date) => date.toString("dd/MM/yyyy")
-    //      case _ => ""
-    //    },
-    //      calculationPeriod.endDate.toString("dd/MM/yyyy"),
-    //      calculationPeriod.gmpTotal,
-    //      calculationPeriod.post88GMPTotal,
-    //      request.dualCalc match {
-    //        case Some(x) if x == 1 => calculationPeriod.dualCalcPost90TrueTotal.getOrElse("")
-    //        case _ => ""
-    //      },
-    //      request.dualCalc match {
-    //        case Some(x) if x == 1 => calculationPeriod.dualCalcPost90OppositeTotal.getOrElse("")
-    //        case _ => ""
-    //      },
-    //      request.calctype match {
-    //        case Some(x) if x > 0 => calculatePeriodRevalRate(calculationPeriod, index)
-    //        case _ => ""
-    //      }) ::: (filter match {
-    //      case CsvFilter.Successful => Nil
-    //      case _ => List(
-    //        calculationPeriod.getPeriodErrorMessageReason.getOrElse(""),
-    //        calculationPeriod.getPeriodErrorMessageWhat.getOrElse("")
-    //      )
-    //    })).mkString(",")
-
     private def calculatePeriodRevalRate(period: CalculationPeriod, index: Int, request: ValidCalculationRequest): String = {
       if (period.revaluationRate == 0)
         ""
@@ -398,6 +373,22 @@ trait CsvGenerator {
     }
   }
 
+  class HeaderRowBuilder(periodCount: Int)(implicit filter: CsvFilter) extends RowBuilder {
+
+    addFilteredCell({
+      case CsvFilter.All => Messages("gmp.status") // Add status column only for all
+    })
+      .addCell(Messages("gmp.bulk.csv.headers") split ",") // headers for all
+      .addFilteredCells({
+      case CsvFilter.All | CsvFilter.Successful => Messages("gmp.bulk.totals.headers") split "," // totals for all
+    })
+      .addRows(generatePeriodHeaders(periodCount))
+      .addFilteredCells({
+        case CsvFilter.All | CsvFilter.Failed => Messages("gmp.bulk.csv.globalerror.headers") split "," // global errors for all and failed
+      })
+
+  }
+
   class CsvBuilder(cellCount: Int)(implicit csvFilter: CsvFilter) {
 
     val rows = new ListBuffer[Row]()
@@ -409,25 +400,13 @@ trait CsvGenerator {
 
     def addRow(text: String): CsvBuilder = addRow(ResponseRow(List(TextCell(text))))
 
-    def build: String = {
-      rows map { row =>
-        //        csvFilter match {
-        //          case CsvFilter.Successful => row.toString + ("," * (cellCount - row.cells.size))
-        //          case _ => {
-        //            row.getClass match {
-        //              case HeaderRow => row.toString + ("," * (cellCount - row.cells.size - 2))
-        //              case _ => row.toString + ("," * (cellCount - row.cells.size - 2)) + "," + row.error.getOrElse("") + "," + row.whatToDo.getOrElse("")
-        //            }
-        //          }
-        row.toCsvString(cellCount)
-      } mkString "\n"
-    }
+    def build: String = rows map {
+      _.toCsvString(cellCount)
+    } mkString "\n"
+
   }
 
   def generateCsv(result: BulkCalculationRequest, csvFilter: Option[CsvFilter]): String = {
-
-    val guidanceText = Messages("gmp.bulk.csv.guidance")
-    val headerBuilder = new RowBuilder
 
     implicit val filter = csvFilter.get
 
@@ -438,22 +417,11 @@ trait CsvGenerator {
       }
     }.max
 
-    val headerRow = headerBuilder.addFilteredCell({
-      case CsvFilter.All => Messages("gmp.status") // Add status column only for all
-    })
-      .addCell(Messages("gmp.bulk.csv.headers") split ",") // headers for all
-      .addFilteredCells({
-      case CsvFilter.All | CsvFilter.Successful => Messages("gmp.bulk.totals.headers") split "," // totals for all
-    })
-      .addRows(generatePeriodHeaders(maxPeriods))
-      .addFilteredCells({
-        case CsvFilter.All | CsvFilter.Failed => Messages("gmp.bulk.csv.globalerror.headers") split "," // global errors for all and failed
-      })
-      .build
+    val headerRow = new HeaderRowBuilder(maxPeriods).build
 
     val csvBuilder = new CsvBuilder(headerRow.cells.size)
 
-    csvBuilder.addRow(guidanceText)
+    csvBuilder.addRow(Messages("gmp.bulk.csv.guidance"))
     csvBuilder.addRow(headerRow)
 
     result.calculationRequests foreach { request =>
@@ -637,45 +605,45 @@ trait CsvGenerator {
 
   }
 
-//  private def fillTrailingCommas(csvFilter: Option[CsvFilter], calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
-//    csvFilter match {
-//      case Some(CsvFilter.Successful) =>
-//        addTrailingCommas(csvFilter, calculationRequest, maxPeriods)
-//      case _ =>
-//        addTrailingCommas(csvFilter, calculationRequest, maxPeriods) :::
-//          List(
-//            calculationRequest.getGlobalErrorMessageReason match {
-//              case Some(msg) => msg
-//              case _ => ""
-//            },
-//            calculationRequest.getGlobalErrorMessageWhat match {
-//              case Some(msg) => msg
-//              case _ => ""
-//            }
-//          )
-//    }
-//  }
+  //  private def fillTrailingCommas(csvFilter: Option[CsvFilter], calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
+  //    csvFilter match {
+  //      case Some(CsvFilter.Successful) =>
+  //        addTrailingCommas(csvFilter, calculationRequest, maxPeriods)
+  //      case _ =>
+  //        addTrailingCommas(csvFilter, calculationRequest, maxPeriods) :::
+  //          List(
+  //            calculationRequest.getGlobalErrorMessageReason match {
+  //              case Some(msg) => msg
+  //              case _ => ""
+  //            },
+  //            calculationRequest.getGlobalErrorMessageWhat match {
+  //              case Some(msg) => msg
+  //              case _ => ""
+  //            }
+  //          )
+  //    }
+  //  }
 
-//  private def addTrailingCommas(csvFilter: Option[CsvFilter], calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
-//    val periods = calculationRequest.calculationResponse match {
-//      case Some(calcResponse) => calcResponse.calculationPeriods.size
-//      case _ => 0
-//    }
-//    csvFilter match {
-//      case Some(CsvFilter.Successful) => List.fill(maxPeriods - periods)(",,,,,,")
-//      case _ => List.fill(maxPeriods - periods)(",,,,,,,,")
-//    }
-//  }
+  //  private def addTrailingCommas(csvFilter: Option[CsvFilter], calculationRequest: CalculationRequest, maxPeriods: Int): List[String] = {
+  //    val periods = calculationRequest.calculationResponse match {
+  //      case Some(calcResponse) => calcResponse.calculationPeriods.size
+  //      case _ => 0
+  //    }
+  //    csvFilter match {
+  //      case Some(CsvFilter.Successful) => List.fill(maxPeriods - periods)(",,,,,,")
+  //      case _ => List.fill(maxPeriods - periods)(",,,,,,,,")
+  //    }
+  //  }
 
-//  private def convertCalcType(calcType: Option[Int]): String = {
-//    calcType match {
-//      case Some(0) => Messages("gmp.calc_type.leaving")
-//      case Some(1) => Messages("gmp.calc_type.specific_date")
-//      case Some(2) => Messages("gmp.calc_type.payable_age")
-//      case Some(3) => Messages("gmp.calc_type.survivor")
-//      case _ => Messages("gmp.calc_type.spa")
-//    }
-//  }
+  //  private def convertCalcType(calcType: Option[Int]): String = {
+  //    calcType match {
+  //      case Some(0) => Messages("gmp.calc_type.leaving")
+  //      case Some(1) => Messages("gmp.calc_type.specific_date")
+  //      case Some(2) => Messages("gmp.calc_type.payable_age")
+  //      case Some(3) => Messages("gmp.calc_type.survivor")
+  //      case _ => Messages("gmp.calc_type.spa")
+  //    }
+  //  }
 
   private def generatePeriodHeaders(periodCount: Int)(implicit filter: CsvFilter): Traversable[Row] = {
 
@@ -703,71 +671,71 @@ trait CsvGenerator {
 
   }
 
-//    private def generatePeriodHeaders(count: Int, csvFilter: Option[CsvFilter]): String = {
-//      (1 to count).map {
-//        i =>
-//          (List(s"${
-//            Messages("gmp.period")
-//          } $i ${
-//            Messages("gmp.period.start_date")
-//          }",
-//            s"${
-//              Messages("gmp.period")
-//            } $i ${
-//              Messages("gmp.period.end_date")
-//            }",
-//            s"${
-//              Messages("gmp.period")
-//            } $i ${
-//              Messages("gmp.period.total")
-//            }",
-//            s"${
-//              Messages("gmp.period")
-//            } $i ${
-//              Messages("gmp.period.post_88")
-//            }",
-//            s"${
-//              Messages("gmp.period")
-//            } $i ${
-//              Messages("gmp.period.post_90_true")
-//            }",
-//            s"${
-//              Messages("gmp.period")
-//            } $i ${
-//              Messages("gmp.period.post_90_opp")
-//            }",
-//            s"${
-//              Messages("gmp.period")
-//            } $i ${
-//              Messages("gmp.period.reval_rate")
-//            }") ::: (csvFilter match {
-//            case Some(CsvFilter.Successful) => Nil
-//            case _ => List(
-//              s"${
-//                Messages("gmp.period")
-//              } $i ${
-//                Messages("gmp.period.error")
-//              }",
-//              s"${
-//                Messages("gmp.period")
-//              } $i ${
-//                Messages("gmp.period.what")
-//              }"
-//            )
-//          })).mkString(",")
-//      }.mkString(",")
-//    }
+  //    private def generatePeriodHeaders(count: Int, csvFilter: Option[CsvFilter]): String = {
+  //      (1 to count).map {
+  //        i =>
+  //          (List(s"${
+  //            Messages("gmp.period")
+  //          } $i ${
+  //            Messages("gmp.period.start_date")
+  //          }",
+  //            s"${
+  //              Messages("gmp.period")
+  //            } $i ${
+  //              Messages("gmp.period.end_date")
+  //            }",
+  //            s"${
+  //              Messages("gmp.period")
+  //            } $i ${
+  //              Messages("gmp.period.total")
+  //            }",
+  //            s"${
+  //              Messages("gmp.period")
+  //            } $i ${
+  //              Messages("gmp.period.post_88")
+  //            }",
+  //            s"${
+  //              Messages("gmp.period")
+  //            } $i ${
+  //              Messages("gmp.period.post_90_true")
+  //            }",
+  //            s"${
+  //              Messages("gmp.period")
+  //            } $i ${
+  //              Messages("gmp.period.post_90_opp")
+  //            }",
+  //            s"${
+  //              Messages("gmp.period")
+  //            } $i ${
+  //              Messages("gmp.period.reval_rate")
+  //            }") ::: (csvFilter match {
+  //            case Some(CsvFilter.Successful) => Nil
+  //            case _ => List(
+  //              s"${
+  //                Messages("gmp.period")
+  //              } $i ${
+  //                Messages("gmp.period.error")
+  //              }",
+  //              s"${
+  //                Messages("gmp.period")
+  //              } $i ${
+  //                Messages("gmp.period.what")
+  //              }"
+  //            )
+  //          })).mkString(",")
+  //      }.mkString(",")
+  //    }
 
-//  private def convertDate(date: Option[String]): String = {
-//
-//    val DATE_FORMAT: String = "dd/MM/yyyy"
-//    val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
-//
-//    date match {
-//      case Some(d) => LocalDate.parse(d, inputDateFormatter).toString(DATE_FORMAT)
-//      case _ => ""
-//    }
-//  }
+  //  private def convertDate(date: Option[String]): String = {
+  //
+  //    val DATE_FORMAT: String = "dd/MM/yyyy"
+  //    val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
+  //
+  //    date match {
+  //      case Some(d) => LocalDate.parse(d, inputDateFormatter).toString(DATE_FORMAT)
+  //      case _ => ""
+  //    }
+  //  }
 
 
   private def convertRevalRate(revalRate: Option[Int]): String = {
@@ -808,47 +776,47 @@ trait CsvGenerator {
   //    })).mkString(",")
   //  }
 
-//  private def determineGmpAtDate(request: CalculationRequest): String = {
-//
-//    val DATE_FORMAT: String = "dd/MM/yyyy"
-//    val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
-//    request.validCalculationRequest.map {
-//
-//      calculationRequest =>
-//
-//        request.calculationResponse.map {
-//          calculationResponse =>
-//
-//            calculationRequest.calctype match {
-//
-//              case Some(2) => calculationResponse.payableAgeDate.map {
-//                dod => dod.toString(DATE_FORMAT)
-//              }.getOrElse("")
-//
-//
-//              case Some(3) => {
-//                calculationRequest.revaluationDate.map {
-//                  d => LocalDate.parse(d, inputDateFormatter).toString(DATE_FORMAT)
-//                }.getOrElse(calculationResponse.dateOfDeath.map {
-//                  dod => dod.toString(DATE_FORMAT)
-//                }.getOrElse(""))
-//              }
-//
-//              case Some(4) => calculationResponse.spaDate.map {
-//                dod => dod.toString(DATE_FORMAT)
-//              }.getOrElse("")
-//
-//              case _ if !calculationRequest.revaluationDate.isDefined => calculationResponse.calculationPeriods.headOption.map {
-//                period => period.endDate.toString(DATE_FORMAT)
-//              }.getOrElse("")
-//
-//              case _ => convertDate(calculationRequest.revaluationDate)
-//            }
-//
-//        }.getOrElse("")
-//    }.getOrElse("")
-//
-//  }
+  //  private def determineGmpAtDate(request: CalculationRequest): String = {
+  //
+  //    val DATE_FORMAT: String = "dd/MM/yyyy"
+  //    val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
+  //    request.validCalculationRequest.map {
+  //
+  //      calculationRequest =>
+  //
+  //        request.calculationResponse.map {
+  //          calculationResponse =>
+  //
+  //            calculationRequest.calctype match {
+  //
+  //              case Some(2) => calculationResponse.payableAgeDate.map {
+  //                dod => dod.toString(DATE_FORMAT)
+  //              }.getOrElse("")
+  //
+  //
+  //              case Some(3) => {
+  //                calculationRequest.revaluationDate.map {
+  //                  d => LocalDate.parse(d, inputDateFormatter).toString(DATE_FORMAT)
+  //                }.getOrElse(calculationResponse.dateOfDeath.map {
+  //                  dod => dod.toString(DATE_FORMAT)
+  //                }.getOrElse(""))
+  //              }
+  //
+  //              case Some(4) => calculationResponse.spaDate.map {
+  //                dod => dod.toString(DATE_FORMAT)
+  //              }.getOrElse("")
+  //
+  //              case _ if !calculationRequest.revaluationDate.isDefined => calculationResponse.calculationPeriods.headOption.map {
+  //                period => period.endDate.toString(DATE_FORMAT)
+  //              }.getOrElse("")
+  //
+  //              case _ => convertDate(calculationRequest.revaluationDate)
+  //            }
+  //
+  //        }.getOrElse("")
+  //    }.getOrElse("")
+  //
+  //  }
 
   def generateContributionsCsv(request: BulkCalculationRequest): String = {
 
