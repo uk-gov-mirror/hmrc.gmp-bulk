@@ -37,9 +37,10 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
   final val CSV_HEADER_ROWS = 2
   final val PERIOD_1_REVAL_COLUMN_INDEX = 21
-
+  final val DEFAULT_DATE_FORMAT = "dd/MM/yyyy"
+  
   val nino = RandomNino.generate
-  val date = LocalDate.now().toString("dd/MM/yyyy")
+  val date = LocalDate.now().toString(DEFAULT_DATE_FORMAT)
 
   val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
   val singlePeriodGmpBulkCalculationResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
@@ -85,7 +86,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
       val periodColumns = "Period 1 (start date),Period 1 (end date),Period 1 (total GMP),Period 1 (post 1988),Period 1 (post 1990 - true gender)," +
         "Period 1 (post 1990 - opposite gender),Period 1 (revaluation rate),Period 1 Error,Period 1 What to do,Error,What to do"
 
-      val date = LocalDate.now().toString("dd/MM/yyyy")
+      val date = LocalDate.now().toString(DEFAULT_DATE_FORMAT)
 
       val csvRows = s"""Success,S2730000B,$nino,John,Smith,ref1,Date of leaving,,$date,,No,3.12,1.23,,,$date,$date,3.12,1.23,,,,,,,"""
       val columnHeaders = s"Status,${Messages("gmp.bulk.csv.headers")},${Messages("gmp.bulk.totals.headers")},$periodColumns"
@@ -203,7 +204,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     }
 
-    "includes period data" in {
+    "include period data" in {
 
       val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
         CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
@@ -215,9 +216,42 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All))
 
-      result must include(LocalDate.now().toString("dd/MM/yyyy"))
+      result must include(LocalDate.now().toString(DEFAULT_DATE_FORMAT))
       result must include("3.12")
       result must include("4.12")
+    }
+
+    "include period data with a dual calc" in {
+
+      val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
+        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, Some("6.78"), Some("4.56"), None, None),
+        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "4.12", "5.23", 0, 0, None, Some("1.45"), Some("8.90"), None, None)), 0, None, None, None)
+
+      val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, Some(1), None)
+      val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
+      val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
+
+      val result = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All))
+
+      result must include(LocalDate.now().toString(DEFAULT_DATE_FORMAT))
+      result must include("3.12")
+      result must include("4.12")
+    }
+
+    "include period data with no start date" in {
+
+      val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
+        CalculationPeriod(None, LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
+
+      val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
+      val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
+      val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
+
+      val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)) split "\n"
+      val cells = lines.drop(2).head split ","
+
+      cells.slice(15, 18) mustBe Seq("", LocalDate.now().toString(DEFAULT_DATE_FORMAT), "3.12")
+
     }
 
     "report a failed calculation if there is a period error" in {
@@ -527,7 +561,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "show correct reval rate for calctype 1 and member not still in scheme and period closed" in {
       val yesterdaysDate = LocalDate.now.minusDays(1)
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,${date},${yesterdaysDate.toString("dd/MM/yyyy")},,No,3.12,1.23,,,07/03/1983,${yesterdaysDate.toString("dd/MM/yyyy")},3.12,1.23,,,s148,,,,"
+      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,${date},${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},,No,3.12,1.23,,,07/03/1983,${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},3.12,1.23,,,s148,,,,"
       val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(yesterdaysDate.toString()), None, Some(0), Some(LocalDate.now().toString()), Some(false))
       val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), yesterdaysDate, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(CalculationRequest(None, 1, Some(validCalcRequest), None, Some(calcResponse)))

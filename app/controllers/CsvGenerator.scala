@@ -74,8 +74,6 @@ trait CsvGenerator {
     protected var errorCell: Cell = BlankCell
     protected var errorResolutionCell: Cell = BlankCell
 
-    def addMsgCell(text: String) = addCell(Messages(text))
-
     def addCell(text: Option[Any], default: String): RowBuilder = {
       addCell(text match {
         case Some(t) => t.toString
@@ -122,19 +120,6 @@ trait CsvGenerator {
     def setErrorResolutionCell(cell: Cell) = errorResolutionCell = cell
 
     def build: Row = ResponseRow(cells, Some(errorCell), Some(errorResolutionCell))
-
-    def getCells = cells.toList
-  }
-
-  class PeriodHeaderRowBuilder(periodIndex: Int) extends RowBuilder {
-
-    override def addMsgCell(text: String) = {
-      super.addCell(buildCellText(text))
-    }
-
-    def buildCellText(text: String): String = {
-      s"${Messages("gmp.period")} $periodIndex ${Messages(text)}"
-    }
   }
 
   class ResponseRowBuilder(request: CalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
@@ -243,7 +228,6 @@ trait CsvGenerator {
           case Some(err) =>
             setErrorCell(TextCell(request.validationErrors.get(err._1)))
             setErrorResolutionCell(TextCell(err._2))
-          case _ =>
         }
 
       case _ =>
@@ -251,11 +235,9 @@ trait CsvGenerator {
 
     private def addValidatedCell(value: Any, validationColumn: Int): Cell = {
 
-      val getValue = () => if (value == Nil) "" else value.toString
-
       val cell = TextCell(request.validationErrors match {
-        case Some(v) => if (v.isDefinedAt(validationColumn.toString)) v(validationColumn.toString) else getValue()
-        case _ => getValue()
+        case Some(v) => if (v.isDefinedAt(validationColumn.toString)) v(validationColumn.toString) else value.toString
+        case _ => value.toString
       })
 
       addCell(cell)
@@ -329,16 +311,6 @@ trait CsvGenerator {
 
     }
 
-    private def convertRevalRate(revalRate: Option[Int]): String = {
-      revalRate match {
-        case Some(0) => RevaluationRate.HMRC
-        case Some(1) => RevaluationRate.S148
-        case Some(2) => RevaluationRate.FIXED
-        case Some(3) => RevaluationRate.LIMITED
-        case _ => ""
-      }
-    }
-
   }
 
   class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
@@ -387,26 +359,21 @@ trait CsvGenerator {
       }
     }
 
-    private def convertRevalRate(revalRate: Option[Int]): String = {
-      revalRate match {
-        case Some(0) => RevaluationRate.HMRC
-        case Some(1) => RevaluationRate.S148
-        case Some(2) => RevaluationRate.FIXED
-        case Some(3) => RevaluationRate.LIMITED
-        case _ => ""
-      }
-    }
   }
 
   class HeaderRowBuilder(periodCount: Int)(implicit filter: CsvFilter) extends RowBuilder {
 
+    val periodCell = (msg: String, periodIndex: Int) => new Cell {
+      val text = s"${Messages("gmp.period")} $periodIndex ${Messages(msg)}"
+    }
+
     addFilteredCell({
-      case CsvFilter.All => Messages("gmp.status") // Add status column only for all
-    })
+        case CsvFilter.All => Messages("gmp.status") // Add status column only for all
+      })
       .addCell(Messages("gmp.bulk.csv.headers") split ",") // headers for all
       .addFilteredCells({
-      case CsvFilter.All | CsvFilter.Successful => Messages("gmp.bulk.totals.headers") split "," // totals for all
-    })
+        case CsvFilter.All | CsvFilter.Successful => Messages("gmp.bulk.totals.headers") split "," // totals for all
+      })
       .addRows(generatePeriodHeaders(periodCount))
       .addFilteredCells({
         case CsvFilter.All | CsvFilter.Failed => Messages("gmp.bulk.csv.globalerror.headers") split "," // global errors for all and failed
@@ -414,22 +381,22 @@ trait CsvGenerator {
 
     private def generatePeriodHeaders(periodCount: Int) = {
       (1 to periodCount).map {
-        index =>
+        implicit index =>
 
-          val builder = new PeriodHeaderRowBuilder(index)
+          val builder = new RowBuilder
 
-          builder.addMsgCell("gmp.period.start_date")
-            .addMsgCell("gmp.period.end_date")
-            .addMsgCell("gmp.period.total")
-            .addMsgCell("gmp.period.post_88")
-            .addMsgCell("gmp.period.post_90_true")
-            .addMsgCell("gmp.period.post_90_opp")
-            .addMsgCell("gmp.period.reval_rate")
+          builder.addCell(periodCell("gmp.period.start_date", index))
+            .addCell(periodCell("gmp.period.end_date", index))
+            .addCell(periodCell("gmp.period.total", index))
+            .addCell(periodCell("gmp.period.post_88", index))
+            .addCell(periodCell("gmp.period.post_90_true", index))
+            .addCell(periodCell("gmp.period.post_90_opp", index))
+            .addCell(periodCell("gmp.period.reval_rate", index))
             .addFilteredCell({
-              case CsvFilter.All | CsvFilter.Failed => builder.buildCellText("gmp.period.error")
+              case CsvFilter.All | CsvFilter.Failed => periodCell("gmp.period.error", index).text
             })
             .addFilteredCell({
-              case CsvFilter.All | CsvFilter.Failed => builder.buildCellText("gmp.period.what")
+              case CsvFilter.All | CsvFilter.Failed => periodCell("gmp.period.what", index).text
             })
 
           builder.build
@@ -541,6 +508,16 @@ trait CsvGenerator {
       }
     ).mkString(",")
 
+  }
+
+  private def convertRevalRate(revalRate: Option[Int]): String = {
+    revalRate match {
+      case Some(0) => RevaluationRate.HMRC
+      case Some(1) => RevaluationRate.S148
+      case Some(2) => RevaluationRate.FIXED
+      case Some(3) => RevaluationRate.LIMITED
+      case _ => ""
+    }
   }
 
   private def generateLineSeparator(calcRequest: CalculationRequest): String = {
