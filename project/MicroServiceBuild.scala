@@ -43,6 +43,8 @@ private object AppDependencies {
   private val mongoLockVersion = "3.4.0"
   private val reactiveCircuitBreakerVersion = "1.7.0"
   private val taxyearVersion = "0.2.0"
+  private val playMetrics = "2.3.0_0.2.1"
+  private val metricsGraphite = "3.0.2"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
@@ -58,7 +60,9 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
     "uk.gov.hmrc" %% "reactive-circuit-breaker" % reactiveCircuitBreakerVersion,
-    "uk.gov.hmrc" %% "tax-year" % taxyearVersion
+    "uk.gov.hmrc" %% "tax-year" % taxyearVersion,
+    "com.kenshoo" %% "metrics-play" % playMetrics,
+    "com.codahale.metrics" % "metrics-graphite" % metricsGraphite
   )
 
   trait TestDependencies {
