@@ -44,6 +44,11 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     mongo,
     BulkCalculationRequest.formats) with BulkCalculationRepository {
 
+  // Temporary -should be removed after next release to PROD
+  Logger.debug(s"[BulkCalculationMongoRepository][constructor] Dropping all indexes")
+  collection.indexesManager.dropAll()
+  // --
+
   override def indexes: Seq[Index] = Seq(
     Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> 2592000), sparse = true, background = true),
     Index(Seq("bulkId" -> IndexType.Ascending), Some("bulkId"), background = true),
