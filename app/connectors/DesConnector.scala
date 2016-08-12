@@ -168,11 +168,11 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
-      (r.json \ "manualCorrespondenceInd").as[Boolean] match {
-          case false => DesGetSuccessResponse
-          case true  =>
+      (r.json \ "manualCorrespondenceInd").asOpt[Boolean] match {
+          case Some(true) =>
             metrics.registerMciLockResult()
             DesGetHiddenRecordResponse
+          case _ => DesGetSuccessResponse
         }
 
     } recover {

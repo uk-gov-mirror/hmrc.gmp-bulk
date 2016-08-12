@@ -417,6 +417,17 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
         await(pd) must be(DesGetErrorResponse(ex))
 
       }
+
+      "return a success response if the MCI flag does not appear in the response" in {
+        val json = Json.parse("{}")
+        val response = HttpResponse(200, Some(json))
+
+        when(mockHttp.GET[HttpResponse](anyString)(any(), any())) thenReturn Future.successful(response)
+
+        val result = TestDesConnector.getPersonDetails("AB123456C")
+
+        await(result) must be(DesGetSuccessResponse)
+      }
     }
   }
 
