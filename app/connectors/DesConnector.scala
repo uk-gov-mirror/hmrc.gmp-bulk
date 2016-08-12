@@ -122,8 +122,10 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
   private def npsRequestHeaderCarrier: HeaderCarrier = {
 
-    HeaderCarrier().withExtraHeaders("Authorization" -> s"Bearer $serviceKey")
-      .withExtraHeaders("Environment" -> serviceEnvironment)
+    HeaderCarrier(extraHeaders = Seq(
+      "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id",""),
+      "Authorization" -> s"Bearer $serviceKey",
+      "Environment" -> serviceEnvironment))
 
   }
 
@@ -160,7 +162,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
     val newHc = HeaderCarrier(extraHeaders = Seq(
       "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
       "Authorization" -> s"Bearer $serviceKey",
-      "Environment" -> getConfString("des.environment","")))
+      "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
 

@@ -55,7 +55,9 @@ object Metrics extends Metrics {
     new Gauge[Int] {
       val repository = BulkCalculationRepository()
       override def getValue: Int = {
-        Await.result(repository.findCountRemaining, 3 seconds).getOrElse(0)
+        val x = Await.result(repository.findCountRemaining, 3 seconds).getOrElse(0)
+        Logger.info(s"[Metrics][bulkGauge]: $x")
+        x
       }
     })
 
