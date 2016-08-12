@@ -45,7 +45,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     BulkCalculationRequest.formats) with BulkCalculationRepository {
 
   // Temporary -should be removed after next release to PROD
-  Logger.debug(s"[BulkCalculationMongoRepository][constructor] Dropping all indexes")
+  Logger.info(s"[BulkCalculationMongoRepository][constructor] Dropping all indexes")
   collection.indexesManager.dropAll()
   // --
 
