@@ -49,6 +49,13 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
   collection.indexesManager.dropAll()
   // --
 
+  // Temporary, to remove after next build to fix record in mongo prod
+  {
+    collection.update(Json.obj("bulkId" -> "579a288eff4060a3ff4588c1"), Json.obj("$unset" -> Json.obj("createdAt" -> 1)), multi = true)
+    collection.update(Json.obj("_id" -> "579a288eff4060a3ff4588c1"), Json.obj("$unset" -> Json.obj("createdAt" -> 1, "processedDateTime" -> 1, "failed" -> 1, "total" -> 1, "complete" -> 1)))
+  }
+  // --
+
   override def indexes: Seq[Index] = Seq(
     Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> 2592000), sparse = true, background = true),
     Index(Seq("bulkId" -> IndexType.Ascending), Some("bulkId"), background = true),
