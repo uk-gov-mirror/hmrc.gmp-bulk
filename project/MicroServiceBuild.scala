@@ -36,7 +36,7 @@ private object AppDependencies {
   private val playUrlBindersVersion = "1.0.0"
   private val playConfigVersion = "2.0.1"
   private val domainVersion = "3.7.0"
-  private val hmrcTestVersion = "1.6.0"
+  private val hmrcTestVersion = "1.8.0"
   private val playReactivemongoVersion = "4.8.0"
   private val akkaContribVersion = "2.3.4"
   private val playSchedulingVersion = "3.0.0"
