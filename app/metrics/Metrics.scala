@@ -42,7 +42,8 @@ trait Metrics {
   def registerStatusCode(code: String)
   def desConnectionTime(delta: Long, timeUnit: TimeUnit)
   def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit
-  def registerMciLockResult(): Unit
+  def mciLockResult(): Unit
+  def mciErrorResult(): Unit
 }
 
 trait MetricsGauge extends Gauge[Int] {
@@ -51,9 +52,12 @@ trait MetricsGauge extends Gauge[Int] {
 
 object Metrics extends Metrics {
 
+
+
   val bulkGauge = MetricsRegistry.defaultRegistry.register("bulk-remaining",
     new Gauge[Int] {
       val repository = BulkCalculationRepository()
+
       override def getValue: Int = {
         val x = Await.result(repository.findCountRemaining, 3 seconds).getOrElse(0)
         Logger.info(s"[Metrics][bulkGauge]: $x")
@@ -146,8 +150,10 @@ object Metrics extends Metrics {
     MetricsRegistry.defaultRegistry.timer("mci-connection-timer").update(diff, unit)
   }
 
-  override def registerMciLockResult() = {
+  override def mciLockResult() = {
     Logger.info("[Metrics][registerMciLockResult]")
     MetricsRegistry.defaultRegistry.counter("mci-lock-result-count").inc()
   }
+
+  override def mciErrorResult() = MetricsRegistry.defaultRegistry.counter("mci-error-result-count").inc()
 }
