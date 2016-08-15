@@ -26,23 +26,42 @@ import play.api.Logger
 
 trait Metrics {
   def findAndCompleteChildrenTimer(l: Long, MILLISECONDS: duration.TimeUnit)
+
   def findAndCompleteAllChildrenTimer(l: Long, MILLISECONDS: duration.TimeUnit)
+
   def findAndCompleteParentTimer(l: Long, MILLISECONDS: duration.TimeUnit)
+
   def insertResponseByReferenceTimer(diff: Long, unit: TimeUnit): Unit
+
   def findByReferenceTimer(diff: Long, unit: TimeUnit): Unit
+
   def findSummaryByReferenceTimer(diff: Long, unit: TimeUnit): Unit
+
   def findByUserIdTimer(diff: Long, unit: TimeUnit): Unit
+
   def findRequestsToProcessTimer(diff: Long, unit: TimeUnit): Unit
+
   def findCountRemainingTimer(diff: Long, unit: TimeUnit): Unit
+
   def findAndCompleteTimer(diff: Long, unit: TimeUnit): Unit
+
   def insertBulkDocumentTimer(diff: Long, unit: TimeUnit): Unit
+
   def processRequest(diff: Long, unit: TimeUnit): Unit
+
   def registerSuccessfulRequest()
+
   def registerFailedRequest()
+
   def registerStatusCode(code: String)
+
   def desConnectionTime(delta: Long, timeUnit: TimeUnit)
+
   def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit
-  def registerMciLockResult(): Unit
+
+  def mciLockResult(): Unit
+
+  def mciErrorResult(): Unit
 }
 
 trait MetricsGauge extends Gauge[Int] {
@@ -51,9 +70,41 @@ trait MetricsGauge extends Gauge[Int] {
 
 object Metrics extends Metrics {
 
+  private val timer = (name: String) => MetricsRegistry.defaultRegistry.timer(name)
+  private val counter = (name: String) => MetricsRegistry.defaultRegistry.counter(name)
+
+  Logger.info("[Metrics][constructor] Preloading metrics keys")
+
+  Seq(
+    ("processRequest-timer", timer),
+    ("des-connector-requests-successful", counter),
+    ("des-connector-requests-failed", counter),
+    ("des-connector-httpstatus-200", counter),
+    ("des-connector-httpstatus-400", counter),
+    ("des-connector-httpstatus-422", counter),
+    ("des-connector-httpstatus-500", counter),
+    ("des-connector-httpstatus-504", counter),
+    ("des-connector-timer", timer),
+    ("mongo-insertResponseByReference-timer", timer),
+    ("mongo-findRequestsToProcess-timer", timer),
+    ("mongo-findCountRemaining-timer", timer),
+    ("mongo-findByUserId-timer", timer),
+    ("mongo-insertBulkDocument-timer", timer),
+    ("mongo-findAndComplete-timer", timer),
+    ("mongo-findSummaryByReference-timer", timer),
+    ("mongo-findByReference-timer", timer),
+    ("mongo-findAndCompleteChildren-timer", timer),
+    ("mongo-findAndCompleteParent-timer", timer),
+    ("mongo-findAndCompleteAllChildren-timer", timer),
+    ("mci-connection-timer", timer),
+    ("mci-lock-result-count", counter),
+    ("mci-error-result-count", counter)
+  ) foreach { t => t._2(t._1) }
+
   val bulkGauge = MetricsRegistry.defaultRegistry.register("bulk-remaining",
     new Gauge[Int] {
       val repository = BulkCalculationRepository()
+
       override def getValue: Int = {
         val x = Await.result(repository.findCountRemaining, 3 seconds).getOrElse(0)
         Logger.info(s"[Metrics][bulkGauge]: $x")
@@ -61,93 +112,55 @@ object Metrics extends Metrics {
       }
     })
 
-  override def processRequest(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][processRequest]: $diff")
-    MetricsRegistry.defaultRegistry.timer("processRequest-timer").update(diff, unit)
-  }
+  override def processRequest(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("processRequest-timer").update(diff, unit)
 
-  override def registerSuccessfulRequest() = {
-    Logger.info("[Metrics][registerSuccessfulRequest]")
-    MetricsRegistry.defaultRegistry.counter("des-connector-requests-successful").inc()
-  }
+  override def registerSuccessfulRequest() = MetricsRegistry.defaultRegistry.counter("des-connector-requests-successful").inc()
 
-  override def registerFailedRequest() = {
-    Logger.info("[Metrics][registerFailedRequest]")
-    MetricsRegistry.defaultRegistry.counter("des-connector-requests-failed").inc()
-  }
+  override def registerFailedRequest() = MetricsRegistry.defaultRegistry.counter("des-connector-requests-failed").inc()
 
-  override def registerStatusCode(code: String) = {
-    Logger.info("[Metrics][registerStatusCode]")
-    MetricsRegistry.defaultRegistry.counter(s"des-connector-httpstatus-$code").inc()
-  }
+  override def registerStatusCode(code: String) = MetricsRegistry.defaultRegistry.counter(s"des-connector-httpstatus-$code").inc()
 
-  override def desConnectionTime(diff: Long, timeUnit: TimeUnit) = {
-    Logger.info(s"[Metrics][desConnectionTime]: $diff")
-    MetricsRegistry.defaultRegistry.timer("des-connector-timer").update(diff, timeUnit)
-  }
+  override def desConnectionTime(diff: Long, timeUnit: TimeUnit) = MetricsRegistry.defaultRegistry.timer("des-connector-timer").update(diff, timeUnit)
 
-  override def insertResponseByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][insertResponseByReferenceTimer]: $diff")
+  override def insertResponseByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-insertResponseByReference-timer").update(diff, unit)
-  }
 
-  override def findRequestsToProcessTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][findRequestsToProcessTimer]: $diff")
+  override def findRequestsToProcessTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findRequestsToProcess-timer").update(diff, unit)
-  }
 
-  override def findCountRemainingTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][findCountRemainingTimer]: $diff")
+  override def findCountRemainingTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findCountRemaining-timer").update(diff, unit)
-  }
 
-  override def findByUserIdTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][findByUserIdTimer]: $diff")
+  override def findByUserIdTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findByUserId-timer").update(diff, unit)
-  }
 
-  override def insertBulkDocumentTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][insertBulkDocumentTimer]: $diff")
+  override def insertBulkDocumentTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-insertBulkDocument-timer").update(diff, unit)
-  }
 
-  override def findAndCompleteTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][findAndCompleteTimer]: $diff")
+  override def findAndCompleteTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findAndComplete-timer").update(diff, unit)
-  }
 
-  override def findSummaryByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][findSummaryByReferenceTimer]: $diff")
+  override def findSummaryByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findSummaryByReference-timer").update(diff, unit)
-  }
 
-  override def findByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][findByReferenceTimer]: $diff")
+  override def findByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findByReference-timer").update(diff, unit)
-  }
 
-  override def findAndCompleteChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][findAndCompleteChildrenTimer]: $diff")
+  override def findAndCompleteChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteChildren-timer").update(diff, unit)
-  }
 
-  override def findAndCompleteParentTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][findAndCompleteParentTimer]: $diff")
+  override def findAndCompleteParentTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteParent-timer").update(diff, unit)
-  }
 
-  override def findAndCompleteAllChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit = {
-    Logger.info(s"[Metrics][findAndCompleteAllChildrenTimer]: $diff")
+  override def findAndCompleteAllChildrenTimer(diff: Long, unit: duration.TimeUnit): Unit =
     MetricsRegistry.defaultRegistry.timer("mongo-findAndCompleteAllChildren-timer").update(diff, unit)
-  }
 
-  override def mciConnectionTimer(diff: Long, unit: TimeUnit) = {
-    Logger.info(s"[Metrics][mciConnectionTimer]: $diff")
+  override def mciConnectionTimer(diff: Long, unit: TimeUnit) =
     MetricsRegistry.defaultRegistry.timer("mci-connection-timer").update(diff, unit)
-  }
 
-  override def registerMciLockResult() = {
-    Logger.info("[Metrics][registerMciLockResult]")
+  override def mciLockResult() =
     MetricsRegistry.defaultRegistry.counter("mci-lock-result-count").inc()
-  }
+
+  override def mciErrorResult() = MetricsRegistry.defaultRegistry.counter("mci-error-result-count").inc()
+
 }
