@@ -35,7 +35,7 @@ import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
@@ -44,11 +44,6 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     mongo,
     BulkCalculationRequest.formats) with BulkCalculationRepository {
 
-  // Temporary -should be removed after next release to PROD
-  Logger.info(s"[BulkCalculationMongoRepository][constructor] Dropping all indexes")
-  collection.indexesManager.dropAll()
-  // --
-
   // Temporary, to remove after next build to fix record in mongo prod
   {
     collection.update(Json.obj("bulkId" -> "579a288eff4060a3ff4588c1"), Json.obj("$unset" -> Json.obj("createdAt" -> 1)), multi = true)
@@ -56,14 +51,25 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
   }
   // --
 
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+
+    // Temporary - should be removed after next release to PROD
+    Logger.info(s"[BulkCalculationMongoRepository][constructor] Dropping all indexes..")
+
+    collection.indexesManager.dropAll() flatMap { _ =>
+      super.ensureIndexes(ec)
+    }
+    // --
+  }
+
   override def indexes: Seq[Index] = Seq(
-    Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> 2592000), sparse = true, background = true),
-    Index(Seq("bulkId" -> IndexType.Ascending), Some("bulkId"), background = true),
-    Index(Seq("uploadReference" -> IndexType.Ascending), Some("UploadReference"), sparse = true, unique = true),
-    Index(Seq("bulkId" -> IndexType.Ascending, "lineId" -> IndexType.Ascending), Some("BulkAndLine")),
-    Index(Seq("userId" -> IndexType.Ascending), Some("UserId"), background = true),
-    Index(Seq("lineId" -> IndexType.Descending), Some("LineIdDesc"), background = true)
-  )
+      Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> 2592000), sparse = true, background = true),
+      Index(Seq("bulkId" -> IndexType.Ascending), Some("bulkId"), background = true),
+      Index(Seq("uploadReference" -> IndexType.Ascending), Some("UploadReference"), sparse = true, unique = true),
+      Index(Seq("bulkId" -> IndexType.Ascending, "lineId" -> IndexType.Ascending), Some("BulkAndLine")),
+      Index(Seq("userId" -> IndexType.Ascending), Some("UserId"), background = true),
+      Index(Seq("lineId" -> IndexType.Descending), Some("LineIdDesc"), background = true)
+    )
 
   override def insertResponseByReference(bulkId: String, lineId: Int, calculationResponse: GmpBulkCalculationResponse): Future[Boolean] = {
 
