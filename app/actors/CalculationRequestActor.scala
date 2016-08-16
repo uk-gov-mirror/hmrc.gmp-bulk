@@ -82,7 +82,7 @@ class CalculationRequestActor extends Actor with ActorUtils {
                 case e: Upstream4xxResponse if e.reportAs == Status.BAD_REQUEST => {
 
                   // $COVERAGE-OFF$
-                  Logger.debug(s"[CalculationRequestActor][Inserting Failure response failed with error : { exception : $e}]")
+                  Logger.error(s"[CalculationRequestActor] Inserting Failure response failed with error: $e")
                   // $COVERAGE-ON$
 
                   // Record the response as a failure, which will help out with cyclic processing of messages
@@ -96,7 +96,7 @@ class CalculationRequestActor extends Actor with ActorUtils {
 
                 case e =>
                   // $COVERAGE-OFF$
-                  Logger.debug(s"[CalculationRequestActor][Inserting Failure response failed with error : { exception : $e}]")
+                  Logger.error(s"[CalculationRequestActor] Inserting Failure response failed with error :$e")
                   origSender ! akka.actor.Status.Failure(e)
                 // $COVERAGE-ON$
               }
@@ -104,7 +104,7 @@ class CalculationRequestActor extends Actor with ActorUtils {
 
             case Failure(f) => {
               // $COVERAGE-OFF$
-              Logger.debug(s"[CalculationRequestActor][Calling DES failed with error ${f.getMessage}]")
+              Logger.error(s"[CalculationRequestActor] Calling DES failed with error: ${ f.getMessage }")
               // $COVERAGE-ON$
 
               origSender ! akka.actor.Status.Failure(f)
@@ -116,7 +116,7 @@ class CalculationRequestActor extends Actor with ActorUtils {
       } recover {
         case e =>
           // $COVERAGE-OFF$
-          Logger.debug(s"[CalculationRequestActor][Calling getPersonDetails failed with error ${e.getMessage}]")
+          Logger.error(s"[CalculationRequestActor] Calling getPersonDetails failed with error: ${ e.getMessage }")
           // $COVERAGE-ON$
       }
 
