@@ -70,8 +70,7 @@ class ProcessingSupervisor extends Actor with ActorUtils {
   override def receive: Receive = {
 
     case STOP => {
-
-      Logger.debug("[ProcessingSupervisor][received while not processing : STOP received]")
+      Logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
       lockrepo.releaseLock(lockKeeper.lockId,lockKeeper.serverId)
     }
 
@@ -83,7 +82,7 @@ class ProcessingSupervisor extends Actor with ActorUtils {
 
         repository.findRequestsToProcess().map {
           case Some(requests) if requests.nonEmpty => {
-            Logger.debug(s"[ProcessingSupervisor][receive : took ${requests.size} requests]")
+            Logger.debug(s"[ProcessingSupervisor][receive] took ${requests.size} request/s")
             for (request <- requests.take(ApplicationConfig.bulkProcessingBatchSize)) {
 
               throttler ! request
@@ -93,7 +92,7 @@ class ProcessingSupervisor extends Actor with ActorUtils {
           }
           case _ => {
 
-            Logger.debug(s"[ProcessingSupervisor][receive : no requests pending]")
+            Logger.debug(s"[ProcessingSupervisor][receive] no requests pending")
             context unbecome;
             throttler ! STOP
 
@@ -101,9 +100,9 @@ class ProcessingSupervisor extends Actor with ActorUtils {
 
         }
       }.map{
-        case Some(thing) => Logger.debug(s"[ProcessingSupervisor][receive : obtained mongo lock]")
+        case Some(thing) => Logger.debug(s"[ProcessingSupervisor][receive] obtained mongo lock")
         // $COVERAGE-OFF$
-        case _ => Logger.debug(s"[ProcessingSupervisor][receive : failed to obtain mongo lock]")
+        case _ => Logger.debug(s"[ProcessingSupervisor][receive] failed to obtain mongo lock")
         // $COVERAGE-ON$
       }
 
@@ -112,12 +111,12 @@ class ProcessingSupervisor extends Actor with ActorUtils {
 
   def receiveWhenProcessRunning : Receive = {
     // $COVERAGE-OFF$
-    case START => Logger.debug("[ProcessingSupervisor][received while processing : START ignored]")
+    case START => Logger.debug("[ProcessingSupervisor][received while processing] START ignored")
     // $COVERAGE-ON$
 
     case STOP => {
 
-      Logger.debug("[ProcessingSupervisor][received while processing : STOP received]")
+      Logger.debug("[ProcessingSupervisor][received while processing] STOP received")
       lockrepo.releaseLock(lockKeeper.lockId,lockKeeper.serverId)
       context unbecome
     }
