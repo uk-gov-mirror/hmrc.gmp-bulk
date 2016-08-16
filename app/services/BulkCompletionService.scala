@@ -27,12 +27,11 @@ import scala.concurrent.{ExecutionContext, Future}
 trait BulkCompletionService {
 
   val connection = {
-
     import play.api.Play.current
     ReactiveMongoPlugin.mongoConnector.db
   }
-  val lockrepo = LockMongoRepository(connection)
 
+  val lockrepo = LockMongoRepository(connection)
   val lockKeeper = new LockKeeper {
 
     override def repo: LockRepository = lockrepo //The repo created before
@@ -42,25 +41,26 @@ trait BulkCompletionService {
     override val forceLockReleaseAfter: org.joda.time.Duration = org.joda.time.Duration.standardMinutes(5)
 
     // $COVERAGE-OFF$
-    override def tryLock[T](body: => Future[T])(implicit ec : ExecutionContext): Future[Option[T]] = {
-      Logger.debug("trying to get completion lock")
+    override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] = {
+      Logger.debug("Trying to get completion lock")
       repo.lock(lockId, serverId, forceLockReleaseAfter)
         .flatMap { acquired =>
           if (acquired)
-            body.map { case x => Logger.debug("got completion lock"); Some(x) }.recover {
-              case e => Logger.debug("exception getting lock: " + e.getMessage)
+            body.map { x => Logger.debug("Got completion lock"); Some(x) }.recover {
+              case e => Logger.error("Exception getting lock: " + e.getMessage, e)
                 throw e
             }
           else {
-            Logger.debug("couldnt get lock");
+            Logger.debug("Couldnt get lock");
             Future.successful(None)
           }
         }.recoverWith { case ex => {
-          Logger.debug("exception getting lock: " + ex.getMessage)
-          repo.releaseLock(lockId, serverId).flatMap(_ => Future.failed(ex))
-        }
+        Logger.error("Exception getting lock: " + ex.getMessage, ex)
+        repo.releaseLock(lockId, serverId).flatMap(_ => Future.failed(ex))
+      }
       }
     }
+
     // $COVERAGE-ON$
   }
 
@@ -70,22 +70,22 @@ trait BulkCompletionService {
 
 
   def checkForComplete() = {
-    Logger.debug("[BulkCompletionService]: starting ")
-    lockKeeper.tryLock {
-      Logger.debug("[BulkCompletionService]: got lock")
-      repository.findAndComplete().map {
-        case true => Logger.debug("[BulkCompletionService]: found and completed successfully "); lockrepo.releaseLock(lockKeeper.lockId,lockKeeper.serverId)
-        case false => Logger.warn("[BulkCompletionService]: failed "); lockrepo.releaseLock(lockKeeper.lockId,lockKeeper.serverId)
-      }
 
-    }.map{
-      case Some(thing) => Logger.debug("[BulkCompletionService][receive : obtained mongo lock]")
+    Logger.debug("[BulkCompletionService] Starting..")
+
+    lockKeeper.tryLock {
+      Logger.debug("[BulkCompletionService] Got lock")
+      repository.findAndComplete().map {
+        case true => Logger.debug("[BulkCompletionService] Found and completed successfully"); lockrepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
+        case false => Logger.warn("[BulkCompletionService] Failed"); lockrepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
+      }
+    }.map {
+      case Some(thing) => Logger.debug("[BulkCompletionService][receive] Obtained mongo lock")
       // $COVERAGE-OFF$
-      case _ => Logger.debug("[BulkCompletionService][receive : failed to obtain mongo lock]")
+      case _ => Logger.debug("[BulkCompletionService][receive] Failed to obtain mongo lock")
       // $COVERAGE-ON$
     }
   }
-
 }
 
 object BulkCompletionService extends BulkCompletionService

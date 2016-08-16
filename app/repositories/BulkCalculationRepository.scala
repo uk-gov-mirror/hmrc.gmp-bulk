@@ -74,9 +74,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
   override def insertResponseByReference(bulkId: String, lineId: Int, calculationResponse: GmpBulkCalculationResponse): Future[Boolean] = {
 
     val startTime = System.currentTimeMillis()
-
     val selector = Json.obj("bulkId" -> bulkId, "lineId" -> lineId)
-
     val modifier = Json.obj("$set" -> Json.obj("calculationResponse" -> calculationResponse))
     val result = collection.update(selector, modifier)
 
@@ -85,7 +83,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     }
 
     result.map {
-      lastError => Logger.debug(s"[BulkCalculationRepository][insertResponseByReference] : {bulkResponse: $calculationResponse, result : $lastError }")
+      lastError => Logger.debug(s"[BulkCalculationRepository][insertResponseByReference] bulkResponse: $calculationResponse, result : $lastError ")
         lastError.ok
     }.recover {
       // $COVERAGE-OFF$
@@ -127,12 +125,12 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     tryResult match {
       case Success(s) => {
         s.map { x =>
-          Logger.debug(s"[BulkCalculationRepository][findByReference] : { uploadReference : $uploadReference, result: $x }")
+          Logger.debug(s"[BulkCalculationRepository][findByReference] uploadReference: $uploadReference, result: $x ")
           x
         }
       }
       case Failure(f) => {
-        Logger.debug(s"[BulkCalculationRepository][findByReference]  : { uploadReference : $uploadReference, exception: ${f.getMessage} }")
+        Logger.error(s"[BulkCalculationRepository][findByReference] uploadReference: $uploadReference, exception: ${f.getMessage}")
         Future.successful(None)
       }
     }
@@ -154,12 +152,12 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     tryResult match {
       case Success(s) => {
         s.map { x =>
-          Logger.debug(s"[BulkCalculationRepository][findSummaryByReference] : { uploadReference : $uploadReference, result: $x }")
+          Logger.debug(s"[BulkCalculationRepository][findSummaryByReference] uploadReference : $uploadReference, result: $x")
           x.headOption
         }
       }
       case Failure(f) => {
-        Logger.debug(s"[BulkCalculationRepository][findSummaryByReference]  : { uploadReference : $uploadReference, exception: ${f.getMessage} }")
+        Logger.error(s"[BulkCalculationRepository][findSummaryByReference] uploadReference : $uploadReference, exception: ${f.getMessage}")
         Future.successful(None)
       }
     }
@@ -182,12 +180,12 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     tryResult match {
       case Success(s) => {
         s.map { x =>
-          Logger.debug(s"[BulkCalculationRepository][findByUserId] : { userId : $userId, result: ${x.size} }")
+          Logger.debug(s"[BulkCalculationRepository][findByUserId] userId : $userId, result: ${x.size}")
           Some(x)
         }
       }
       case Failure(f) => {
-        Logger.debug(s"[BulkCalculationRepository][findByUserId]  : { userId : $userId, exception: ${f.getMessage} }")
+        Logger.error(s"[BulkCalculationRepository][findByUserId] exception: ${f.getMessage}")
         Future.successful(None)
       }
     }
@@ -239,7 +237,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
       }
 
       case Failure(f) => {
-        Logger.debug(s"[BulkCalculationRepository][findRequestsToProcess] {failed : ${f.getMessage}}")
+        Logger.error(s"[BulkCalculationRepository][findRequestsToProcess] failed: ${f.getMessage}")
         metrics.findRequestsToProcessTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
         Future.successful(None)
       }
@@ -317,32 +315,32 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
                   val resultsEventResult = auditConnector.sendEvent(new BulkEvent(
                     request.get.userId,
                     totalRequests - failedRequests,
-                    request.get.calculationRequests.filter(x => x.validationErrors != None).size,
-                    request.get.calculationRequests.filter(x => x.hasNPSErrors).size,
+                    request.get.calculationRequests.count(x => x.validationErrors != None),
+                    request.get.calculationRequests.count(x => x.hasNPSErrors),
                     totalRequests,
                     request.get.calculationRequests.collect {
-                      case x if (x.calculationResponse.isDefined) => x.calculationResponse.get.errorCodes
+                      case x if x.calculationResponse.isDefined => x.calculationResponse.get.errorCodes
                     }.flatten,
                     request.get.calculationRequests.collect {
-                      case x if (x.validCalculationRequest.isDefined && x.calculationResponse.isDefined) => x.validCalculationRequest.get.scon
+                      case x if x.validCalculationRequest.isDefined && x.calculationResponse.isDefined => x.validCalculationRequest.get.scon
                     },
                     request.get.calculationRequests.collect {
-                      case x if (x.validCalculationRequest.isDefined && x.calculationResponse.isDefined && x.validCalculationRequest.get.dualCalc.isDefined && x.validCalculationRequest.get.dualCalc.get == 1) => true
-                      case x if (x.validCalculationRequest.isDefined && x.calculationResponse.isDefined && x.validCalculationRequest.get.dualCalc.isDefined && x.validCalculationRequest.get.dualCalc.get == 0) => false
+                      case x if x.validCalculationRequest.isDefined && x.calculationResponse.isDefined && x.validCalculationRequest.get.dualCalc.isDefined && x.validCalculationRequest.get.dualCalc.get == 1 => true
+                      case x if x.validCalculationRequest.isDefined && x.calculationResponse.isDefined && x.validCalculationRequest.get.dualCalc.isDefined && x.validCalculationRequest.get.dualCalc.get == 0 => false
                     },
                     request.get.calculationRequests.collect{
-                      case x if (x.validCalculationRequest.isDefined && x.calculationResponse.isDefined) => x.validCalculationRequest.get.calctype.get
+                      case x if x.validCalculationRequest.isDefined && x.calculationResponse.isDefined => x.validCalculationRequest.get.calctype.get
                     }
                   ))
                   resultsEventResult.onFailure {
-                    case e: Throwable => Logger.warn("[BulkCalculationRepository][findAndComplete] : resultsEventResult: " + e.getMessage(), e)
+                    case e: Throwable => Logger.error(s"[BulkCalculationRepository][findAndComplete] resultsEventResult: ${e.getMessage}", e)
                   }
 
                   val childSelector = Json.obj("bulkId" -> request.get._id.get)
                   val childModifier = Json.obj("$set" -> Json.obj("createdAt" -> BSONDateTime(DateTime.now().getMillis)))
                   val childResult = collection.update(childSelector, childModifier, multi = true)
                   childResult.map {
-                    childWriteResult => Logger.debug(s"[BulkCalculationRepository][findAndComplete] : { childResult : $childWriteResult }")
+                    childWriteResult => Logger.debug(s"[BulkCalculationRepository][findAndComplete] childResult: $childWriteResult")
                   }
 
                   emailConnector.sendProcessedTemplatedEmail(ProcessedUploadTemplate(
@@ -368,14 +366,14 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
         result
       }
       case Failure(f) => {
-        Logger.warn(s"[BulkCalculationRepository][findAndComplete] failure : { exception: ${f.getMessage} }")
+        Logger.error(s"[BulkCalculationRepository][findAndComplete] ${f.getMessage}", f)
         metrics.findAndCompleteTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
         Future.successful(false)
       }.recover {
         // $COVERAGE-OFF$
         case e: Exception => {
           metrics.findAndCompleteTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-          Logger.warn(s"[BulkCalculationRepository][findAndComplete] recover : { exception: ${e.getMessage} }")
+          Logger.error(s"[BulkCalculationRepository][findAndComplete] ${e.getMessage}", e)
           false
         }
         // $COVERAGE-ON$
@@ -385,15 +383,9 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
 
   override def findCountRemaining: Future[Option[Int]] = {
 
-    val startTime = System.currentTimeMillis()
-
     val countResult = Try {
       val result = collection.count(Some(Json.obj("validCalculationRequest" -> Json.obj("$exists" -> true), "calculationResponse" -> Json.obj("$exists" -> false),
         "validationErrors" -> Json.obj("$exists" -> false))))
-
-//      result onComplete {
-//        case _ => metrics.findCountRemainingTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-//      }
 
       result
     }
@@ -402,15 +394,13 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
       case Success(s) => {
         s.map {
           x =>
-            Logger.debug(s"[BulkCalculationRepository][findCountRemaining : $x] ")
+            Logger.debug(s"[BulkCalculationRepository][findCountRemaining] $x")
             Some(x)
         }
       }
 
-      case Failure(f) => {
-        Logger.debug(s"[BulkCalculationRepository][findCountRemaining] {failed : ${
-          f.getMessage
-        }}")
+      case Failure(e) => {
+        Logger.error(s"[BulkCalculationRepository][findCountRemaining] ${e.getMessage}", e)
         Future.successful(None)
       }
     }
@@ -418,13 +408,13 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
 
   override def insertBulkDocument(bulkCalculationRequest: BulkCalculationRequest): Future[Boolean] = {
 
-    Logger.info(s"[BulkCalculationRepository][insertBulkDocument][numDocuments]: " + bulkCalculationRequest.calculationRequests.size)
+    Logger.info(s"[BulkCalculationRepository][insertBulkDocument][numDocuments]: ${bulkCalculationRequest.calculationRequests.size}")
 
     val startTime = System.currentTimeMillis()
 
     findDuplicateUploadReference(bulkCalculationRequest.uploadReference).flatMap {
 
-      case true => Logger.debug(s"[BulkCalculationRepository][insertBulkDocument : found duplicate ")
+      case true => Logger.debug(s"[BulkCalculationRepository][insertBulkDocument] Duplicate request found (${bulkCalculationRequest.uploadReference})")
         Future.successful(false)
       case false => {
         val strippedBulk: BulkCalculationRequest = bulkCalculationRequest.copy(calculationRequests = Nil, _id = Some(BSONObjectID.generate.stringify))
@@ -447,23 +437,20 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
         insertResult match {
           case Success(s) => {
             s.map {
-              case x: MultiBulkWriteResult if (x.writeErrors == Nil) =>
-                Logger.debug(s"[BulkCalculationRepository][insertBulkDocument : $x] ")
+              case x: MultiBulkWriteResult if x.writeErrors == Nil =>
+                Logger.debug(s"[BulkCalculationRepository][insertBulkDocument] $x")
                 true
             }.recover {
-              case e: Throwable => {
+              case e: Throwable =>
                 // $COVERAGE-OFF$
-                Logger.debug("Error inserting document", e)
+                Logger.error("Error inserting document", e)
                 false
                 // $COVERAGE-ON$
-              }
             }
           }
 
           case Failure(f) => {
-            Logger.debug(s"[BulkCalculationRepository][insertBulkDocument] {failed : ${
-              f.getMessage
-            }}")
+            Logger.error(s"[BulkCalculationRepository][insertBulkDocument] failed: ${f.getMessage}")
             Future.successful(false)
           }
         }
@@ -479,16 +466,15 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     }
 
     tryResult match {
-      case Success(s) => {
+      case Success(s) =>
         s.map { x =>
-          Logger.debug(s"[BulkCalculationRepository][findDuplicateUploadReference] : { uploadReference : $uploadReference, result: ${x.nonEmpty} }")
+          Logger.debug(s"[BulkCalculationRepository][findDuplicateUploadReference] uploadReference : $uploadReference, result: ${x.nonEmpty}")
           x.nonEmpty
         }
-      }
-      case Failure(f) => {
-        Logger.debug(s"[BulkCalculationRepository][findDuplicateUploadReference]  : { uploadReference : $uploadReference, exception: ${f.getMessage} }")
+
+      case Failure(e) =>
+        Logger.error(s"[BulkCalculationRepository][findDuplicateUploadReference] ${e.getMessage} ($uploadReference)", e)
         Future.successful(false)
-      }
     }
   }
 }

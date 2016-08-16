@@ -22,11 +22,13 @@ import play.api.Logger
 import play.api.libs.json.Json
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 case class ReceivedUploadTemplate(email: String, uploadReference: String)
-case class ProcessedUploadTemplate(email: String, uploadReference: String, uploadDate: LocalDate, userId: String )
+
+case class ProcessedUploadTemplate(email: String, uploadReference: String, uploadDate: LocalDate, userId: String)
 
 case class SendTemplatedEmailRequest(to: List[String], templateId: String, parameters: Map[String, String])
 
@@ -34,7 +36,7 @@ object SendTemplatedEmailRequest {
   implicit val format = Json.format[SendTemplatedEmailRequest]
 }
 
-trait EmailConnector extends ServicesConfig{
+trait EmailConnector extends ServicesConfig {
 
   val http: HttpPost = WSHttp
 
@@ -58,10 +60,12 @@ trait EmailConnector extends ServicesConfig{
 
     val url = s"${baseUrl("email")}/send-templated-email"
 
+    Logger.debug(s"[EmailConnector] Sending email to ${request.to.mkString(", ")}")
+
     http.POST(url, request, Seq(("Content-Type", "application/json"))) map { response =>
       response.status match {
-        case 202 => Logger.debug(s"[EmailConnector][sent] : ${response.body}"); true
-        case _ => Logger.debug(s"[EmailConnector][not sent] : ${response.status}"); false
+        case 202 => Logger.debug(s"[EmailConnector] Email sent: ${response.body}"); true
+        case _ => Logger.error(s"[EmailConnector] Email not sent: ${response.body}"); false
       }
     }
   }

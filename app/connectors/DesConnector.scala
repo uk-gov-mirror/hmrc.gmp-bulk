@@ -88,25 +88,23 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
       }/nino/${request.nino.toUpperCase}/surname/$surname/firstname/$firstname/calculation/${buildEncodedQueryString(paramMap)}"""
 
 
-    Logger.debug(s"[DesConnector][calculate] : $uri")
+    Logger.debug(s"[DesConnector][calculate] contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 
     val result = withCircuitBreaker(http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads).map { response =>
 
       metrics.registerStatusCode(response.status.toString)
-
-      val delta = System.currentTimeMillis() - startTime
-      metrics.desConnectionTime(delta, TimeUnit.MILLISECONDS)
+      metrics.desConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {
         case OK | UNPROCESSABLE_ENTITY =>
-          metrics.registerSuccessfulRequest
+          metrics.registerSuccessfulRequest()
           response.json.as[CalculationResponse]
 
         case errorStatus: Int => {
-          Logger.error(s"[DesConnector][calculate] : DES returned code $errorStatus and response body: ${response.body}")
-          metrics.registerFailedRequest
+          Logger.error(s"[DesConnector][calculate] DES returned code $errorStatus and response body: ${response.body}")
+          metrics.registerFailedRequest()
 
           errorStatus match {
             case BAD_REQUEST => throw new Upstream4xxResponse("A 400 Bad Request exception was encountered", errorStatus, BAD_REQUEST)
@@ -183,7 +181,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
     } recover {
       case e: NotFoundException => DesGetNotFoundResponse
       case e: Exception =>
-        Logger.warn(s"[DesConnector][getPersonDetails] Exception thrown getting individual record from DES: $e")
+        Logger.error(s"[DesConnector][getPersonDetails] Exception thrown getting individual record from DES: $e")
         metrics.mciErrorResult()
         DesGetErrorResponse(e)
     }
