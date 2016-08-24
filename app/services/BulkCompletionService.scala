@@ -42,16 +42,16 @@ trait BulkCompletionService {
 
     // $COVERAGE-OFF$
     override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] = {
-      Logger.debug("Trying to get completion lock")
+      Logger.info("Trying to get completion lock")
       repo.lock(lockId, serverId, forceLockReleaseAfter)
         .flatMap { acquired =>
           if (acquired)
-            body.map { x => Logger.debug("Got completion lock"); Some(x) }.recover {
+            body.map { x => Logger.info("Got completion lock"); Some(x) }.recover {
               case e => Logger.error("Exception getting lock: " + e.getMessage, e)
                 throw e
             }
           else {
-            Logger.debug("Couldnt get lock");
+            Logger.info("Couldnt get lock");
             Future.successful(None)
           }
         }.recoverWith { case ex => {
@@ -71,18 +71,18 @@ trait BulkCompletionService {
 
   def checkForComplete() = {
 
-    Logger.debug("[BulkCompletionService] Starting..")
+    Logger.info("[BulkCompletionService] Starting..")
 
     lockKeeper.tryLock {
-      Logger.debug("[BulkCompletionService] Got lock")
+      Logger.info("[BulkCompletionService] Got lock")
       repository.findAndComplete().map {
-        case true => Logger.debug("[BulkCompletionService] Found and completed successfully"); lockrepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
+        case true => Logger.info("[BulkCompletionService] Found and completed successfully"); lockrepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
         case false => Logger.warn("[BulkCompletionService] Failed"); lockrepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
       }
     }.map {
-      case Some(thing) => Logger.debug("[BulkCompletionService][receive] Obtained mongo lock")
+      case Some(thing) => Logger.info("[BulkCompletionService][receive] Obtained mongo lock")
       // $COVERAGE-OFF$
-      case _ => Logger.debug("[BulkCompletionService][receive] Failed to obtain mongo lock")
+      case _ => Logger.info("[BulkCompletionService][receive] Failed to obtain mongo lock")
       // $COVERAGE-ON$
     }
   }

@@ -83,7 +83,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     }
 
     result.map {
-      lastError => Logger.debug(s"[BulkCalculationRepository][insertResponseByReference] bulkResponse: $calculationResponse, result : $lastError ")
+      lastError => Logger.info(s"[BulkCalculationRepository][insertResponseByReference] bulkResponse: $calculationResponse, result : $lastError ")
         lastError.ok
     }.recover {
       // $COVERAGE-OFF$
@@ -125,7 +125,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     tryResult match {
       case Success(s) => {
         s.map { x =>
-          Logger.debug(s"[BulkCalculationRepository][findByReference] uploadReference: $uploadReference, result: $x ")
+          Logger.info(s"[BulkCalculationRepository][findByReference] uploadReference: $uploadReference, result: $x ")
           x
         }
       }
@@ -152,7 +152,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     tryResult match {
       case Success(s) => {
         s.map { x =>
-          Logger.debug(s"[BulkCalculationRepository][findSummaryByReference] uploadReference : $uploadReference, result: $x")
+          Logger.info(s"[BulkCalculationRepository][findSummaryByReference] uploadReference : $uploadReference, result: $x")
           x.headOption
         }
       }
@@ -180,7 +180,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     tryResult match {
       case Success(s) => {
         s.map { x =>
-          Logger.debug(s"[BulkCalculationRepository][findByUserId] userId : $userId, result: ${x.size}")
+          Logger.info(s"[BulkCalculationRepository][findByUserId] userId : $userId, result: ${x.size}")
           Some(x)
         }
       }
@@ -225,7 +225,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
             val sequenced = Future.sequence(x).map {
               thing => Some(thing.flatten)
             }
-            Logger.debug(s"[BulkCalculationRepository][findRequestsToProcess] SUCCESS")
+            Logger.info(s"[BulkCalculationRepository][findRequestsToProcess] SUCCESS")
 
             sequenced onComplete {
               case _ => metrics.findRequestsToProcessTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -249,7 +249,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
 
     val startTime = System.currentTimeMillis()
 
-    Logger.debug("[BulkCalculationRepository][findAndComplete]: starting ")
+    Logger.info("[BulkCalculationRepository][findAndComplete]: starting ")
     val findResult = Try {
 
       val incompleteBulk = collection.find(Json.obj("uploadReference" -> Json.obj("$exists" -> true), "complete" -> Json.obj("$exists" -> false))).sort(Json.obj("_id" -> 1)).cursor[BulkCalculationRequest](ReadPreference.primary).collect[List]()
@@ -292,7 +292,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
       }
     }
 
-    Logger.debug("[BulkCalculationRepository][findAndComplete]: processing")
+    Logger.info("[BulkCalculationRepository][findAndComplete]: processing")
 
     findResult match {
       case Success(s) => {
@@ -308,7 +308,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
             val result = collection.update(selector, modifier)
 
             result.map {
-              writeResult => Logger.debug(s"[BulkCalculationRepository][findAndComplete] : { result : $writeResult }")
+              writeResult => Logger.info(s"[BulkCalculationRepository][findAndComplete] : { result : $writeResult }")
                 // $COVERAGE-OFF$
                 if (writeResult.ok){
                   implicit val hc = HeaderCarrier()
@@ -340,7 +340,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
                   val childModifier = Json.obj("$set" -> Json.obj("createdAt" -> BSONDateTime(DateTime.now().getMillis)))
                   val childResult = collection.update(childSelector, childModifier, multi = true)
                   childResult.map {
-                    childWriteResult => Logger.debug(s"[BulkCalculationRepository][findAndComplete] childResult: $childWriteResult")
+                    childWriteResult => Logger.info(s"[BulkCalculationRepository][findAndComplete] childResult: $childWriteResult")
                   }
 
                   emailConnector.sendProcessedTemplatedEmail(ProcessedUploadTemplate(
@@ -360,6 +360,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
         }
         result onComplete {
           case _ => {
+            Logger.info("[BulkCalculationRepository][findAndComplete]: complete")
             metrics.findAndCompleteTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
           }
         }
@@ -394,7 +395,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
       case Success(s) => {
         s.map {
           x =>
-            Logger.debug(s"[BulkCalculationRepository][findCountRemaining] $x")
+            Logger.info(s"[BulkCalculationRepository][findCountRemaining] $x")
             Some(x)
         }
       }
@@ -414,7 +415,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
 
     findDuplicateUploadReference(bulkCalculationRequest.uploadReference).flatMap {
 
-      case true => Logger.debug(s"[BulkCalculationRepository][insertBulkDocument] Duplicate request found (${bulkCalculationRequest.uploadReference})")
+      case true => Logger.info(s"[BulkCalculationRepository][insertBulkDocument] Duplicate request found (${bulkCalculationRequest.uploadReference})")
         Future.successful(false)
       case false => {
         val strippedBulk: BulkCalculationRequest = bulkCalculationRequest.copy(calculationRequests = Nil, _id = Some(BSONObjectID.generate.stringify))
@@ -438,7 +439,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
           case Success(s) => {
             s.map {
               case x: MultiBulkWriteResult if x.writeErrors == Nil =>
-                Logger.debug(s"[BulkCalculationRepository][insertBulkDocument] $x")
+                Logger.info(s"[BulkCalculationRepository][insertBulkDocument] $x")
                 true
             }.recover {
               case e: Throwable =>
@@ -468,7 +469,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     tryResult match {
       case Success(s) =>
         s.map { x =>
-          Logger.debug(s"[BulkCalculationRepository][findDuplicateUploadReference] uploadReference : $uploadReference, result: ${x.nonEmpty}")
+          Logger.info(s"[BulkCalculationRepository][findDuplicateUploadReference] uploadReference : $uploadReference, result: ${x.nonEmpty}")
           x.nonEmpty
         }
 
