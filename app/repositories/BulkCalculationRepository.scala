@@ -381,30 +381,30 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     }
   }
 
-  override def findCountRemaining: Future[Option[Int]] = {
-
-    val countResult = Try {
-      val result = collection.count(Some(Json.obj("validCalculationRequest" -> Json.obj("$exists" -> true), "calculationResponse" -> Json.obj("$exists" -> false),
-        "validationErrors" -> Json.obj("$exists" -> false))))
-
-      result
-    }
-
-    countResult match {
-      case Success(s) => {
-        s.map {
-          x =>
-            Logger.debug(s"[BulkCalculationRepository][findCountRemaining] $x")
-            Some(x)
-        }
-      }
-
-      case Failure(e) => {
-        Logger.error(s"[BulkCalculationRepository][findCountRemaining] ${e.getMessage}", e)
-        Future.successful(None)
-      }
-    }
-  }
+//  override def findCountRemaining: Future[Option[Int]] = {
+//
+//    val countResult = Try {
+//      val result = collection.count(Some(Json.obj("validCalculationRequest" -> Json.obj("$exists" -> true), "calculationResponse" -> Json.obj("$exists" -> false),
+//        "validationErrors" -> Json.obj("$exists" -> false))))
+//
+//      result
+//    }
+//
+//    countResult match {
+//      case Success(s) => {
+//        s.map {
+//          x =>
+//            Logger.debug(s"[BulkCalculationRepository][findCountRemaining] $x")
+//            Some(x)
+//        }
+//      }
+//
+//      case Failure(e) => {
+//        Logger.error(s"[BulkCalculationRepository][findCountRemaining] ${e.getMessage}", e)
+//        Future.successful(None)
+//      }
+//    }
+//  }
 
   override def insertBulkDocument(bulkCalculationRequest: BulkCalculationRequest): Future[Boolean] = {
 
@@ -496,7 +496,7 @@ trait BulkCalculationRepository extends Repository[BulkCalculationRequest, BSONO
 
   def findRequestsToProcess(): Future[Option[List[ProcessReadyCalculationRequest]]]
 
-  def findCountRemaining: Future[Option[Int]]
+  //def findCountRemaining: Future[Option[Int]]
 
   def findAndComplete(): Future[Boolean]
 

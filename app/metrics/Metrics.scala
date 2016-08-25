@@ -101,16 +101,16 @@ object Metrics extends Metrics {
     ("mci-error-result-count", counter)
   ) foreach { t => t._2(t._1) }
 
-  val bulkGauge = MetricsRegistry.defaultRegistry.register("bulk-remaining",
-    new Gauge[Int] {
-      val repository = BulkCalculationRepository()
-
-      override def getValue: Int = {
-        val x = Await.result(repository.findCountRemaining, 3 seconds).getOrElse(0)
-        Logger.info(s"[Metrics][bulkGauge]: $x")
-        x
-      }
-    })
+//  val bulkGauge = MetricsRegistry.defaultRegistry.register("bulk-remaining",
+//    new Gauge[Int] {
+//      val repository = BulkCalculationRepository()
+//
+//      override def getValue: Int = {
+//        val x = Await.result(repository.findCountRemaining, 3 seconds).getOrElse(0)
+//        Logger.info(s"[Metrics][bulkGauge]: $x")
+//        x
+//      }
+//    })
 
   override def processRequest(diff: Long, unit: duration.TimeUnit): Unit = MetricsRegistry.defaultRegistry.timer("processRequest-timer").update(diff, unit)
 

@@ -381,29 +381,29 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
       }
     }
 
-    "finding count of remaining requests" must {
-      "return count" in {
-        val request = json.as[BulkCalculationRequest]
-        val requestWithResponse = jsonWithEmptyResponse.as[BulkCalculationRequest]
-
-        await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString, complete = None)))
-        await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString, complete = None)))
-        await(bulkCalculationRepository.insertBulkDocument(requestWithResponse.copy(uploadReference = UUID.randomUUID().toString)))
-
-        val result = await(bulkCalculationRepository.findCountRemaining)
-        result.get must be(4)
-      }
-
-      "handle failure in getting count" in {
-
-        when (mockCollection.count[CalculationRequest](Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any())).thenThrow(new RuntimeException)
-        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
-        val testRepository = new TestCalculationRepository
-
-        val found = await(testRepository.findCountRemaining)
-        found must be(None)
-      }
-    }
+//    "finding count of remaining requests" must {
+//      "return count" in {
+//        val request = json.as[BulkCalculationRequest]
+//        val requestWithResponse = jsonWithEmptyResponse.as[BulkCalculationRequest]
+//
+//        await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString, complete = None)))
+//        await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString, complete = None)))
+//        await(bulkCalculationRepository.insertBulkDocument(requestWithResponse.copy(uploadReference = UUID.randomUUID().toString)))
+//
+//        val result = await(bulkCalculationRepository.findCountRemaining)
+//        result.get must be(4)
+//      }
+//
+//      "handle failure in getting count" in {
+//
+//        when (mockCollection.count[CalculationRequest](Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any())).thenThrow(new RuntimeException)
+//        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
+//        val testRepository = new TestCalculationRepository
+//
+//        val found = await(testRepository.findCountRemaining)
+//        found must be(None)
+//      }
+//    }
 
     "finding a calculation" must {
 
