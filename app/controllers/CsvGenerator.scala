@@ -498,14 +498,19 @@ trait CsvGenerator {
       period.contsAndEarnings match {
         case Some(c) =>
           val map = c.foldLeft(Map[Int, String]()) {
-            (m, earnings) => m + (earnings.taxYear -> earnings.contEarnings)
+            (m, earnings) => {
+              if(m.contains(earnings.taxYear))
+                m + (earnings.taxYear -> (m(earnings.taxYear) + " | " + earnings.contEarnings))
+              else
+                m + (earnings.taxYear -> earnings.contEarnings)
+            }
           }
 
           (1978 to 1998).map {
             map.getOrElse(_, "")
           }.mkString(",")
         case _ => "," * 20
-      }
+      } 
     ).mkString(",")
 
   }
