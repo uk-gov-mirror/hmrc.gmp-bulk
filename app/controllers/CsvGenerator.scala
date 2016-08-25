@@ -500,7 +500,7 @@ trait CsvGenerator {
           val map = c.foldLeft(Map[Int, String]()) {
             (m, earnings) => {
               if(m.contains(earnings.taxYear))
-                m + (earnings.taxYear -> (m(earnings.taxYear) + " | " + earnings.contEarnings))
+                m + (earnings.taxYear -> (m(earnings.taxYear) + " & " + earnings.contEarnings))
               else
                 m + (earnings.taxYear -> earnings.contEarnings)
             }
