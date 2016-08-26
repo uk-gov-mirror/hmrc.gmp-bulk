@@ -18,7 +18,7 @@ package models
 
 import org.joda.time.LocalDateTime
 import play.api.i18n.Messages
-import play.api.libs.json.{JsString, Json, Reads, Writes}
+import play.api.libs.json._
 import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -32,7 +32,8 @@ case class ValidCalculationRequest(scon: String,
                                    revaluationRate: Option[Int] = None,
                                    dualCalc: Option[Int] = None,
                                    terminationDate: Option[String] = None,
-                                   memberIsInScheme: Option[Boolean] = None)
+                                   memberIsInScheme: Option[Boolean] = None
+                                  )
 
 object ValidCalculationRequest {
   implicit val formats = Json.format[ValidCalculationRequest]
@@ -44,7 +45,16 @@ case class CalculationRequest(bulkId: Option[String],
                               lineId: Int,
                               validCalculationRequest: Option[ValidCalculationRequest],
                               validationErrors: Option[Map[String, String]],
-                              calculationResponse: Option[GmpBulkCalculationResponse]) {
+                              calculationResponse: Option[GmpBulkCalculationResponse],
+                              var isChild: Option[Boolean],
+                              var hasResponse: Option[Boolean],
+                              var hasValidationErrors: Option[Boolean],
+                              var hasValidRequest: Option[Boolean]) {
+
+  isChild = Some(true)
+  hasResponse = Some(false)
+  hasValidationErrors = Some(validationErrors.isDefined)
+  hasValidRequest = Some(validCalculationRequest.isDefined)
 
   def hasErrors = ((calculationResponse.isDefined && calculationResponse.get.globalErrorCode > 0)
     || (calculationResponse.isDefined &&
@@ -72,8 +82,6 @@ case class CalculationRequest(bulkId: Option[String],
 
 object CalculationRequest {
   implicit val formats = Json.format[CalculationRequest]
-
-  
 }
 
 case class BulkCalculationRequest(_id: Option[String],
@@ -85,12 +93,7 @@ case class BulkCalculationRequest(_id: Option[String],
                                   timestamp: LocalDateTime,
                                   complete: Option[Boolean],
                                   total: Option[Int],
-                                  failed: Option[Int]) {
-
-
-
-}
-
+                                  failed: Option[Int])
 
 object BulkCalculationRequest {
   implicit val timestampReads = Reads[LocalDateTime](js =>
@@ -167,7 +170,10 @@ object ProcessedBulkCalculationRequest {
 
 case class ProcessReadyCalculationRequest(bulkId: String,
                                           lineId: Int,
-                                          validCalculationRequest: ValidCalculationRequest)
+                                          validCalculationRequest: ValidCalculationRequest,
+                                          isChild: Boolean = true,
+                                          hasResponse: Boolean = false,
+                                          hasErrors: Boolean = false)
 
 object ProcessReadyCalculationRequest {
   // $COVERAGE-OFF$
