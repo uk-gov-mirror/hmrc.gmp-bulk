@@ -23,7 +23,7 @@ import connectors.{EmailConnector, ProcessedUploadTemplate}
 import events.BulkEvent
 import metrics.Metrics
 import models._
-import org.joda.time.{LocalDateTime, DateTime}
+import org.joda.time.{DateTime, LocalDateTime}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
@@ -34,6 +34,7 @@ import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
@@ -68,7 +69,9 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
       Index(Seq("uploadReference" -> IndexType.Ascending), Some("UploadReference"), sparse = true, unique = true),
       Index(Seq("bulkId" -> IndexType.Ascending, "lineId" -> IndexType.Ascending), Some("BulkAndLine")),
       Index(Seq("userId" -> IndexType.Ascending), Some("UserId"), background = true),
-      Index(Seq("lineId" -> IndexType.Descending), Some("LineIdDesc"), background = true)
+      Index(Seq("lineId" -> IndexType.Descending), Some("LineIdDesc"), background = true),
+      Index(Seq("isParent" -> IndexType.Ascending, "complete" -> IndexType.Ascending), Some("isParentAndComplete")),
+      Index(Seq("isParent" -> IndexType.Ascending), Some("isParent"))
     )
 
   override def insertResponseByReference(bulkId: String, lineId: Int, calculationResponse: GmpBulkCalculationResponse): Future[Boolean] = {
@@ -198,13 +201,13 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
 
     val testResult = Try {
 
-      val incompleteBulk = collection.find(Json.obj("uploadReference" -> Json.obj("$exists" -> true), "complete" -> Json.obj("$exists" -> false))).sort(Json.obj("_id" -> 1)).cursor[BulkCalculationRequest](ReadPreference.primary).collect[List]()
+      val incompleteBulk = collection.find(Json.obj("isParent" -> true, "complete" -> false)).sort(Json.obj("_id" -> 1)).cursor[ProcessedBulkCalculationRequest](ReadPreference.primary).collect[List]()
 
       incompleteBulk.map {
         bulkList =>
           bulkList.map {
             bulkRequest => {
-              val childRequests = collection.find(Json.obj("uploadReference" -> Json.obj("$exists" -> false), "validationErrors" -> Json.obj("$exists" -> false), "bulkId" -> bulkRequest._id.get,
+              val childRequests = collection.find(Json.obj("uploadReference" -> Json.obj("$exists" -> false), "validationErrors" -> Json.obj("$exists" -> false), "bulkId" -> bulkRequest._id,
                 "validCalculationRequest" -> Json.obj("$exists" -> true),
                 "calculationResponse" -> Json.obj("$exists" -> false))).cursor[CalculationRequest](ReadPreference.primary).collect[List](ApplicationConfig.bulkProcessingBatchSize)
               childRequests.map {
@@ -252,7 +255,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     Logger.debug("[BulkCalculationRepository][findAndComplete]: starting ")
     val findResult = Try {
 
-      val incompleteBulk = collection.find(Json.obj("uploadReference" -> Json.obj("$exists" -> true), "complete" -> Json.obj("$exists" -> false))).sort(Json.obj("_id" -> 1)).cursor[BulkCalculationRequest](ReadPreference.primary).collect[List]()
+      val incompleteBulk = collection.find(Json.obj("isParent" -> true, "complete" -> false)).sort(Json.obj("_id" -> 1)).cursor[ProcessedBulkCalculationRequest](ReadPreference.primary).collect[List]()
 
       incompleteBulk onComplete {
         case _ => metrics.findAndCompleteParentTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -263,14 +266,14 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
           Future.sequence(bulkList.par.map {
             bulkRequest => {
               val childrenStartTime = System.currentTimeMillis()
-              val children = collection.count(Some(Json.obj("bulkId" -> bulkRequest._id.get,
+              val children = collection.count(Some(Json.obj("bulkId" -> bulkRequest._id,
                 "validCalculationRequest" -> Json.obj("$exists" -> true),
                 "calculationResponse" -> Json.obj("$exists" -> false),
                 "validationErrors" -> Json.obj("$exists" -> false)))).flatMap {
                 crs =>
                   if (crs == 0) {
                     val allChildrenStartTime = System.currentTimeMillis()
-                    val allChildren = collection.find(Json.obj("bulkId" -> bulkRequest._id.get)).cursor[CalculationRequest](ReadPreference.primary).collect[List]().map {
+                    val allChildren = collection.find(Json.obj("bulkId" -> bulkRequest._id)).cursor[CalculationRequest](ReadPreference.primary).collect[List]().map {
                       theseRequests => Some(bulkRequest.copy(calculationRequests = theseRequests))
                     }
                     allChildren onComplete {
@@ -336,7 +339,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
                     case e: Throwable => Logger.error(s"[BulkCalculationRepository][findAndComplete] resultsEventResult: ${e.getMessage}", e)
                   }
 
-                  val childSelector = Json.obj("bulkId" -> request.get._id.get)
+                  val childSelector = Json.obj("bulkId" -> request.get._id)
                   val childModifier = Json.obj("$set" -> Json.obj("createdAt" -> BSONDateTime(DateTime.now().getMillis)))
                   val childResult = collection.update(childSelector, childModifier, multi = true)
                   childResult.map {
@@ -417,13 +420,26 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
       case true => Logger.debug(s"[BulkCalculationRepository][insertBulkDocument] Duplicate request found (${bulkCalculationRequest.uploadReference})")
         Future.successful(false)
       case false => {
-        val strippedBulk: BulkCalculationRequest = bulkCalculationRequest.copy(calculationRequests = Nil, _id = Some(BSONObjectID.generate.stringify))
+
+        val strippedBulk = ProcessedBulkCalculationRequest(BSONObjectID.generate.stringify,
+          bulkCalculationRequest.uploadReference,
+          bulkCalculationRequest.email,
+          bulkCalculationRequest.reference,
+          List(),
+          bulkCalculationRequest.userId,
+          bulkCalculationRequest.timestamp,
+          complete = false,
+          bulkCalculationRequest.total.getOrElse(0),
+          bulkCalculationRequest.failed.getOrElse(0),
+          isParent = true)
+
         val calculationRequests = bulkCalculationRequest.calculationRequests.map {
-          request => request.copy(bulkId = strippedBulk._id)
+          request => request.copy(bulkId = Some(strippedBulk._id))
         }
 
         val insertResult = Try {
           val bulkDocs = calculationRequests.map(implicitly[collection.ImplicitlyDocumentProducer](_))
+
           val insertResult = collection.insert(strippedBulk).flatMap {
             result => collection.bulkInsert(ordered = false)(bulkDocs: _*)
           }
