@@ -278,7 +278,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
 
                 Logger.debug(s"isEmpty: ${childrenToProcess.isEmpty}, ${childrenToProcess.size}")
 
-                if (childrenToProcess.nonEmpty) {
+                if (childrenToProcess.isEmpty) {
 
                   Future.successful(Some(bulkRequest.copy(calculationRequests = allChildren)))
 

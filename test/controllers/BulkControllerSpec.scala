@@ -207,7 +207,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
       "does not authenticate when user id is not valid" in {
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List.empty, 0, None, None, None)
 
-        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest.copy(calctype = Some(1))), None, Some(gmpBulkCalculationResponse)))
+        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest.copy(calctype = Some(1))), None, Some(gmpBulkCalculationResponse), None, None, None, None))
         val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
@@ -258,7 +258,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
-        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
+        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse), None, None, None, None))
         val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
@@ -283,7 +283,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
-        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
+        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse), None, None, None, None))
         val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
@@ -331,7 +331,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
-        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
+        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse), None, None, None, None))
         val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
@@ -361,7 +361,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
-        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
+        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse), None, None, None, None))
         val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
@@ -382,7 +382,7 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
 
         val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
-        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
+        val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse), None, None, None, None))
         val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
         when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))

@@ -81,7 +81,10 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
                 "calculationRequests" : [
                   {
                     "lineId": 1,
-
+                    "isChild": true,
+                    "hasValidationErrors": false,
+                    "hasResponse": false,
+                    "hasValidRequest": true,
                     "validCalculationRequest": {
                       "scon" : "S2730000B",
                       "memberReference": "MEMREF123",
@@ -99,12 +102,20 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
                   },
                   {
                     "lineId" : 2,
+                    "isChild": true,
+                    "hasValidationErrors": true,
+                    "hasResponse": false,
+                    "hasValidRequest": true,
                     "validationErrors": {
                        "scon": "No SCON supplied"
                     }
                   },
                   {
                     "lineId" : 3,
+                    "hasValidationErrors": false,
+                    "hasValidRequest": true,
+                    "hasResponse": false,
+                    "isChild": true,
                     "validCalculationRequest": {
                       "scon" : "S2730000B",
                       "nino" : "$nino",
@@ -115,6 +126,10 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
                   },
                   {
                     "lineId" : 4,
+                    "hasValidationErrors": true,
+                    "hasValidRequest": false,
+                    "hasResponse": false,
+                    "isChild": true,
                     "validationErrors": {
                        "scon": "No SCON supplied"
                     }
@@ -122,6 +137,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
                 "userId" : "123456",
                 "timestamp" : "2016-04-26T14:53:18.308",
                 "complete" : true,
+                "isParent": true,
                 "createdAt" : "2016-04-26T14:53:18.308",
                 "processedDateTime" : "2016-04-26T14:53:18.308"
               }
@@ -133,9 +149,14 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
                 "uploadReference" : "UPLOAD1234",
                 "email" : "test@test.com",
                 "reference" : "REF1234",
+                "isParent": true,
                 "calculationRequests" : [
                   {
                     "lineId" : 3,
+                    "isChild": true,
+                    "hasValidRequest": true,
+                    "hasValidationErrors": false,
+                    "hasResponse": true,
                     "validCalculationRequest": {
                       "scon" : "S2730000B",
                       "nino" : "$nino",
@@ -161,12 +182,18 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
         "userId" : "B1234568",
         "email" : "test@test.com",
         "reference" : "REF1234",
+        "isParent": true,
+        "complete": false,
         "total" : 10,
         "failed" : 1,
         "timestamp" : "2016-04-26T14:53:18.308",
         "calculationRequests" : [
             {
                 "lineId" : 1,
+                "isChild": true,
+                "hasValidRequest": true,
+                "hasResponse": true,
+                "hasValidationErrors": false,
                 "validCalculationRequest" : {
                     "scon" : "S2730000B",
                     "nino" : "$nino",
@@ -202,6 +229,10 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
             },
             {
                 "lineId" : 2,
+                "hasValidationErrors": true,
+                "hasValidRequest": true,
+                "hasResponse": false,
+                "isChild": true,
                 "validCalculationRequest" : {
                     "scon" : "S2730000B",
                     "nino" : "$nino",
@@ -215,6 +246,10 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
             },
             {
                 "lineId" : 3,
+                "isChild": true,
+                "hasValidRequest": true,
+                "hasResponse": true,
+                "hasValidationErrors": false,
                 "validCalculationRequest" : {
                     "scon" : "S2730000B",
                     "nino" : "$nino",
@@ -244,6 +279,10 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
             },
             {
                 "lineId" : 4,
+                "isChild": true,
+                "hasValidRequest": true,
+                "hasValidationErrors": true,
+                "hasResponse": false,
                 "validCalculationRequest" : {
                     "scon" : "S2730000B",
                     "nino" : "$nino",
@@ -272,6 +311,10 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
         "calculationRequests" : [
             {
                 "lineId" : 1,
+                "isChild": true,
+                "hasValidationRequest": true,
+                "hasValidationErrors": true,
+                "hasResponse": false,
                 "validCalculationRequest" : {
                     "scon" : "S2730000B",
                     "nino" : "$nino",
@@ -305,7 +348,6 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
         val cached = await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString)))
         cached must be(true)
       }
-
 
     }
 
@@ -360,8 +402,8 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
         val request = json.as[BulkCalculationRequest]
         val requestWithResponse = jsonWithEmptyResponse.as[BulkCalculationRequest]
 
-        await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString, complete = None)))
-        await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString, complete = None)))
+        await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString, complete = Some(false))))
+        await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString, complete = Some(false))))
         await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = UUID.randomUUID().toString)))
         await(bulkCalculationRepository.insertBulkDocument(requestWithResponse.copy(uploadReference = UUID.randomUUID().toString)))
 
@@ -571,8 +613,10 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
       "return true if found documents with only validation errors and complete them" in {
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
+
         val request = jsonWithValidationErrors.as[BulkCalculationRequest]
         val uploadRef = UUID.randomUUID().toString
+
         await(bulkCalculationRepository.insertBulkDocument(request.copy(uploadReference = uploadRef)))
 
         when(mockEmailConnector.sendProcessedTemplatedEmail(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))

@@ -19,6 +19,7 @@ package models
 import org.joda.time.LocalDateTime
 import play.api.i18n.Messages
 import play.api.libs.json._
+import play.api.libs.functional.syntax._
 import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -46,15 +47,10 @@ case class CalculationRequest(bulkId: Option[String],
                               validCalculationRequest: Option[ValidCalculationRequest],
                               validationErrors: Option[Map[String, String]],
                               calculationResponse: Option[GmpBulkCalculationResponse],
-                              var isChild: Option[Boolean],
-                              var hasResponse: Option[Boolean],
-                              var hasValidationErrors: Option[Boolean],
-                              var hasValidRequest: Option[Boolean]) {
-
-  isChild = Some(true)
-  hasResponse = Some(false)
-  hasValidationErrors = Some(validationErrors.isDefined)
-  hasValidRequest = Some(validCalculationRequest.isDefined)
+                              hasValidRequest: Option[Boolean],
+                              hasResponse: Option[Boolean],
+                              hasValidationErrors: Option[Boolean],
+                              isChild: Option[Boolean]) {
 
   def hasErrors = ((calculationResponse.isDefined && calculationResponse.get.globalErrorCode > 0)
     || (calculationResponse.isDefined &&
@@ -81,7 +77,37 @@ case class CalculationRequest(bulkId: Option[String],
 }
 
 object CalculationRequest {
-  implicit val formats = Json.format[CalculationRequest]
+  //implicit val formats = Json.format[CalculationRequest]
+
+  implicit val reads = Json.reads[CalculationRequest]
+
+//  implicit val calculationWrites: Writes[CalculationRequest] = (
+//    (JsPath \ "bulkId").writeNullable[String] and
+//      (JsPath \ "lineId").write[Int] and
+//      (JsPath \ "validCalculationRequest").writeNullable[ValidCalculationRequest] and
+//      (JsPath \ "validationErrors").writeNullable[Map[String, String]] and
+//      (JsPath \ "calculationResponse").writeNullable[GmpBulkCalculationResponse] and
+//      (__ \ "hasResponse").write[Boolean]()
+//    )(unlift(CalculationRequest.unapply))
+
+  implicit val calculationReads: Reads[CalculationRequest] = (
+      (__ \ "bulkId").readNullable[String],
+      (__ \ "lineId").read[Int],
+      (__ \ "validCalculationRequest").readNullable[ValidCalculationRequest],
+      (__ \ "validationErrors").readNullable[Map[String, String]],
+      (__ \ "calculationResponse").readNullable[GmpBulkCalculationResponse]
+    )(CalculationRequest.apply _)
+
+  implicit val calculationWrites = new Writes[CalculationRequest] {
+    def writes(o: CalculationRequest): JsValue = Json.obj(
+      "bulkId" -> o.bulkId,
+      "lineId" -> o.lineId,
+      "validCalculationRequest" -> o.validCalculationRequest,
+      "validationErrors" -> o.validationErrors,
+      "calculationResponse" -> o.calculationResponse
+    )
+  }
+
 }
 
 case class BulkCalculationRequest(_id: Option[String],
@@ -109,31 +135,6 @@ object BulkCalculationRequest {
   implicit val formats = Json.format[BulkCalculationRequest]
   implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
   implicit val idFormat = ReactiveMongoFormats.objectIdFormats
-
-  implicit object BulkRequestWriter extends BSONDocumentWriter[BulkCalculationRequest] {
-    override def write(t: BulkCalculationRequest): BSONDocument = BSONDocument(
-      "_id" -> t._id,
-      "uploadReference" -> t.uploadReference
-    )
-  }
-
-  implicit object BulkRequestReader extends BSONDocumentReader[BulkCalculationRequest] {
-    override def read(bson: BSONDocument): BulkCalculationRequest = {
-      BulkCalculationRequest(
-        bson.getAs[String]("_id"),
-        bson.getAs[String]("uploadReference").get,
-        bson.getAs[String]("email").get,
-        bson.getAs[String]("reference").get,
-        List(),
-        bson.getAs[String]("userId").get,
-        bson.getAs[BSONDateTime]("timestamp").map(dt => new LocalDateTime(dt.value)).get,
-        bson.getAs[Boolean]("complete"),
-        bson.getAs[Int]("total"),
-        bson.getAs[Int]("failed")
-      )
-    }
-  }
-
 }
 
 case class ProcessedBulkCalculationRequest(_id: String,

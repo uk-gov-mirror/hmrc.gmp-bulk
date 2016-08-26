@@ -233,10 +233,11 @@ class BulkCalculationRequestSpec extends PlaySpec {
   "BulkCalculationRequest failedRequestCount" must {
     "return count of failed requests" in {
 
-      val request = jsonBulkCalculationRequest.as[BulkCalculationRequest]
+      val request = jsonBulkCalculationRequest.as[ProcessedBulkCalculationRequest]
       request.failedRequestCount must be(4)
     }
   }
+  
 
   "handle timestamp conversion" in {
     val localDateTime = new LocalDateTime(2016,5,18,17,50,55,511)

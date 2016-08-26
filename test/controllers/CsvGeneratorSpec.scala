@@ -261,7 +261,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
         CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "4.12", "5.23", 0, 2, None, None, None, None, None)), 0, None, None, None)
 
       val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
-      val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
+      val calculationRequests = List(CalculationRequest(None, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse), None, None, None, None))
       val bulkCalculationRequest = BulkCalculationRequest(None, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), Some(true), Some(1), Some(0))
 
       val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)) split "\n"
