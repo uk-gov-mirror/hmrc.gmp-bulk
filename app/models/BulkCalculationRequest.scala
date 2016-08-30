@@ -43,35 +43,9 @@ object ValidCalculationRequest {
 case class CalculationRequest(bulkId: Option[String],
                               lineId: Int,
                               validCalculationRequest: Option[ValidCalculationRequest],
-                              validationErrors: Option[Map[String, String]],
-                              calculationResponse: Option[GmpBulkCalculationResponse],
-                              hasValidRequest: Option[Boolean],
-                              hasResponse: Option[Boolean],
-                              hasValidationErrors: Option[Boolean],
-                              isChild: Option[Boolean]) {
+                              validationErrors: Option[Map[String, String]]) {
 
-  def hasErrors = ((calculationResponse.isDefined && calculationResponse.get.globalErrorCode > 0)
-    || (calculationResponse.isDefined &&
-    calculationResponse.get.calculationPeriods.foldLeft(0) {
-      _ + _.errorCode
-    } > 0)
-    || validationErrors.isDefined)
-
-  def hasNPSErrors = calculationResponse.isDefined && (calculationResponse.get.globalErrorCode > 0 || calculationResponse.get.hasErrors)
-
-  def getGlobalErrorMessageReason: Option[String] = {
-    calculationResponse.isDefined match {
-      case true if calculationResponse.get.globalErrorCode > 0 => Some(Messages(s"${calculationResponse.get.globalErrorCode}.reason"))
-      case _ => None
-    }
-  }
-
-  def getGlobalErrorMessageWhat: Option[String] = {
-    calculationResponse.isDefined match {
-      case true if calculationResponse.get.globalErrorCode > 0 => Some(Messages(s"${calculationResponse.get.globalErrorCode}.what"))
-      case _ => None
-    }
-  }
+  def hasErrors = validationErrors.isDefined
 }
 
 object CalculationRequest {
@@ -105,11 +79,53 @@ object BulkCalculationRequest {
   implicit val idFormat = ReactiveMongoFormats.objectIdFormats
 }
 
+case class ProcessReadyCalculationRequest(bulkId: String,
+                                          lineId: Int,
+                                          validCalculationRequest: Option[ValidCalculationRequest],
+                                          validationErrors: Option[Map[String, String]],
+                                          calculationResponse: Option[GmpBulkCalculationResponse],
+                                          isChild: Boolean = true,
+                                          hasResponse: Boolean = false,
+                                          hasValidRequest: Boolean = true,
+                                          hasValidationErrors: Boolean = false) {
+
+  def hasErrors = ((calculationResponse.isDefined && calculationResponse.get.globalErrorCode > 0)
+    || (calculationResponse.isDefined &&
+    calculationResponse.get.calculationPeriods.foldLeft(0) {
+      _ + _.errorCode
+    } > 0)
+    || validationErrors.isDefined)
+
+  def hasNPSErrors = calculationResponse.isDefined && (calculationResponse.get.globalErrorCode > 0 || calculationResponse.get.hasErrors)
+
+  def getGlobalErrorMessageReason: Option[String] = {
+    calculationResponse.isDefined match {
+      case true if calculationResponse.get.globalErrorCode > 0 => Some(Messages(s"${calculationResponse.get.globalErrorCode}.reason"))
+      case _ => None
+    }
+  }
+
+  def getGlobalErrorMessageWhat: Option[String] = {
+    calculationResponse.isDefined match {
+      case true if calculationResponse.get.globalErrorCode > 0 => Some(Messages(s"${calculationResponse.get.globalErrorCode}.what"))
+      case _ => None
+    }
+  }
+}
+
+object ProcessReadyCalculationRequest {
+  // $COVERAGE-OFF$
+  implicit val formats = Json.format[ProcessReadyCalculationRequest]
+  implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
+  implicit val idFormat = ReactiveMongoFormats.objectIdFormats
+  // $COVERAGE-ON$
+}
+
 case class ProcessedBulkCalculationRequest(_id: String,
                                            uploadReference: String,
                                            email: String,
                                            reference: String,
-                                           calculationRequests: List[CalculationRequest],
+                                           calculationRequests: List[ProcessReadyCalculationRequest],
                                            userId: String,
                                            timestamp: LocalDateTime,
                                            complete: Boolean,
@@ -135,20 +151,4 @@ object ProcessedBulkCalculationRequest {
   implicit val formats = Json.format[ProcessedBulkCalculationRequest]
   implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
   implicit val idFormat = ReactiveMongoFormats.objectIdFormats
-}
-
-case class ProcessReadyCalculationRequest(bulkId: String,
-                                          lineId: Int,
-                                          validCalculationRequest: ValidCalculationRequest,
-                                          isChild: Boolean = true,
-                                          hasResponse: Boolean = false,
-                                          hasValidCalculationRequest: Boolean = true,
-                                          hasErrors: Boolean = false)
-
-object ProcessReadyCalculationRequest {
-  // $COVERAGE-OFF$
-  implicit val formats = Json.format[ProcessReadyCalculationRequest]
-  implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
-  implicit val idFormat = ReactiveMongoFormats.objectIdFormats
-  // $COVERAGE-ON$
 }
