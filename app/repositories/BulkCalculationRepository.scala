@@ -444,7 +444,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
           List(),
           bulkCalculationRequest.userId,
           bulkCalculationRequest.timestamp,
-          complete = false,
+          complete = bulkCalculationRequest.complete.getOrElse(false),
           bulkCalculationRequest.total.getOrElse(0),
           bulkCalculationRequest.failed.getOrElse(0),
           isParent = true)
@@ -460,9 +460,9 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
             c.lineId,
             c.validCalculationRequest,
             c.validationErrors,
-            calculationResponse = None,
+            calculationResponse = c.calculationResponse,
             isChild = true,
-            hasResponse = false,
+            hasResponse = c.calculationResponse.isDefined,
             hasValidRequest = c.validCalculationRequest.isDefined,
             hasValidationErrors = c.hasErrors) } map (implicitly[collection.ImplicitlyDocumentProducer](_))
 

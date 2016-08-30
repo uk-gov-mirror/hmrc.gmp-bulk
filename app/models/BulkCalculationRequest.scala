@@ -43,9 +43,15 @@ object ValidCalculationRequest {
 case class CalculationRequest(bulkId: Option[String],
                               lineId: Int,
                               validCalculationRequest: Option[ValidCalculationRequest],
-                              validationErrors: Option[Map[String, String]]) {
+                              validationErrors: Option[Map[String, String]],
+                              calculationResponse: Option[GmpBulkCalculationResponse]) {
 
-  def hasErrors = validationErrors.isDefined
+  def hasErrors = ((calculationResponse.isDefined && calculationResponse.get.globalErrorCode > 0)
+    || (calculationResponse.isDefined &&
+    calculationResponse.get.calculationPeriods.foldLeft(0) {
+      _ + _.errorCode
+    } > 0)
+    || validationErrors.isDefined)
 }
 
 object CalculationRequest {
