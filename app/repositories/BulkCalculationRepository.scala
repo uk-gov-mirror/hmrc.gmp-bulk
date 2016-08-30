@@ -216,11 +216,11 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
                 "hasResponse" -> false)).cursor[ProcessReadyCalculationRequest](ReadPreference.primary).collect[List](ApplicationConfig.bulkProcessingBatchSize)
 
               childRequests
-//              childRequests.map {
-//                crs => crs.par.map {
-//                  cr => ProcessReadyCalculationRequest(cr.bulkId.get, cr.lineId, cr.validCalculationRequest.get)
-//                }
-//              }
+              //              childRequests.map {
+              //                crs => crs.par.map {
+              //                  cr => ProcessReadyCalculationRequest(cr.bulkId.get, cr.lineId, cr.validCalculationRequest.get)
+              //                }
+              //              }
             }
           }
       }
@@ -271,36 +271,32 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
         bulkList =>
           Future.sequence(bulkList.par.map {
             bulkRequest => {
+
               val childrenStartTime = System.currentTimeMillis()
 
-              val processedBulk = collection.find(Json.obj("isChild" -> true, "bulkId" -> bulkRequest._id)).cursor[ProcessReadyCalculationRequest](ReadPreference.primary).collect[List]().flatMap { allChildren =>
+              collection.count(Some(Json.obj("bulkId" -> bulkRequest._id, "isChild" -> true, "hasResponse" -> false, "hasValidationErrors" -> false, "hasValidRequest" -> true))) flatMap {
+                case result => result match {
+                  case count if count == 0 =>
+                    val processedChildren = collection.find(Json.obj("isChild" -> true, "bulkId" -> bulkRequest._id)).cursor[ProcessReadyCalculationRequest](ReadPreference.primary).collect[List]().flatMap { allChildren =>
 
-                val childrenToProcess = allChildren collect {
-                  case x if !x.hasResponse && !x.hasValidationErrors && x.hasValidRequest => x
+//                      val childrenToProcess = allChildren collect {
+//                        case x if !x.hasResponse && !x.hasValidationErrors && x.hasValidRequest => x
+//                      }
+
+//                      Logger.debug(s"isEmpty: ${childrenToProcess.isEmpty}, ${childrenToProcess.size}")
+
+                      Future.successful(Some(bulkRequest.copy(calculationRequests = allChildren)))
+                    }
+
+                    processedChildren onComplete {
+                      case _ => metrics.findAndCompleteChildrenTimer(System.currentTimeMillis() - childrenStartTime, TimeUnit.MILLISECONDS)
+                    }
+
+                    processedChildren
+
+                  case _ => Future.successful(None)
                 }
-
-                Logger.debug(s"isEmpty: ${childrenToProcess.isEmpty}, ${childrenToProcess.size}")
-
-                if (childrenToProcess.isEmpty) {
-
-                  Future.successful(Some(bulkRequest.copy(calculationRequests = allChildren)))
-
-                  //                    val allChildrenStartTime = System.currentTimeMillis()
-                  //
-                  //                    val allChildren = collection.find(Json.obj("bulkId" -> bulkRequest._id)).cursor[CalculationRequest](ReadPreference.primary).collect[List]().map {
-                  //                      theseRequests => Some(bulkRequest.copy(calculationRequests = theseRequests))
-                  //                    }
-                  //
-                  //                    allChildren onComplete {
-                  //                      case _ => metrics.findAndCompleteAllChildrenTimer(System.currentTimeMillis() - allChildrenStartTime, TimeUnit.MILLISECONDS)
-                  //                    }
-                  //                    allChildren
-                } else Future.successful(None)
               }
-              processedBulk onComplete {
-                case _ => metrics.findAndCompleteChildrenTimer(System.currentTimeMillis() - childrenStartTime, TimeUnit.MILLISECONDS)
-              }
-              processedBulk
             }
           }.toList
           ) map {
@@ -344,7 +340,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
                       case x if x.validCalculationRequest.isDefined && x.calculationResponse.isDefined => x.validCalculationRequest.get.scon
                     },
                     request.get.calculationRequests.collect {
-                      case x if x.validCalculationRequest.isDefined&& x.calculationResponse.isDefined && x.validCalculationRequest.get.dualCalc.isDefined && x.validCalculationRequest.get.dualCalc.get == 1 => true
+                      case x if x.validCalculationRequest.isDefined && x.calculationResponse.isDefined && x.validCalculationRequest.get.dualCalc.isDefined && x.validCalculationRequest.get.dualCalc.get == 1 => true
                       case x if x.validCalculationRequest.isDefined && x.calculationResponse.isDefined && x.validCalculationRequest.get.dualCalc.isDefined && x.validCalculationRequest.get.dualCalc.get == 0 => false
                     },
                     request.get.calculationRequests.collect {
@@ -358,6 +354,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
                   val childSelector = Json.obj("bulkId" -> request.get._id)
                   val childModifier = Json.obj("$set" -> Json.obj("createdAt" -> BSONDateTime(DateTime.now().getMillis)))
                   val childResult = collection.update(childSelector, childModifier, multi = true)
+
                   childResult.map {
                     childWriteResult => Logger.debug(s"[BulkCalculationRepository][findAndComplete] childResult: $childWriteResult")
                   }
@@ -464,7 +461,8 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
             isChild = true,
             hasResponse = c.calculationResponse.isDefined,
             hasValidRequest = c.validCalculationRequest.isDefined,
-            hasValidationErrors = c.hasErrors) } map (implicitly[collection.ImplicitlyDocumentProducer](_))
+            hasValidationErrors = c.hasErrors)
+          } map (implicitly[collection.ImplicitlyDocumentProducer](_))
 
           val insertResult = collection.insert(strippedBulk).flatMap {
             result => collection.bulkInsert(ordered = false)(bulkDocs: _*)
@@ -482,49 +480,48 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
               case x: MultiBulkWriteResult if x.writeErrors == Nil =>
                 Logger.debug(s"[BulkCalculationRepository][insertBulkDocument] $x")
                 true
-            } .recover {
-            case e: Throwable =>
-              // $COVERAGE-OFF$
-              Logger.error("Error inserting document", e)
-              false
-            // $COVERAGE-ON$
+            }.recover {
+              case e: Throwable =>
+                // $COVERAGE-OFF$
+                Logger.error("Error inserting document", e)
+                false
+              // $COVERAGE-ON$
+            }
           }
-        }
 
-        case Failure(f) =>
-        {
-          Logger.error(s"[BulkCalculationRepository][insertBulkDocument] failed: ${f.getMessage}")
-          Future.successful(false)
+          case Failure(f) => {
+            Logger.error(s"[BulkCalculationRepository][insertBulkDocument] failed: ${f.getMessage}")
+            Future.successful(false)
+          }
         }
       }
     }
   }
-}
 
-private def findDuplicateUploadReference (uploadReference: String): Future[Boolean] = {
+  private def findDuplicateUploadReference(uploadReference: String): Future[Boolean] = {
 
-val tryResult = Try {
+    val tryResult = Try {
 
-collection.find (Json.obj ("uploadReference" -> uploadReference) ).cursor[BulkResultsSummary] (ReadPreference.primary).collect[List] ()
-}
+      collection.find(Json.obj("uploadReference" -> uploadReference)).cursor[BulkResultsSummary](ReadPreference.primary).collect[List]()
+    }
 
-tryResult match {
-case Success (s) =>
-s.map {
-x =>
-Logger.debug (s"[BulkCalculationRepository][findDuplicateUploadReference] uploadReference : $uploadReference, result: ${
-x.nonEmpty
-}")
-x.nonEmpty
-}
+    tryResult match {
+      case Success(s) =>
+        s.map {
+          x =>
+            Logger.debug(s"[BulkCalculationRepository][findDuplicateUploadReference] uploadReference : $uploadReference, result: ${
+              x.nonEmpty
+            }")
+            x.nonEmpty
+        }
 
-case Failure (e) =>
-Logger.error (s"[BulkCalculationRepository][findDuplicateUploadReference] ${
-e.getMessage
-} ($uploadReference)", e)
-Future.successful (false)
-}
-}
+      case Failure(e) =>
+        Logger.error(s"[BulkCalculationRepository][findDuplicateUploadReference] ${
+          e.getMessage
+        } ($uploadReference)", e)
+        Future.successful(false)
+    }
+  }
 }
 
 trait BulkCalculationRepository extends Repository[BulkCalculationRequest, BSONObjectID] {
