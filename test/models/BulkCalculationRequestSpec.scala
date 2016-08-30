@@ -29,16 +29,24 @@ class BulkCalculationRequestSpec extends PlaySpec {
   val jsonBulkCalculationRequest = Json.parse(
     s"""
     {
+        "_id": "bulk1",
         "uploadReference" : "test-uuid1",
         "userId" : "B1234568",
         "email" : "test@test.com",
         "reference" : "REF1234",
+        "complete": true,
+        "isParent": true,
         "total" : 10,
         "failed" : 3,
         "timestamp" : "2016-04-26T14:53:18.308",
         "calculationRequests" : [
             {
+                "bulkId": "4734",
                 "lineId" : 1,
+                 "isChild": true,
+                 "hasValidationErrors": false,
+                 "hasResponse": true,
+                 "hasValidRequest": true,
                 "validCalculationRequest" : {
                     "scon" : "S2730000B",
                     "nino" : "$nino",
@@ -73,13 +81,23 @@ class BulkCalculationRequestSpec extends PlaySpec {
                 }
             },
             {
+                "bulkId": "4734",
                 "lineId" : 2,
+                "isChild": true,
+                "hasValidationErrors": true,
+                "hasResponse": false,
+                "hasValidRequest": false,
                 "validationErrors": {
                     "scon": "No scon supplied"
                 }
             },
             {
+                "bulkId": "4734",
                 "lineId" : 3,
+                "isChild": true,
+                "hasValidationErrors": false,
+                "hasResponse": true,
+                "hasValidRequest": true,
                 "validCalculationRequest" : {
                     "scon" : "S2730000B",
                     "nino" : "$nino",
@@ -108,7 +126,12 @@ class BulkCalculationRequestSpec extends PlaySpec {
                 }
             },
             {
+                "bulkId": "4734",
                 "lineId" : 4,
+                "isChild": true,
+                "hasValidationErrors": true,
+                "hasResponse": false,
+                "hasValidRequest": false,
                 "validationErrors": {
                    "scon": "Invalid scon format"
                 }
@@ -121,6 +144,11 @@ class BulkCalculationRequestSpec extends PlaySpec {
     """
       {
         "lineId" : 1,
+        "bulkId": "843",
+        "isChild": true,
+        "hasValidationErrors": true,
+        "hasResponse": false,
+        "hasValidRequest": false,
         "validationErrors": {
             "scon": "Invalid scon format"
         }
@@ -131,6 +159,12 @@ class BulkCalculationRequestSpec extends PlaySpec {
     s"""
       {
         "lineId" : 1,
+        "bulkId" : "87467",
+        "isChild": true,
+        "hasValidationErrors": false,
+        "hasResponse": true,
+        "hasValidRequest": true,
+        "validationErrors": {},
         "validCalculationRequest" : {
             "scon" : "S2730000B",
             "nino" : "$nino",
@@ -170,6 +204,11 @@ class BulkCalculationRequestSpec extends PlaySpec {
     s"""
       {
         "lineId" : 1,
+        "bulkId": "4732894",
+         "isChild": true,
+         "hasValidationErrors": false,
+         "hasResponse": true,
+         "hasValidRequest": true,
         "validCalculationRequest" : {
             "scon" : "S2730000B",
             "nino" : "$nino",
@@ -209,7 +248,7 @@ class BulkCalculationRequestSpec extends PlaySpec {
   "CalculationRequest hasErrors" must {
     "return true if globalErrorCode defined" in {
 
-      val request = jsonCalculationRequestWithMatchingResponse.as[CalculationRequest]
+      val request = jsonCalculationRequestWithMatchingResponse.as[ProcessReadyCalculationRequest]
       request.hasErrors must be (true)
       request.getGlobalErrorMessageReason must be(Some(Messages("63151.reason")))
       request.getGlobalErrorMessageWhat must be(Some(Messages("63151.what")))
@@ -217,13 +256,14 @@ class BulkCalculationRequestSpec extends PlaySpec {
 
     "return true if validationErrors defined" in {
 
-      val request = jsonCalculationRequestWithValidationError.as[CalculationRequest]
+      val request = jsonCalculationRequestWithValidationError.as[ProcessReadyCalculationRequest]
       request.hasErrors must be (true)
     }
 
     "return false if no globalErrorCode or validation error" in {
 
-      val request = jsonCalculationRequestWithMatchingResponseWithNoError.as[CalculationRequest]
+      val request = jsonCalculationRequestWithMatchingResponseWithNoError.as[ProcessReadyCalculationRequest]
+
       request.hasErrors must be (false)
       request.getGlobalErrorMessageReason must be(None)
       request.getGlobalErrorMessageWhat must be(None)
@@ -233,10 +273,11 @@ class BulkCalculationRequestSpec extends PlaySpec {
   "BulkCalculationRequest failedRequestCount" must {
     "return count of failed requests" in {
 
-      val request = jsonBulkCalculationRequest.as[BulkCalculationRequest]
+      val request = jsonBulkCalculationRequest.as[ProcessedBulkCalculationRequest]
       request.failedRequestCount must be(4)
     }
   }
+  
 
   "handle timestamp conversion" in {
     val localDateTime = new LocalDateTime(2016,5,18,17,50,55,511)

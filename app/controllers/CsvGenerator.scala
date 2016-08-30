@@ -122,7 +122,7 @@ trait CsvGenerator {
     def build: Row = ResponseRow(cells, Some(errorCell), Some(errorResolutionCell))
   }
 
-  class ResponseRowBuilder(request: CalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
+  class ResponseRowBuilder(request: ProcessReadyCalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
 
     request.validCalculationRequest match {
       case Some(x) =>
@@ -244,7 +244,7 @@ trait CsvGenerator {
       cell
     }
 
-    private def sumPeriod(request: CalculationRequest, selector: (CalculationPeriod) => String) = {
+    private def sumPeriod(request: ProcessReadyCalculationRequest, selector: (CalculationPeriod) => String) = {
       request.calculationResponse match {
         case Some(response) => response.calculationPeriods.foldLeft(BigDecimal(0)) { (sum, period) => sum + BigDecimal(selector(period)) }
         case _ => 0
@@ -271,9 +271,10 @@ trait CsvGenerator {
       }
     }
 
-    private def determineGmpAtDate(request: CalculationRequest): String = {
+    private def determineGmpAtDate(request: ProcessReadyCalculationRequest): String = {
 
       val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
+
       request.validCalculationRequest.map {
 
         calculationRequest =>
@@ -424,7 +425,7 @@ trait CsvGenerator {
 
   }
 
-  def generateCsv(result: BulkCalculationRequest, csvFilter: Option[CsvFilter]): String = {
+  def generateCsv(result: ProcessedBulkCalculationRequest, csvFilter: Option[CsvFilter]): String = {
 
     implicit val filter = csvFilter.get
 
@@ -449,7 +450,7 @@ trait CsvGenerator {
     csvBuilder.build
   }
 
-  def generateContributionsCsv(request: BulkCalculationRequest): String = {
+  def generateContributionsCsv(request: ProcessedBulkCalculationRequest): String = {
 
     Messages("gmp.bulk.csv.contributions.headers") + "\n" + request.calculationRequests.map {
       case calcRequest => {
@@ -525,7 +526,7 @@ trait CsvGenerator {
     }
   }
 
-  private def generateLineSeparator(calcRequest: CalculationRequest): String = {
+  private def generateLineSeparator(calcRequest: ProcessReadyCalculationRequest): String = {
     calcRequest.calculationResponse match {
       case Some(response) if response.calculationPeriods.size > 1 => "\n"
       case _ => ""

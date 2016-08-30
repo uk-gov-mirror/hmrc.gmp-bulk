@@ -108,7 +108,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
           errorStatus match {
             case BAD_REQUEST => throw new Upstream4xxResponse("A 400 Bad Request exception was encountered", errorStatus, BAD_REQUEST)
-            case _ => throw new Upstream5xxResponse("DES connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
+            case e => throw new Upstream5xxResponse("DES connector calculate failed: " + response.body, errorStatus, INTERNAL_SERVER_ERROR)
           }
 
         }

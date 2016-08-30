@@ -45,6 +45,8 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
   val mockRepository = mock[BulkCalculationRepository]
   val mockMetrics = mock[Metrics]
 
+  val testTimeout = 10 seconds
+  
   object CalculationRequestActorMock {
     def props(desConnector: DesConnector, repository: BulkCalculationRepository, metrics: Metrics) = Props(classOf[CalculationRequestActorMock], desConnector, repository,metrics)
   }
@@ -65,7 +67,6 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
     val response = CalculationResponse("",0,None,None,None,Scon("",0,""),Nil)
 
-
     "successfully save" in {
 
       when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.successful(response))
@@ -73,9 +74,9 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
-      within(5 seconds) {
+      within(testTimeout) {
 
-        actorRef ! ProcessReadyCalculationRequest("test", 1, ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None))
+        actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
         expectMsg(true)
       }
 
@@ -87,9 +88,9 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
-      within(5 seconds) {
+      within(testTimeout) {
 
-        actorRef ! ProcessReadyCalculationRequest("test", 1, ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None))
+        actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
         expectMsgClass(classOf[akka.actor.Status.Failure])
 
       }
@@ -106,9 +107,9 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
-      within(5 seconds) {
+      within(testTimeout) {
 
-        actorRef ! ProcessReadyCalculationRequest("test", 1, ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None))
+        actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
         expectMsg(true)
 
         verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 400, None, None, None, containsErrors = true))
@@ -124,9 +125,9 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
-      within(5 seconds) {
+      within(testTimeout) {
 
-        actorRef ! ProcessReadyCalculationRequest("test", 1, ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
+        actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None)), None, None)
         expectMsg(true)
 
         verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 423, None, None, None, containsErrors = true))
@@ -140,7 +141,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
-      within(5 seconds) {
+      within(testTimeout) {
 
         actorRef ! "purple rain"
         expectMsgClass(classOf[akka.actor.Status.Failure])
@@ -151,7 +152,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
-      within(5 seconds) {
+      within(testTimeout) {
 
         actorRef ! STOP
         expectMsg(STOP)

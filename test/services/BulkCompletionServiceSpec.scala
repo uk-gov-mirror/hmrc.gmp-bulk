@@ -31,22 +31,20 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 
 class BulkCompletionServiceSpec extends UnitSpec with MockitoSugar with OneServerPerSuite with BeforeAndAfterEach with MongoSpecSupport {
 
-    val bulkCalculationRespository = new BulkCalculationMongoRepository
+  val bulkCalculationRespository = new BulkCalculationMongoRepository
 
-
-
-  object TestBulkCompletionService extends BulkCompletionService{
+  object TestBulkCompletionService extends BulkCompletionService {
     override lazy val repository = bulkCalculationRespository
   }
 
-
   override protected def beforeEach() {
-        await(bulkCalculationRespository.collection.remove(Json.obj()))
-    }
+    Await.result(bulkCalculationRespository.collection.remove(Json.obj()), 30 seconds)
+  }
 
   val nino = RandomNino.generate
 
@@ -147,25 +145,25 @@ class BulkCompletionServiceSpec extends UnitSpec with MockitoSugar with OneServe
 
       val request = jsonWithResponses.as[BulkCalculationRequest]
       val uploadRef = UUID.randomUUID().toString
-      await(bulkCalculationRespository.insertBulkDocument(request.copy(uploadReference = uploadRef)))
 
+      await(bulkCalculationRespository.insertBulkDocument(request.copy(uploadReference = uploadRef)))
       await(TestBulkCompletionService.checkForComplete())
 
       val result = await(bulkCalculationRespository.findByReference(uploadRef))
-      result.get.complete.get should be(true)
-      result.get.total.get should be(4)
+      result.get.complete should be(true)
+      result.get.total should be(4)
     }
 
-      "cant get a lock" in {
-        val mockRepository = mock[BulkCalculationRepository]
-        object TestBulkCompletionService extends BulkCompletionService{
-          override lazy val repository = mockRepository
-        }
-
-        when(mockRepository.findAndComplete()).thenReturn(Future.successful(false))
-
-        await(TestBulkCompletionService.checkForComplete())
+    "cant get a lock" in {
+      val mockRepository = mock[BulkCalculationRepository]
+      object TestBulkCompletionService extends BulkCompletionService {
+        override lazy val repository = mockRepository
       }
+
+      when(mockRepository.findAndComplete()).thenReturn(Future.successful(false))
+
+      await(TestBulkCompletionService.checkForComplete())
+    }
   }
 
 }

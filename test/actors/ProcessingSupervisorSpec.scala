@@ -67,7 +67,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
 
 
       val processReadyCalculationRequest = ProcessReadyCalculationRequest("test upload",1,
-        ValidCalculationRequest("scon",RandomNino.generate,"smith","jim",None,None,None,None,None,None))
+        Some(ValidCalculationRequest("scon",RandomNino.generate,"smith","jim",None,None,None,None,None,None)), None, None)
 
       when(mockRepository.findRequestsToProcess()).thenReturn(Future.successful(Some(List(processReadyCalculationRequest))))
 
@@ -126,7 +126,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
       }),"process-supervisor3")
 
       val processReadyCalculationRequest = ProcessReadyCalculationRequest("test upload",1,
-        ValidCalculationRequest("scon",RandomNino.generate,"smith","jim",None,None,None,None,None,None))
+        Some(ValidCalculationRequest("scon",RandomNino.generate,"smith","jim",None,None,None,None,None,None)), None, None)
       
       when(mockRepository.findRequestsToProcess()).thenReturn(Future.successful(Some(List(processReadyCalculationRequest))))
 

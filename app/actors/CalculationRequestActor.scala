@@ -46,7 +46,7 @@ class CalculationRequestActor extends Actor with ActorUtils {
       val origSender = sender
       val startTime = System.currentTimeMillis()
 
-      desConnector.getPersonDetails(request.validCalculationRequest.nino)(HeaderCarrier()) map {
+      desConnector.getPersonDetails(request.validCalculationRequest.get.nino)(HeaderCarrier()) map {
         case DesGetHiddenRecordResponse =>
 
           repository.insertResponseByReference(request.bulkId, request.lineId,
@@ -59,7 +59,7 @@ class CalculationRequestActor extends Actor with ActorUtils {
         case x => {
 
           val tryCallingDes = Try {
-            desConnector.calculate(request.validCalculationRequest)
+            desConnector.calculate(request.validCalculationRequest.get)
           }
 
           tryCallingDes match {
