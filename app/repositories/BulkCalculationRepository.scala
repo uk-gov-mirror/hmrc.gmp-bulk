@@ -278,13 +278,6 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
                 case result => result match {
                   case count if count == 0 =>
                     val processedChildren = collection.find(Json.obj("isChild" -> true, "bulkId" -> bulkRequest._id)).cursor[ProcessReadyCalculationRequest](ReadPreference.primary).collect[List]().flatMap { allChildren =>
-
-//                      val childrenToProcess = allChildren collect {
-//                        case x if !x.hasResponse && !x.hasValidationErrors && x.hasValidRequest => x
-//                      }
-
-//                      Logger.debug(s"isEmpty: ${childrenToProcess.isEmpty}, ${childrenToProcess.size}")
-
                       Future.successful(Some(bulkRequest.copy(calculationRequests = allChildren)))
                     }
 
