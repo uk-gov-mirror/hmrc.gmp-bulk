@@ -451,8 +451,9 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
         }
 
         val insertResult = Try {
-
-          val bulkDocs = calculationRequests.map(implicitly[collection.ImplicitlyDocumentProducer](_))
+          
+          val bulkDocs = calculationRequests map { c => ProcessReadyCalculationRequest(c.bulkId.get, c.lineId, c.validCalculationRequest.get,
+            isChild = true, hasResponse = false, hasValidCalculationRequest = c.validCalculationRequest.isDefined, hasErrors = c.hasErrors) } map (implicitly[collection.ImplicitlyDocumentProducer](_))
 
           val insertResult = collection.insert(strippedBulk).flatMap {
             result => collection.bulkInsert(ordered = false)(bulkDocs: _*)

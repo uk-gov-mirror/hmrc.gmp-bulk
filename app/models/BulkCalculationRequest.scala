@@ -19,8 +19,6 @@ package models
 import org.joda.time.LocalDateTime
 import play.api.i18n.Messages
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
-import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 case class ValidCalculationRequest(scon: String,
@@ -77,37 +75,7 @@ case class CalculationRequest(bulkId: Option[String],
 }
 
 object CalculationRequest {
-  //implicit val formats = Json.format[CalculationRequest]
-
-  implicit val reads = Json.reads[CalculationRequest]
-
-//  implicit val calculationWrites: Writes[CalculationRequest] = (
-//    (JsPath \ "bulkId").writeNullable[String] and
-//      (JsPath \ "lineId").write[Int] and
-//      (JsPath \ "validCalculationRequest").writeNullable[ValidCalculationRequest] and
-//      (JsPath \ "validationErrors").writeNullable[Map[String, String]] and
-//      (JsPath \ "calculationResponse").writeNullable[GmpBulkCalculationResponse] and
-//      (__ \ "hasResponse").write[Boolean]()
-//    )(unlift(CalculationRequest.unapply))
-
-  implicit val calculationReads: Reads[CalculationRequest] = (
-      (__ \ "bulkId").readNullable[String],
-      (__ \ "lineId").read[Int],
-      (__ \ "validCalculationRequest").readNullable[ValidCalculationRequest],
-      (__ \ "validationErrors").readNullable[Map[String, String]],
-      (__ \ "calculationResponse").readNullable[GmpBulkCalculationResponse]
-    )(CalculationRequest.apply _)
-
-  implicit val calculationWrites = new Writes[CalculationRequest] {
-    def writes(o: CalculationRequest): JsValue = Json.obj(
-      "bulkId" -> o.bulkId,
-      "lineId" -> o.lineId,
-      "validCalculationRequest" -> o.validCalculationRequest,
-      "validationErrors" -> o.validationErrors,
-      "calculationResponse" -> o.calculationResponse
-    )
-  }
-
+  implicit val formats = Json.format[CalculationRequest]
 }
 
 case class BulkCalculationRequest(_id: Option[String],
@@ -174,6 +142,7 @@ case class ProcessReadyCalculationRequest(bulkId: String,
                                           validCalculationRequest: ValidCalculationRequest,
                                           isChild: Boolean = true,
                                           hasResponse: Boolean = false,
+                                          hasValidCalculationRequest: Boolean = true,
                                           hasErrors: Boolean = false)
 
 object ProcessReadyCalculationRequest {
