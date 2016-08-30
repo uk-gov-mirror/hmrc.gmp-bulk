@@ -70,15 +70,18 @@ case class BulkCalculationRequest(_id: Option[String],
                                   failed: Option[Int])
 
 object BulkCalculationRequest {
+
   implicit val timestampReads = Reads[LocalDateTime](js =>
     js.validate[String].map[LocalDateTime](dtString =>
       LocalDateTime.parse(dtString)
     )
   )
 
+  // $COVERAGE-OFF$
   implicit val timestampWrites = new Writes[LocalDateTime] {
     def writes(localDateTime: LocalDateTime) = JsString(localDateTime.toString)
   }
+  // $COVERAGE-ON$
 
   implicit val formats = Json.format[BulkCalculationRequest]
   implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
