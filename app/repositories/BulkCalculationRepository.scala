@@ -45,13 +45,34 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     mongo,
     BulkCalculationRequest.formats) with BulkCalculationRepository {
 
-  // Temporary, to remove after next build to fix record in mongo prod
   {
+    // Temporary, to remove after next build to fix record in mongo prod
     collection.update(Json.obj("bulkId" -> "579a288eff4060a3ff4588c1"), Json.obj("$unset" -> Json.obj("createdAt" -> 1)), multi = true)
-    collection.update(Json.obj("_id" -> "579a288eff4060a3ff4588c1"), Json.obj("$unset" -> Json.obj("createdAt" -> 1, "processedDateTime" -> 1, "failed" -> 1, "total" -> 1, "complete" -> 1)))
-  }
+    collection.update(BSONDocument("_id" -> "579a288eff4060a3ff4588c1"), BSONDocument("$unset" -> BSONDocument("createdAt" -> 1, "processedDateTime" -> 1, "failed" -> 1, "total" -> 1, "complete" -> 1)))
 
-  // --
+    // Temporary, to set the documents in mongo to match the new models
+    val uncompleteParents = collection.find(Json.obj("uploadReference" -> Json.obj("$exists" -> true), "complete" -> Json.obj("$exists" -> false))).cursor[BSONDocument].collect[List]()
+    uncompleteParents.map { parentList =>
+      parentList.foreach {
+        _.getAs[String]("_id") match {
+          case Some(parentId) =>
+            val children = collection.find(Json.obj("bulkId" -> parentId)).cursor[BSONDocument].collect[List]()
+            children.map { childrenList =>
+              childrenList.foreach{ child =>
+                val childId = child.getAs[BSONObjectID]("_id")
+                val hasResponse = child.get("calculationResponse")
+                val hasValidRequest = child.get("validCalculationRequest")
+                val hasValidationErrors = child.get("validationErrors")
+
+                collection.update(BSONDocument("_id" -> childId.get), BSONDocument("$set" -> BSONDocument("isChild" -> true, "hasResponse" -> hasResponse.isDefined, "hasValidRequest" -> hasValidRequest.isDefined, "hasValidationErrors" -> hasValidationErrors.isDefined)))
+              }
+            }
+
+            collection.update(Json.obj("_id" -> parentId), Json.obj("$set" -> Json.obj("complete" -> false, "isParent" -> true, "failed" -> 0, "total" -> 0)))
+        }
+      }
+    }
+  }
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
 
