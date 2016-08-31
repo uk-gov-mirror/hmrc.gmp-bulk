@@ -32,6 +32,7 @@ import play.api.libs.json.{JsObject, Json}
 import reactivemongo.api.Cursor
 import reactivemongo.api.commands.UpdateWriteResult
 import reactivemongo.api.indexes.CollectionIndexesManager
+import reactivemongo.bson.BSONDocument
 import reactivemongo.json._
 import reactivemongo.json.collection.{JSONQueryBuilder, JSONCollection}
 import uk.gov.hmrc.mongo.{Awaiting, MongoSpecSupport}
@@ -68,6 +69,19 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
     override val auditConnector = mockAuditConnector
     override val emailConnector = mockEmailConnector
     override val metrics = mockMetrics
+  }
+
+  def setupFindMock = {
+    val queryBuilder = mock[JSONQueryBuilder]
+    when(mockCollection.find(Matchers.any())(Matchers.any())) thenReturn queryBuilder
+    val cursor = mock[Cursor[BSONDocument]]
+    when(queryBuilder.cursor[BSONDocument](Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())) thenAnswer new Answer[Cursor[BSONDocument]] {
+      def answer(i: InvocationOnMock) = cursor
+    }
+
+    when(
+      cursor.collect[Traversable](Matchers.anyInt(), Matchers.anyBoolean())(Matchers.any[CanBuildFrom[Traversable[_], BSONDocument, Traversable[BSONDocument]]], Matchers.any[ExecutionContext])
+    ) thenReturn Future.successful(List())
   }
 
   val nino = RandomNino.generate
@@ -364,7 +378,6 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
   "BulkCalculationMongoRepository" must {
 
-
     "inserting a calculation" must {
 
       "persist a calculation in the repo" in {
@@ -380,7 +393,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
     "inserting a bulk calculation" must {
       "cope with failures" in {
         val request = json.as[BulkCalculationRequest]
-
+        setupFindMock
         when (mockCollection.insert(Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any())).thenThrow(new scala.RuntimeException)
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.ImplicitlyDocumentProducer).thenThrow(new scala.RuntimeException)
@@ -393,7 +406,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
     "find and complete" must {
       "cope with failures" in {
-
+        setupFindMock
         when (mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockEmailConnector.sendProcessedTemplatedEmail(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))
@@ -439,7 +452,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
       }
 
       "handle failure in requests to process" in {
-
+        setupFindMock
         when(mockCollection.aggregate(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
 
@@ -512,13 +525,13 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
       }
 
       "return None when mongo find returns error" in {
-
-        when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
+        setupFindMock
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
-
         val testRepository = new TestCalculationRepository
 
         val request = BulkCalculationRequest(None,"ur", "jimemail", "thing", Nil, "", LocalDateTime.now(), Some(false), None, None)
+
+        when(mockCollection.find(Matchers.eq(Json.obj("uploadReference" -> request.uploadReference)))(Matchers.any())).thenThrow(new RuntimeException)
 
         val found = await(testRepository.findByReference(request.uploadReference))
         found must be(None)
@@ -527,7 +540,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
     "finding requests" must {
       "return the found calculation" in {
-
+        setupFindMock
         val timeStamp = LocalDateTime.now()
         val processedDateTime = LocalDateTime.now()
 
@@ -542,12 +555,14 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
       "return None when mongo find by user id returns error" in {
 
-        when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
+        setupFindMock
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
 
         val request = BulkCalculationRequest(None,"ur", "jimemail", "thing", Nil, "", LocalDateTime.now(), Some(false), None, None)
+
+        when(mockCollection.find(Matchers.eq(Json.obj("userId" -> request.userId, "complete" -> true), Json.obj("uploadReference" -> 1, "reference" -> 1, "timestamp" -> 1, "processedDateTime" -> 1)))(Matchers.any())).thenThrow(new RuntimeException)
 
         val found = await(testRepository.findByUserId(request.userId))
         found must be(None)
@@ -607,12 +622,14 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
       "return None when mongo find returns error" in {
 
-        when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
+        setupFindMock
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
 
         val request = BulkCalculationRequest(None,"ur", "jimemail", "thing", Nil, "", LocalDateTime.now(), Some(false), None, None)
+
+        when(mockCollection.find(Matchers.eq(Json.obj("uploadReference" -> request.uploadReference), Json.obj("reference" -> 1, "total" -> 1, "failed" -> 1, "userId" -> 1)))(Matchers.any())).thenThrow(new RuntimeException)
 
         val found = await(testRepository.findSummaryByReference(request.uploadReference))
         found must be(None)
@@ -683,10 +700,12 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
       "return false if it fails" in {
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
+        setupFindMock
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
+
+        when(mockCollection.find(Matchers.eq(Json.obj("isParent" -> true, "complete" -> false)))(Matchers.any())).thenThrow(new RuntimeException)
 
         val found = await(testRepository.findAndComplete())
         found must be(false)
