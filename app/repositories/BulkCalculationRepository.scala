@@ -45,6 +45,14 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     mongo,
     BulkCalculationRequest.formats) with BulkCalculationRepository {
 
+    // Temporary, to be removed after next deployment
+    {
+      val selector = Json.obj("uploadReference" -> Json.obj("$exists" -> true), "isParent" -> Json.obj("$exists" -> false))
+      val modifier = Json.obj("$set" -> Json.obj("isParent" -> true))
+      val result = collection.update(selector, modifier)
+    }
+    // ->
+
   override def indexes: Seq[Index] = Seq(
     Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> 2592000), sparse = true, background = true),
     Index(Seq("bulkId" -> IndexType.Ascending), Some("bulkId"), background = true),
