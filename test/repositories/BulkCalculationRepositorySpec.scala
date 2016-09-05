@@ -394,7 +394,8 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
       "cope with failures" in {
         val request = json.as[BulkCalculationRequest]
         setupFindMock
-        when (mockCollection.insert(Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any())).thenThrow(new scala.RuntimeException)
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
+        when(mockCollection.insert(Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any())).thenThrow(new scala.RuntimeException)
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.ImplicitlyDocumentProducer).thenThrow(new scala.RuntimeException)
         val testRepository = new TestCalculationRepository
@@ -407,7 +408,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
     "find and complete" must {
       "cope with failures" in {
         setupFindMock
-        when (mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockEmailConnector.sendProcessedTemplatedEmail(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))
         val testRepository = new TestCalculationRepository
@@ -453,6 +454,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
       "handle failure in requests to process" in {
         setupFindMock
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.aggregate(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
 
@@ -526,6 +528,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
 
       "return None when mongo find returns error" in {
         setupFindMock
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         val testRepository = new TestCalculationRepository
 
@@ -543,7 +546,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
         setupFindMock
         val timeStamp = LocalDateTime.now()
         val processedDateTime = LocalDateTime.now()
-
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         setupFindFor(mockCollection, Seq(BulkPreviousRequest("", "", timeStamp, processedDateTime)))
 
@@ -556,6 +559,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
       "return None when mongo find by user id returns error" in {
 
         setupFindMock
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
@@ -623,6 +627,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
       "return None when mongo find returns error" in {
 
         setupFindMock
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
@@ -701,6 +706,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
       "return false if it fails" in {
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
         setupFindMock
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
 
         val testRepository = new TestCalculationRepository
