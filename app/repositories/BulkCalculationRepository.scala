@@ -51,7 +51,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
       Logger.info("starting to update mongo")
       val selector = Json.obj("uploadReference" -> Json.obj("$exists" -> true), "isParent" -> Json.obj("$exists" -> false))
       val modifier = Json.obj("$set" -> Json.obj("isParent" -> true))
-      val result = collection.update(selector, modifier)
+      val result = collection.update(selector, modifier, multi = true)
 
       result.map {
         lastError => Logger.debug(s"[BulkCalculationRepository][temp] : result : $lastError ")
