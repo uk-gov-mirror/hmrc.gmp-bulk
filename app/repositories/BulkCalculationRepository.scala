@@ -46,12 +46,21 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     BulkCalculationRequest.formats) with BulkCalculationRepository {
 
     // Temporary, to be removed after next deployment
+  // $COVERAGE-OFF$
     {
+      Logger.info("starting to update mongo")
       val selector = Json.obj("uploadReference" -> Json.obj("$exists" -> true), "isParent" -> Json.obj("$exists" -> false))
       val modifier = Json.obj("$set" -> Json.obj("isParent" -> true))
       val result = collection.update(selector, modifier)
+
+      result.map {
+        lastError => Logger.debug(s"[BulkCalculationRepository][temp] : result : $lastError ")
+      }.recover {
+        case e => Logger.error("Failed to update request", e)
+      }
     }
-    // ->
+    // -->
+  // $COVERAGE-ON$
 
   override def indexes: Seq[Index] = Seq(
     Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> 2592000), sparse = true, background = true),
