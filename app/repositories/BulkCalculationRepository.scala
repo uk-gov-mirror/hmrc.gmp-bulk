@@ -48,7 +48,6 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     // Temporary, to be removed after next deployment
   // $COVERAGE-OFF$
     {
-      Logger.info("starting to update mongo")
       val selector = Json.obj("uploadReference" -> Json.obj("$exists" -> true), "isParent" -> Json.obj("$exists" -> false))
       val modifier = Json.obj("$set" -> Json.obj("isParent" -> true))
       val result = collection.update(selector, modifier, multi = true)
@@ -57,6 +56,18 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
         lastError => Logger.debug(s"[BulkCalculationRepository][temp] : result : $lastError ")
       }.recover {
         case e => Logger.error("Failed to update request", e)
+      }
+
+      val children = collection.find(Json.obj("bulkId" -> Json.obj("$exists" -> true), "isChild" -> Json.obj("$exists" -> false))).cursor[BSONDocument]().collect[List]()
+      children.map { childrenList =>
+        childrenList.foreach { child =>
+          val childId = child.getAs[BSONObjectID]("_id")
+          val hasResponse = child.get("calculationResponse")
+          val hasValidRequest = child.get("validCalculationRequest")
+          val hasValidationErrors = child.get("validationErrors")
+
+          collection.update(BSONDocument("_id" -> childId.get), BSONDocument("$set" -> BSONDocument("isChild" -> true, "hasResponse" -> hasResponse.isDefined, "hasValidRequest" -> hasValidRequest.isDefined, "hasValidationErrors" -> hasValidationErrors.isDefined)))
+        }
       }
     }
     // -->
