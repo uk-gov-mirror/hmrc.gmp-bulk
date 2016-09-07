@@ -25,6 +25,7 @@ import metrics.Metrics
 import models._
 import org.joda.time.{DateTime, LocalDateTime}
 import play.api.Logger
+import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.commands.MultiBulkWriteResult
@@ -48,19 +49,14 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     // Temporary, to be removed after next deployment
   // $COVERAGE-OFF$
     {
-      val selector = Json.obj("uploadReference" -> Json.obj("$exists" -> true), "isParent" -> Json.obj("$exists" -> false))
-      val modifier = Json.obj("$set" -> Json.obj("isParent" -> true))
-      val result = collection.update(selector, modifier, multi = true)
+//      val selector = Json.obj("uploadReference" -> Json.obj("$exists" -> true), "isParent" -> Json.obj("$exists" -> false))
+//      val modifier = Json.obj("$set" -> Json.obj("isParent" -> true))
+//      val result = collection.update(selector, modifier, multi = true)
 
-      result.map {
-        lastError => Logger.debug(s"[BulkCalculationRepository][temp] : result : $lastError ")
-      }.recover {
-        case e => Logger.error("Failed to update request", e)
-      }
+      val childrenEnumerator = collection.find(Json.obj("bulkId" -> Json.obj("$exists" -> true), "isChild" -> Json.obj("$exists" -> false))).cursor[BSONDocument]().enumerate()
 
-      val children = collection.find(Json.obj("bulkId" -> Json.obj("$exists" -> true), "isChild" -> Json.obj("$exists" -> false))).cursor[BSONDocument]().collect[List]()
-      children.map { childrenList =>
-        childrenList.foreach { child =>
+      val processChildren: Iteratee[BSONDocument, Unit] = {
+        Iteratee.foreach { child =>
           val childId = child.getAs[BSONObjectID]("_id")
           val hasResponse = child.get("calculationResponse")
           val hasValidRequest = child.get("validCalculationRequest")
@@ -69,6 +65,8 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
           collection.update(BSONDocument("_id" -> childId.get), BSONDocument("$set" -> BSONDocument("isChild" -> true, "hasResponse" -> hasResponse.isDefined, "hasValidRequest" -> hasValidRequest.isDefined, "hasValidationErrors" -> hasValidationErrors.isDefined)))
         }
       }
+
+      childrenEnumerator.run(processChildren)
     }
     // -->
   // $COVERAGE-ON$

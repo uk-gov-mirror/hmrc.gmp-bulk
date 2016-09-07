@@ -28,6 +28,7 @@ import org.mockito.Matchers
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import reactivemongo.api.Cursor
 import reactivemongo.api.commands.UpdateWriteResult
@@ -74,14 +75,18 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
   def setupFindMock = {
     val queryBuilder = mock[JSONQueryBuilder]
     when(mockCollection.find(Matchers.any())(Matchers.any())) thenReturn queryBuilder
-    val cursor = mock[Cursor[BSONDocument]]
+    val mockCursor = mock[Cursor[BSONDocument]]
     when(queryBuilder.cursor[BSONDocument](Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())) thenAnswer new Answer[Cursor[BSONDocument]] {
-      def answer(i: InvocationOnMock) = cursor
+      def answer(i: InvocationOnMock) = mockCursor
     }
 
     when(
-      cursor.collect[Traversable](Matchers.anyInt(), Matchers.anyBoolean())(Matchers.any[CanBuildFrom[Traversable[_], BSONDocument, Traversable[BSONDocument]]], Matchers.any[ExecutionContext])
+      mockCursor.collect[Traversable](Matchers.anyInt(), Matchers.anyBoolean())(Matchers.any[CanBuildFrom[Traversable[_], BSONDocument, Traversable[BSONDocument]]], Matchers.any[ExecutionContext])
     ) thenReturn Future.successful(List())
+
+    when(
+      mockCursor.enumerate()
+    ) thenReturn Enumerator[BSONDocument]()
   }
 
   val nino = RandomNino.generate
