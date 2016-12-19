@@ -17,18 +17,20 @@
 package services
 
 import play.api.Logger
-import play.modules.reactivemongo.ReactiveMongoPlugin
+//import play.modules.reactivemongo.ReactiveMongoPlugin
+import play.modules.reactivemongo.MongoDbConnection
 import repositories.BulkCalculationRepository
 import uk.gov.hmrc.lock.{LockRepository, LockKeeper, LockMongoRepository}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait BulkCompletionService {
+trait BulkCompletionService extends MongoDbConnection{
 
   val connection = {
     import play.api.Play.current
-    ReactiveMongoPlugin.mongoConnector.db
+    //ReactiveMongoPlugin.mongoConnector.db
+    db
   }
 
   val lockrepo = LockMongoRepository(connection)

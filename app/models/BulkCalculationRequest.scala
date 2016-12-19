@@ -20,6 +20,8 @@ import org.joda.time.LocalDateTime
 import play.api.i18n.Messages
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 case class ValidCalculationRequest(scon: String,
                                    nino: String,

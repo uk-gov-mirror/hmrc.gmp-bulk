@@ -20,6 +20,8 @@ import models._
 import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
 import play.api.i18n.Messages
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 import scala.collection.mutable.ListBuffer
 
