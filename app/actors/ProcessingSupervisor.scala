@@ -32,13 +32,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ProcessingSupervisor extends Actor with ActorUtils with MongoDbConnection {
 
-  val connection = {
+/*  val connection = {
     import play.api.Play.current
-    //ReactiveMongoPlugin.mongoConnector.db
-    db
-  }
+    ReactiveMongoPlugin.mongoConnector.db
+  }*/
 
-  val lockrepo = LockMongoRepository(connection)
+  val lockrepo = LockMongoRepository(db)
 
   val lockKeeper = new LockKeeper {
 

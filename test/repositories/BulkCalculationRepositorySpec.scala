@@ -17,7 +17,7 @@
 package repositories
 
 import java.util.UUID
-
+import com.kenshoo.play.metrics.PlayModule
 import connectors.{EmailConnector, ProcessedUploadTemplate}
 import helpers.RandomNino
 import metrics.Metrics
@@ -41,9 +41,11 @@ import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
-
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.{ExecutionContext, Future}
+import play.api.i18n.Messages.Implicits._
+import play.api.{Application, Mode}
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 
 class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with MongoSpecSupport with Awaiting with MockitoSugar with BeforeAndAfterEach {
 
@@ -52,6 +54,14 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
   val mockEmailConnector = mock[EmailConnector]
   val bulkCalculationRepository = new TestBulkCalculationMongoRepository
   val mockMetrics = mock[Metrics]
+
+  def additionalConfiguration: Map[String, String] = Map()
+  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
+
+  implicit override lazy val app: Application = new GuiceApplicationBuilder()
+    .configure(additionalConfiguration)
+    .bindings(bindModules:_*).in(Mode.Test)
+    .build()
 
   override protected def beforeEach() {
     await(bulkCalculationRepository.collection.remove(Json.obj()))

@@ -20,18 +20,34 @@ import org.joda.time.LocalDate
 import org.mockito.ArgumentCaptor
 import org.scalatest._
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.OneAppPerSuite
+import org.scalatestplus.play.{OneAppPerSuite, OneAppPerTest, PlaySpec}
 import play.api.Play
-import play.api.test.FakeApplication
-import uk.gov.hmrc.play.http.{HttpResponse, HeaderCarrier, HttpPost}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, HttpResponse}
+
 import scala.concurrent.duration._
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, Future}
 import org.mockito.Mockito._
 import org.mockito.Matchers._
+import play.api.{Application, Mode}
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import com.kenshoo.play.metrics.PlayModule
+import play.api.test.FakeApplication
 
 class EmailConnectorSpec extends FunSpec with OneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
 
-  Play.start(new FakeApplication())
+  /*def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
+    "logger.play" -> "ERROR",
+    "logger.root" -> "ERROR",
+    "org.apache.logging" -> "ERROR",
+    "com.codahale" -> "ERROR")
+  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
+
+  implicit override lazy val app: Application = new GuiceApplicationBuilder()
+    .configure(additionalConfiguration)
+    .bindings(bindModules:_*).in(Mode.Test)
+    .build()
+
+  Play.start(app)
 
   val mockHttp = mock[HttpPost]
 
@@ -139,5 +155,5 @@ class EmailConnectorSpec extends FunSpec with OneAppPerSuite with MockitoSugar w
         result must be(false)
       }
     }
-  }
+  }*/
 }

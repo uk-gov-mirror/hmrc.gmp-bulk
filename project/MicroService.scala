@@ -65,8 +65,8 @@ trait MicroService {
       parallelExecution in Test := false,
       fork in Test := false,
       retrieveManaged := true,
-      routesGenerator := StaticRoutesGenerator,
-      routesImport += "extensions.Binders._"
+      routesImport += "extensions.Binders._",
+      routesGenerator := StaticRoutesGenerator
     )
     .settings(Repositories.playPublishingSettings : _*)
     .configs(IntegrationTest)
@@ -80,6 +80,7 @@ trait MicroService {
     .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
     .settings(
       resolvers += Resolver.bintrayRepo("hmrc", "releases"),
+      resolvers += Resolver.typesafeRepo("releases"),
       resolvers += Resolver.jcenterRepo)
 }
 

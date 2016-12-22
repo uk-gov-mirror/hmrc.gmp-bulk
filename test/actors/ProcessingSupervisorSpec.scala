@@ -31,14 +31,26 @@ import repositories.BulkCalculationRepository
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Matchers._
-
 import scala.concurrent.duration._
-
-
 import scala.concurrent.Future
+import play.api.{Application, Mode}
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import com.kenshoo.play.metrics.PlayModule
 
 class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with UnitSpec with MockitoSugar with OneServerPerSuite
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils {
+
+  def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
+    "logger.play" -> "ERROR",
+    "logger.root" -> "ERROR",
+    "org.apache.logging" -> "ERROR",
+    "com.codahale" -> "ERROR")
+  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
+
+  implicit override lazy val app: Application = new GuiceApplicationBuilder()
+    .configure(additionalConfiguration)
+    .bindings(bindModules:_*).in(Mode.Test)
+    .build()
 
   val mockLockRepo = mock[LockRepository]
 
