@@ -88,7 +88,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
       }/nino/${request.nino.toUpperCase}/surname/$surname/firstname/$firstname/calculation/${buildEncodedQueryString(paramMap)}"""
 
 
-    Logger.debug(s"[DesConnector][calculate] contacting DES at $uri")
+    Logger.info(s"[DesConnector][calculate] contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 
