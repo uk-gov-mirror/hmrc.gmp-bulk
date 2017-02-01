@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
       }/nino/${request.nino.toUpperCase}/surname/$surname/firstname/$firstname/calculation/${buildEncodedQueryString(paramMap)}"""
 
 
-    Logger.debug(s"[DesConnector][calculate] contacting DES at $uri")
+    Logger.info(s"[DesConnector][calculate] contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 

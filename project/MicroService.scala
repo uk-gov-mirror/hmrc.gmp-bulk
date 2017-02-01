@@ -15,13 +15,15 @@
  */
 
 import sbt.Keys._
-import sbt.Tests.{SubProcess, Group}
+import sbt.Tests.{Group, SubProcess}
 import sbt._
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 import scoverage._
-import play.PlayImport.PlayKeys._
+import play.sbt.PlayImport.PlayKeys._
 import uk.gov.hmrc.versioning.SbtGitVersioning
+import play.sbt.routes.RoutesKeys._
+import play.routes.compiler.StaticRoutesGenerator
 
 trait MicroService {
 
@@ -34,8 +36,8 @@ trait MicroService {
 
   val appName: String
 
-  lazy val appDependencies : Seq[ModuleID] = ???
-  lazy val plugins : Seq[Plugins] = Seq(play.PlayScala)
+  lazy val appDependencies : Seq[ModuleID] = Seq.empty
+  lazy val plugins : Seq[Plugins] = Seq(play.sbt.PlayScala)
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
   lazy val scoverageSettings = {
@@ -63,7 +65,8 @@ trait MicroService {
       parallelExecution in Test := false,
       fork in Test := false,
       retrieveManaged := true,
-      routesImport += "extensions.Binders._"
+      routesImport += "extensions.Binders._",
+      routesGenerator := StaticRoutesGenerator
     )
     .settings(Repositories.playPublishingSettings : _*)
     .configs(IntegrationTest)
@@ -75,7 +78,10 @@ trait MicroService {
       testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
       parallelExecution in IntegrationTest := false)
     .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
-    .settings(resolvers += Resolver.bintrayRepo("hmrc", "releases"))
+    .settings(
+      resolvers += Resolver.bintrayRepo("hmrc", "releases"),
+      resolvers += Resolver.typesafeRepo("releases"),
+      resolvers += Resolver.jcenterRepo)
 }
 
 private object TestPhases {

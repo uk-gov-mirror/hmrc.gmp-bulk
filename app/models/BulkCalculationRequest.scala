@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import org.joda.time.LocalDateTime
 import play.api.i18n.Messages
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 case class ValidCalculationRequest(scon: String,
                                    nino: String,

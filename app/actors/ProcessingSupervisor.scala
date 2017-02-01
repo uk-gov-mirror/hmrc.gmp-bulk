@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,8 @@ import akka.contrib.throttle.Throttler.{SetTarget, _}
 import akka.contrib.throttle.TimerBasedThrottler
 import config.ApplicationConfig
 import play.api.Logger
-import play.modules.reactivemongo.ReactiveMongoPlugin
+//import play.modules.reactivemongo.ReactiveMongoPlugin
+import play.modules.reactivemongo.MongoDbConnection
 import repositories.BulkCalculationRepository
 import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
 
@@ -29,14 +30,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class ProcessingSupervisor extends Actor with ActorUtils {
+class ProcessingSupervisor extends Actor with ActorUtils with MongoDbConnection {
 
-  val connection = {
+/*  val connection = {
     import play.api.Play.current
     ReactiveMongoPlugin.mongoConnector.db
-  }
+  }*/
 
-  val lockrepo = LockMongoRepository(connection)
+  val lockrepo = LockMongoRepository(db)
 
   val lockKeeper = new LockKeeper {
 

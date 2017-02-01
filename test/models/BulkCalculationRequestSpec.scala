@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,31 @@
 
 package models
 
+import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
 import org.joda.time.LocalDateTime
-import org.scalatestplus.play.PlaySpec
+import org.scalatest.{BeforeAndAfter, MustMatchers}
+import org.scalatest.mock.MockitoSugar
+import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import play.api.{Application, Mode}
 import play.api.i18n.Messages
 import play.api.libs.json.Json
+import play.api.i18n.Messages.Implicits._
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 
-class BulkCalculationRequestSpec extends PlaySpec {
+class BulkCalculationRequestSpec extends PlaySpec  with OneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
 
+  def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
+    "logger.play" -> "ERROR",
+    "logger.root" -> "ERROR",
+    "org.apache.logging" -> "ERROR",
+    "com.codahale" -> "ERROR")
+  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
+
+  implicit override lazy val app: Application = new GuiceApplicationBuilder()
+    .configure(additionalConfiguration)
+    .bindings(bindModules:_*).in(Mode.Test)
+    .build()
   val nino = RandomNino.generate
 
   val jsonBulkCalculationRequest = Json.parse(
