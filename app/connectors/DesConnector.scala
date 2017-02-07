@@ -54,7 +54,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
   val metrics: Metrics
 
   lazy val serviceURL = baseUrl("nps")
-  lazy val desUrl = baseUrl("des")
+  //lazy val desUrl = baseUrl("des")
 
   val baseURI = "pensions/individuals/gmp"
   val baseSconURI = "pensions/gmp/scon"
@@ -163,7 +163,8 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
       "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
-    val url = s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}"
+    //val url = s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}"
+    val url = s"/citizen-details/$nino/designatory-details"
 
     Logger.debug(s"[DesConnector][getPersonDetails] Contacting DES at $url")
 
