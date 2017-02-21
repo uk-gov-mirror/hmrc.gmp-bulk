@@ -561,9 +561,22 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "show correct reval rate for calctype 1 and member not still in scheme and period closed" in {
       val yesterdaysDate = LocalDate.now.minusDays(1)
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,${date},${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},,No,3.12,1.23,,,07/03/1983,${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},3.12,1.23,,,s148,,,,"
-      val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(yesterdaysDate.toString()), None, Some(0), Some(LocalDate.now().toString()), Some(false))
-      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), yesterdaysDate, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
+      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,03/03/2017,01/01/2017,,No,3.12,1.23,,,07/03/1983,03/03/2017,3.12,1.23,,,,,,,"
+      val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(LocalDate.parse("2017-01-01").toString), None, Some(0), Some(LocalDate.parse("2017-03-03").toString()), Some(false))
+      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.parse("2017-03-03"), "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
+      val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))
+      val bulkRequest = bulkCalculationRequestSingle.copy(calculationRequests = listCalcRequests)
+
+      val result = TestCsvGenerator.generateCsv(bulkRequest, Some(CsvFilter.All))
+      val rows = result.split("\n").tail.tail.mkString("\n")
+
+      rows must be(expectedResult)
+    }
+
+    "not calculate revalution rate where DOL and evalue dates exist in the same tax year" in {
+      val expectedResult = s"Success,S2730000B,BH000002A,HARRY,STYLES,E2E06,GMP specific date,12/10/2016,03/01/2017,,Yes,17.70,9.91,6.93,7.79,07/03/1983,12/10/2016,17.70,9.91,6.93,7.79,,,,,"
+      val validCalcRequest = ValidCalculationRequest("S2730000B", "BH000002A", "STYLES", "HARRY", Some("E2E06"), Some(1), Some(LocalDate.parse("2017-01-03").toString), None, Some(1), Some(LocalDate.parse("2016-10-12").toString), Some(false))
+      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.parse("2016-10-12"), "17.70", "9.91", 1, 0, Some(1), Some("6.93"), Some("7.79"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))
       val bulkRequest = bulkCalculationRequestSingle.copy(calculationRequests = listCalcRequests)
 

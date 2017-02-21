@@ -32,7 +32,6 @@ private object AppDependencies {
   private val microserviceBootstrapVersion = "5.8.0"
   private val playAuthVersion = "4.2.0"
   private val playHealthVersion = "2.0.0"
-  //private val playJsonLoggerVersion = "2.1.1"
   private val logbackJsonLoggerVersion = "3.1.0"
   private val playUrlBindersVersion = "2.0.0"
   private val playConfigVersion = "3.0.0"
@@ -43,10 +42,8 @@ private object AppDependencies {
   private val playSchedulingVersion = "4.0.0"
   private val mongoLockVersion = "4.0.0"
   private val reactiveCircuitBreakerVersion = "2.0.0"
-  private val taxyearVersion = "0.2.0"
-  //private val playMetrics = "2.3.0_0.2.1"
+  private val taxyearVersion = "0.3.0"
   private val playGraphite = "3.1.0"
-  //private val metricsGraphite = "3.0.2"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
@@ -56,7 +53,6 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
-    //"uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
     "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "com.typesafe.akka" %% "akka-contrib" % akkaContribVersion, // Check it
@@ -64,9 +60,7 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
     "uk.gov.hmrc" %% "reactive-circuit-breaker" % reactiveCircuitBreakerVersion,
     "uk.gov.hmrc" %% "tax-year" % taxyearVersion, // Check it
-    //"com.kenshoo" %% "metrics-play" % playMetrics,
     "uk.gov.hmrc" %% "play-graphite" % playGraphite
-    //"com.codahale.metrics" % "metrics-graphite" % metricsGraphite  // Check it
   )
 
   trait TestDependencies {
@@ -89,7 +83,8 @@ private object AppDependencies {
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % reactiveMongoTest % scope,
         "com.typesafe.akka" % "akka-testkit_2.11" % akkaContribVersion % scope, // Check it
-        "org.mockito" % "mockito-core" % mockitoCoreVersion %scope
+        "org.mockito" % "mockito-core" % mockitoCoreVersion % scope,
+        "uk.gov.hmrc" %% "tax-year" % taxyearVersion % scope
       )
     }.test
   }
@@ -103,7 +98,8 @@ private object AppDependencies {
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
         "org.scalatest" %% "scalatest" % scalatestVersion % scope,
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope
+        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+        "uk.gov.hmrc" %% "tax-year" % taxyearVersion % scope
       )
     }.test
   }
