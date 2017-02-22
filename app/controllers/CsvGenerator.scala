@@ -19,11 +19,10 @@ package controllers
 import models._
 import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
+import scala.collection.mutable.ListBuffer
 import play.api.i18n.Messages
 import play.api.Play.current
 import play.api.i18n.Messages.Implicits._
-
-import scala.collection.mutable.ListBuffer
 
 trait CsvGenerator {
 
@@ -290,7 +289,6 @@ trait CsvGenerator {
                   dod => dod.toString(DATE_DEFAULT_FORMAT)
                 }.getOrElse("")
 
-
                 case Some(3) =>
                   calculationRequest.revaluationDate.map {
                     d => LocalDate.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
@@ -311,9 +309,7 @@ trait CsvGenerator {
 
           }.getOrElse("")
       }.getOrElse("")
-
     }
-
   }
 
   class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
@@ -353,7 +349,7 @@ trait CsvGenerator {
           case Some(true) if Set(2, 3, 4) contains request.calctype.get => ""
           case Some(true) if request.calctype.get == 1 && index == 0 => ""
           case Some(false) =>
-            if (request.calctype.get == 1 && index == 0 && !period.endDate.isBefore(LocalDate.now))
+            if (request.calctype.get == 1 && index == 0 && (!period.endDate.isBefore(LocalDate.now) || period.revalued.getOrElse(1) == 1))
               ""
             else
               convertRevalRate(Some(period.revaluationRate))
