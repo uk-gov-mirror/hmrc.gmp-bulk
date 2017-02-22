@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package controllers
 
 import models._
-import org.joda.time.{DateTime, LocalDate}
-import uk.gov.hmrc.time.CurrentTaxYear
+import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
 import scala.collection.mutable.ListBuffer
 import play.api.i18n.Messages
@@ -312,10 +312,7 @@ trait CsvGenerator {
     }
   }
 
-  class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter) extends RowBuilder
-    with CurrentTaxYear {
-
-    override def now: () => DateTime = () => DateTime.now
+  class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
 
     addCell(calculationPeriod.startDate match {
       case Some(date) => date.toString(DATE_DEFAULT_FORMAT)
@@ -352,14 +349,7 @@ trait CsvGenerator {
           case Some(true) if Set(2, 3, 4) contains request.calctype.get => ""
           case Some(true) if request.calctype.get == 1 && index == 0 => ""
           case Some(false) =>
-            val endDateTaxYear = taxYearFor(period.endDate)
-            val revalDateTaxYear = request.revaluationDate match {
-              case Some(d) => taxYearFor(LocalDate.parse(d))
-              case _ => ""
-            }
-            if (request.calctype.get == 1 && index == 0 && !period.endDate.isBefore(LocalDate.now))
-              ""
-            else if (request.calctype.get == 1 && index == 0 && (endDateTaxYear == revalDateTaxYear))
+            if (request.calctype.get == 1 && index == 0 && (!period.endDate.isBefore(LocalDate.now) || period.revalued.getOrElse(1) == 1))
               ""
             else
               convertRevalRate(Some(period.revaluationRate))
