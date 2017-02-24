@@ -46,13 +46,8 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     mongo,
     BulkCalculationRequest.formats) with BulkCalculationRepository {
 
-    // Temporary, to be removed after next deployment
-  // $COVERAGE-OFF$
+    // $COVERAGE-OFF$
     {
-//      val selector = Json.obj("uploadReference" -> Json.obj("$exists" -> true), "isParent" -> Json.obj("$exists" -> false))
-//      val modifier = Json.obj("$set" -> Json.obj("isParent" -> true))
-//      val result = collection.update(selector, modifier, multi = true)
-
       val childrenEnumerator = collection.find(Json.obj("bulkId" -> Json.obj("$exists" -> true), "isChild" -> Json.obj("$exists" -> false))).cursor[BSONDocument]().enumerate()
 
       val processChildren: Iteratee[BSONDocument, Unit] = {
@@ -68,8 +63,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
 
       childrenEnumerator.run(processChildren)
     }
-    // -->
-  // $COVERAGE-ON$
+    // $COVERAGE-ON$
 
   override def indexes: Seq[Index] = Seq(
     Index(Seq("createdAt" -> IndexType.Ascending), Some("bulkCalculationRequestExpiry"), options = BSONDocument("expireAfterSeconds" -> 2592000), sparse = true, background = true),
@@ -176,7 +170,6 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
     }
   }
 
-
   override def findByUserId(userId: String): Future[Option[List[BulkPreviousRequest]]] = {
 
     val startTime = System.currentTimeMillis()
@@ -203,7 +196,6 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
       }
     }
   }
-
 
   override def findRequestsToProcess(): Future[Option[List[ProcessReadyCalculationRequest]]] = {
 

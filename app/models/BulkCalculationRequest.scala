@@ -41,7 +41,6 @@ object ValidCalculationRequest {
 
 }
 
-
 case class CalculationRequest(bulkId: Option[String],
                               lineId: Int,
                               validCalculationRequest: Option[ValidCalculationRequest],
