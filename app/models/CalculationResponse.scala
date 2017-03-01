@@ -36,7 +36,6 @@ object NpsLcntearn{
   implicit val formats = Json.format[NpsLcntearn]
 }
 
-
 case class NpsLgmpcalc(
                         scheme_mem_start_date: Option[String],
                         scheme_end_date: String,
