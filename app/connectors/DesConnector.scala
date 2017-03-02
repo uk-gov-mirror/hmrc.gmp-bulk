@@ -51,6 +51,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
   val serviceKey = getConfString("nps.key", "")
   val serviceEnvironment = getConfString("nps.environment", "")
+  def citizenDetailsUrl: String = baseUrl("citizen-details")
   val http: HttpGet = WSHttp
   val metrics: Metrics
 
@@ -162,7 +163,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
       "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
-    val url = s"/citizen-details/${nino.take(8)}/etag"
+    val url = s"${citizenDetailsUrl}/citizen-details/${nino.take(8)}/etag"
 
     Logger.debug(s"[DesConnector][getPersonDetails] Contacting DES at $url")
 
