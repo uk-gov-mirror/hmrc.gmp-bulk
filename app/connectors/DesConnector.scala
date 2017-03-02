@@ -37,6 +37,7 @@ sealed trait DesPostResponse
 case object DesGetSuccessResponse extends DesGetResponse
 case object DesGetHiddenRecordResponse extends DesGetResponse
 case object DesGetNotFoundResponse extends DesGetResponse
+case object DesGetUnexpectedResponse extends DesGetResponse
 case class DesGetErrorResponse(e: Exception) extends DesGetResponse
 
 trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircuitBreaker {
@@ -54,8 +55,6 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
   val metrics: Metrics
 
   lazy val serviceURL = baseUrl("nps")
-  lazy val desUrl = baseUrl("des")
-
   val baseURI = "pensions/individuals/gmp"
   val baseSconURI = "pensions/gmp/scon"
 
@@ -163,19 +162,21 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
       "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
-    val url = s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}"
+    val url = s"/citizen-details/${nino.take(8)}/etag"
 
     Logger.debug(s"[DesConnector][getPersonDetails] Contacting DES at $url")
 
-    http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc) map { r =>
-
+    http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc) map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
-      (r.json \ "manualCorrespondenceInd").asOpt[Boolean] match {
-          case Some(true) =>
+      response.status match {
+          case LOCKED =>
             metrics.mciLockResult()
             DesGetHiddenRecordResponse
-          case _ => DesGetSuccessResponse
+          case NOT_FOUND => DesGetNotFoundResponse
+          case OK => DesGetSuccessResponse
+          case INTERNAL_SERVER_ERROR => DesGetUnexpectedResponse
+          case _ => DesGetUnexpectedResponse
         }
 
     } recover {
