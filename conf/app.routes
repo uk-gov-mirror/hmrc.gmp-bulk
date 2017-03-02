@@ -2,7 +2,6 @@
 
 POST        /:userId/gmp/bulk-data                                        controllers.BulkController.post(userId:String)
 
-
 GET         /:userId/gmp/retrieve-previous-requests                       controllers.BulkController.getPreviousRequests(userId:String)
 GET         /:userId/gmp/get-results-summary/:uploadReference             controllers.BulkController.getResultsSummary(userId: String, uploadReference: String)
 GET         /:userId/gmp/get-results-as-csv/:uploadReference/:filter      controllers.BulkController.getCalculationsAsCsv(userId: String, uploadReference: String, filter: models.CsvFilter)
