@@ -25,21 +25,27 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrapVersion = "5.13.0"
+  private val microserviceBootstrapVersion = "5.14.0"
   private val playAuthVersion = "4.3.0"
   private val playHealthVersion = "2.1.0"
   private val logbackJsonLoggerVersion = "3.1.0"
   private val playUrlBindersVersion = "2.1.0"
   private val playConfigVersion = "4.3.0"
   private val domainVersion = "4.1.0"
-  private val hmrcTestVersion = "2.2.0"
   private val playReactivemongoVersion = "5.2.0"
   private val akkaContribVersion = "2.3.4"
   private val playSchedulingVersion = "4.0.0"
   private val mongoLockVersion = "4.1.0"
   private val reactiveCircuitBreakerVersion = "2.0.0"
   private val taxyearVersion = "0.3.0"
-  private val playGraphite = "3.1.0"
+  private val playGraphite = "3.2.0"
+
+  private val scalatestVersion = "2.2.6"
+  private val scalatestPlusPlayVersion = "1.5.1"
+  private val pegdownVersion = "1.6.0"
+  private val reactiveMongoTest = "1.6.0"
+  private val mockitoCoreVersion = "1.9.5"
+  private val hmrcTestVersion = "2.3.0"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
@@ -63,12 +69,6 @@ private object AppDependencies {
     lazy val scope: String = "test"
     lazy val test : Seq[ModuleID] = Seq.empty
   }
-
-  private val scalatestVersion = "2.2.6"
-  private val scalatestPlusPlayVersion = "1.5.1"
-  private val pegdownVersion = "1.6.0"
-  private val reactiveMongoTest = "1.6.0"
-  private val mockitoCoreVersion = "1.9.5"
 
   object Test {
     def apply() = new TestDependencies {
