@@ -58,7 +58,7 @@ trait EmailConnector extends ServicesConfig {
 
   private def sendEmail(request: SendTemplatedEmailRequest)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
-    val url = s"${baseUrl("email")}/send-templated-email"
+    val url = s"${baseUrl("email")}/hmrc/email"
 
     Logger.debug(s"[EmailConnector] Sending email to ${request.to.mkString(", ")}")
 
