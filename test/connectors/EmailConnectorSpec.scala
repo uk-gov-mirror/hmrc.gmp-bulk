@@ -21,11 +21,12 @@ import org.scalatest.{BeforeAndAfter, _}
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import org.joda.time.LocalDate
+
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import org.mockito.Mockito._
 import org.mockito.Matchers._
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpPost, HttpResponse }
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse}
 
 class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
 
@@ -49,7 +50,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
         val template = ReceivedUploadTemplate("joe@bloggs.com", "upload-ref")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(202)))
         val result = Await.result(new TestEmailConnector().sendReceivedTemplatedEmail(template), 5 seconds)
         result must be(true)
@@ -59,7 +60,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
         val template = ReceivedUploadTemplate("joe@bloggs.com", "upload-ref")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(202)))
         val result = Await.result(new TestEmailConnector().sendReceivedTemplatedEmail(template), 5 seconds)
         result must be(true)
@@ -70,7 +71,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
         val template = ReceivedUploadTemplate("joe@bloggs.com", "upload-ref")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(202)))
         val result = Await.result(new TestEmailConnector().sendReceivedTemplatedEmail(template), 5 seconds)
         result must be(true)
@@ -81,7 +82,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
         val template = ReceivedUploadTemplate("joe@bloggs.com", "upload-ref")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(202)))
         val result = Await.result(new TestEmailConnector().sendReceivedTemplatedEmail(template), 5 seconds)
         result must be(true)
@@ -95,7 +96,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
           val template = ReceivedUploadTemplate("joe@bloggs.com", "upload-ref")
           val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-          when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, any[SendTemplatedEmailRequest], any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+          when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, any[SendTemplatedEmailRequest], any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
             .thenReturn(Future.successful(HttpResponse(400)))
 
           val result = Await.result(new TestEmailConnector().sendReceivedTemplatedEmail(template), 5 seconds)
@@ -113,7 +114,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
         val template = ProcessedUploadTemplate("joe@bloggs.com", "upload-ref", date ,"a1234567")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(202)))
 
         val result = Await.result(new TestEmailConnector().sendProcessedTemplatedEmail(template), 5 seconds)
@@ -125,7 +126,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
         val template = ProcessedUploadTemplate("joe@bloggs.com", "upload-ref", date ,"a1234567")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(202)))
 
         val result = Await.result(new TestEmailConnector().sendProcessedTemplatedEmail(template), 5 seconds)
@@ -137,7 +138,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
         val template = ProcessedUploadTemplate("joe@bloggs.com", "upload-ref", date ,"a1234567")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(202)))
 
         val result = Await.result(new TestEmailConnector().sendProcessedTemplatedEmail(template), 5 seconds)
@@ -149,7 +150,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
         val template = ProcessedUploadTemplate("joe@bloggs.com", "upload-ref", date ,"a1234567")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(202)))
 
         val result = Await.result(new TestEmailConnector().sendProcessedTemplatedEmail(template), 5 seconds)
@@ -161,7 +162,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
         val template = ProcessedUploadTemplate("joe@bloggs.com", "upload-ref", date ,"a1234567")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, requestCaptor.capture(), any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(202)))
 
         val result = Await.result(new TestEmailConnector().sendProcessedTemplatedEmail(template), 5 seconds)
@@ -176,7 +177,7 @@ class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
       "must return a false result" in {
         val template = ProcessedUploadTemplate("joe@bloggs.com", "upload-ref", date ,"a1234567")
 
-        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, any[SendTemplatedEmailRequest], any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier]))
+        when(mockHttp.POST[SendTemplatedEmailRequest, HttpResponse](anyString, any[SendTemplatedEmailRequest], any[Seq[(String, String)]])(any(), any(), any[HeaderCarrier], any[ExecutionContext]))
           .thenReturn(Future.successful(HttpResponse(400)))
 
         val result = Await.result(new TestEmailConnector().sendProcessedTemplatedEmail(template), 5 seconds)
