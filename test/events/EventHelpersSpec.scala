@@ -17,7 +17,7 @@
 package events
 
 import org.scalatestplus.play.PlaySpec
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 class EventHelpersSpec extends PlaySpec {
 

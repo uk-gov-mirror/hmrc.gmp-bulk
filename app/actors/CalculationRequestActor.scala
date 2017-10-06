@@ -29,6 +29,7 @@ import play.api.http.Status
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
+import uk.gov.hmrc.http.{ HeaderCarrier, Upstream4xxResponse }
 
 trait CalculationRequestActorComponent {
   val desConnector: DesConnector

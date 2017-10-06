@@ -20,12 +20,12 @@ import org.mockito.ArgumentCaptor
 import org.scalatest.{BeforeAndAfter, _}
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost, HttpResponse}
 import org.joda.time.LocalDate
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import org.mockito.Mockito._
 import org.mockito.Matchers._
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpPost, HttpResponse }
 
 class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
 

@@ -30,6 +30,7 @@ import uk.gov.hmrc.play.http._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ BadGatewayException, HeaderCarrier, HttpGet, HttpReads, HttpResponse, NotFoundException, Upstream4xxResponse, Upstream5xxResponse }
 
 sealed trait DesGetResponse
 sealed trait DesPostResponse
