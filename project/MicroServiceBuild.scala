@@ -29,7 +29,7 @@ private object AppDependencies {
   private val domainVersion                 = "4.1.0"
   private val playReactivemongoVersion      = "5.2.0"
   private val akkaContribVersion            = "2.3.4"
-  private val playSchedulingVersion         = "4.0.0"
+  private val playSchedulingVersion         = "4.1.0"
   private val mongoLockVersion              = "4.1.0"
   private val reactiveCircuitBreakerVersion = "2.1.0"
   private val taxyearVersion                = "0.3.0"
