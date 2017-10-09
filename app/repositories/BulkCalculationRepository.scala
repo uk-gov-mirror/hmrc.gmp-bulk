@@ -34,11 +34,11 @@ import reactivemongo.api.{DefaultDB, ReadPreference}
 import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import uk.gov.hmrc.http.HeaderCarrier
 
 class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
   extends ReactiveRepository[BulkCalculationRequest, BSONObjectID](

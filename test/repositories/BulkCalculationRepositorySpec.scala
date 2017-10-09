@@ -38,7 +38,6 @@ import reactivemongo.json._
 import reactivemongo.json.collection.{JSONQueryBuilder, JSONCollection}
 import uk.gov.hmrc.mongo.{Awaiting, MongoSpecSupport}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.http.HeaderCarrier
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import scala.collection.generic.CanBuildFrom
@@ -46,6 +45,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import play.api.i18n.Messages.Implicits._
 import play.api.{Application, Mode}
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import uk.gov.hmrc.http.HeaderCarrier
 
 class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with MongoSpecSupport with Awaiting with MockitoSugar with BeforeAndAfterEach {
 

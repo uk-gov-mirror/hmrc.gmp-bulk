@@ -24,17 +24,15 @@ import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.{Application, Configuration, Play}
 import services.BulkCompletionService
-import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
-import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, RunningOfScheduledJobs, ScheduledJob}
-import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.play.microservice.filters.{ AuditFilter, LoggingFilter, MicroserviceFilterSupport }
 
 
 object ControllerConfiguration extends ControllerConfig {

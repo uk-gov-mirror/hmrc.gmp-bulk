@@ -21,10 +21,10 @@ import org.joda.time.LocalDate
 import play.api.Logger
 import play.api.libs.json.Json
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpPost }
 
 case class ReceivedUploadTemplate(email: String, uploadReference: String)
 

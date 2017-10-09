@@ -16,7 +16,7 @@
 
 package events
 
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 class BulkEvent(userId: String,
                 successfulCount: Int,

@@ -28,11 +28,11 @@ import org.mockito.internal.verification.Times
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.mock.MockitoSugar
 import repositories.BulkCalculationRepository
-import uk.gov.hmrc.play.http.{HeaderCarrier, Upstream4xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import uk.gov.hmrc.http.{ HeaderCarrier, Upstream4xxResponse }
 
 class CalculationRequestActorMock(val desConnector: DesConnector, val repository: BulkCalculationRepository,val metrics: Metrics) extends CalculationRequestActor
   with CalculationRequestActorComponent

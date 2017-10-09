@@ -29,7 +29,8 @@ import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier, HttpGet, HttpReads, HttpResponse, NotFoundException, Upstream4xxResponse, Upstream5xxResponse}
 
 sealed trait DesGetResponse
 sealed trait DesPostResponse
@@ -92,7 +93,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
     val startTime = System.currentTimeMillis()
 
-    val result = withCircuitBreaker(http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads).map { response =>
+    val result = withCircuitBreaker(http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.registerStatusCode(response.status.toString)
       metrics.desConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -167,7 +168,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
 
     Logger.debug(s"[DesConnector][getPersonDetails] Contacting DES at $url")
 
-    http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc) map { response =>
+    http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc, ec = ExecutionContext.global) map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {
