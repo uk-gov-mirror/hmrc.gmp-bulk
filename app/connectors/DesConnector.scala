@@ -104,7 +104,7 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
           response.json.as[CalculationResponse]
 
         case errorStatus: Int => {
-          Logger.error(s"[DesConnector][calculate] DES returned code $errorStatus and response body: ${response.body}")
+          Logger.error(s"[DesConnector][calculate] DES URI $uri returned code $errorStatus and response body: ${response.body}")
           metrics.registerFailedRequest()
 
           errorStatus match {
