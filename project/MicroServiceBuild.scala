@@ -25,24 +25,26 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrapVersion  = "6.18.0"
-  private val domainVersion                 = "4.1.0"
-  private val playReactivemongoVersion      = "5.2.0"
+  private val microserviceBootstrapVersion  = "8.3.0"
+  private val domainVersion                 = "5.2.0"
+  private val playReactivemongoVersion      = "6.2.0"
   private val akkaContribVersion            = "2.3.4"
   private val playSchedulingVersion         = "4.1.0"
-  private val mongoLockVersion              = "4.1.0"
-  private val reactiveCircuitBreakerVersion = "2.1.0"
-  private val taxyearVersion                = "0.3.0"
-  private val scalatestVersion              = "2.2.6"
-  private val scalatestPlusPlayVersion      = "1.5.1"
+  private val mongoLockVersion              = "6.0.0-play-25"
+  private val reactiveCircuitBreakerVersion = "3.2.0"
+  private val taxyearVersion                = "0.4.0"
+  private val scalatestVersion              = "3.0.1"
+  private val scalatestPlusPlayVersion      = "2.0.0"
   private val pegdownVersion                = "1.6.0"
-  private val reactiveMongoTest             = "2.0.0"
+  private val reactiveMongoTest             = "4.1.0-play-25"
   private val mockitoCoreVersion            = "1.9.5"
-  private val hmrcTestVersion               = "2.3.0"
-
+  private val hmrcTestVersion               = "3.1.0"
+  private val reactiveMongoVer = "0.16.0"
+  
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     ws,
+    "org.reactivemongo" %% "reactivemongo-iteratees" % reactiveMongoVer,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "com.typesafe.akka" %% "akka-contrib" % akkaContribVersion,
@@ -62,9 +64,11 @@ private object AppDependencies {
       override lazy val test = Seq(
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
         "org.scalatest" %% "scalatest" % scalatestVersion % scope,
+        "org.scalamock" %% "scalamock" % "3.6.0" % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % reactiveMongoTest % scope,
+        "org.reactivemongo" %% "reactivemongo-iteratees" % reactiveMongoVer,
         "com.typesafe.akka" % "akka-testkit_2.11" % akkaContribVersion % scope, // Check it
         "org.mockito" % "mockito-core" % mockitoCoreVersion % scope,
         "uk.gov.hmrc" %% "tax-year" % taxyearVersion % scope
