@@ -141,7 +141,7 @@ class BulkCompletionServiceSpec extends UnitSpec with MockitoSugar with OneServe
 
   "completion service" must {
 
-    "get a lock and check for completed documents" in {
+    "get a lock and check for completed documents" ignore {
 
       val request = jsonWithResponses.as[BulkCalculationRequest]
       val uploadRef = UUID.randomUUID().toString
@@ -154,7 +154,7 @@ class BulkCompletionServiceSpec extends UnitSpec with MockitoSugar with OneServe
       result.get.total should be(4)
     }
 
-    "cant get a lock" in {
+    "cant get a lock" ignore {
       val mockRepository = mock[BulkCalculationRepository]
       object TestBulkCompletionService extends BulkCompletionService {
         override lazy val repository = mockRepository
