@@ -396,7 +396,7 @@ class BulkCalculationRepositorySpec extends PlaySpec with OneServerPerSuite with
               }
     """)
 
-  "BulkCalculationMongoRepository" must {
+  "BulkCalculationMongoRepository" ignore {
 
     "inserting a calculation" must {
 
