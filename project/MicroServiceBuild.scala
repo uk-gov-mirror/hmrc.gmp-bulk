@@ -25,21 +25,21 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrapVersion  = "8.3.0"
-  private val domainVersion                 = "5.2.0"
+  private val microserviceBootstrapVersion  = "10.2.0"
+  private val domainVersion                 = "5.3.0"
   private val playReactivemongoVersion      = "6.2.0"
-  private val akkaContribVersion            = "2.3.4"
-  private val playSchedulingVersion         = "4.1.0"
+  private val akkaContribVersion            = "2.4.10"
+  private val playSchedulingVersion         = "5.4.0"
   private val mongoLockVersion              = "6.0.0-play-25"
-  private val reactiveCircuitBreakerVersion = "3.2.0"
+  private val reactiveCircuitBreakerVersion = "3.3.0"
   private val taxyearVersion                = "0.4.0"
-  private val scalatestVersion              = "3.0.1"
-  private val scalatestPlusPlayVersion      = "2.0.0"
+  private val scalatestVersion              = "3.0.2"
+  private val scalatestPlusPlayVersion      = "2.0.1"
   private val pegdownVersion                = "1.6.0"
   private val reactiveMongoTest             = "4.1.0-play-25"
   private val mockitoCoreVersion            = "1.9.5"
-  private val hmrcTestVersion               = "3.1.0"
-  private val reactiveMongoVer = "0.16.0"
+  private val hmrcTestVersion               = "3.4.0-play-25"
+  private val reactiveMongoVer              = "0.16.0"
   
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,

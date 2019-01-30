@@ -22,7 +22,8 @@ import java.util.concurrent.TimeUnit
 import config.{ApplicationConfig, WSHttp}
 import metrics.Metrics
 import models.{CalculationResponse, ValidCalculationRequest}
-import play.api.Logger
+import play.api.Mode.Mode
+import play.api.{Configuration, Logger, Play}
 import play.api.http.Status._
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -49,6 +50,9 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
   private val NumberEnd = 8
   private val SuffixStart = 8
   private val SuffixEnd = 9
+
+  override protected def mode: Mode = Play.current.mode
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 
   val serviceKey = getConfString("nps.key", "")
   val serviceEnvironment = getConfString("nps.environment", "")

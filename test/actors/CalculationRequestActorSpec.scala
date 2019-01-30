@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.mockito.internal.verification.Times
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import repositories.BulkCalculationRepository
 import uk.gov.hmrc.play.test.UnitSpec
 

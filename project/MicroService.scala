@@ -84,7 +84,8 @@ trait MicroService {
     .settings(
       resolvers += Resolver.bintrayRepo("hmrc", "releases"),
       resolvers += Resolver.typesafeRepo("releases"),
-      resolvers += Resolver.jcenterRepo)
+      resolvers += Resolver.jcenterRepo,
+      resolvers += "hmrc-releases" at "https://artefacts.tax.service.gov.uk/artifactory/hmrc-releases/")
 }
 
 private object TestPhases {

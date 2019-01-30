@@ -20,6 +20,7 @@ import actors.{ActorUtils, ProcessingSupervisor}
 import akka.actor.Props
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
+import play.api.Mode.Mode
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.{Application, Configuration, Play}
@@ -32,7 +33,7 @@ import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, RunningOfScheduledJob
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.play.microservice.filters.{ AuditFilter, LoggingFilter, MicroserviceFilterSupport }
+import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 
 
 object ControllerConfiguration extends ControllerConfig {
@@ -46,6 +47,8 @@ object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
 object MicroserviceAuditFilter extends AuditFilter with AppName  with MicroserviceFilterSupport {
   override val auditConnector = MicroserviceAuditConnector
   override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
+
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
 }
 
 object MicroserviceLoggingFilter extends LoggingFilter  with MicroserviceFilterSupport {
@@ -106,4 +109,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
           override def initialDelay: FiniteDuration = 0 seconds
         })
   }
+
+  override protected def mode: Mode = Play.current.mode
+
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import helpers.RandomNino
 import models.{ValidCalculationRequest, ProcessReadyCalculationRequest}
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll}
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
 import reactivemongo.api.DefaultDB
 import reactivemongo.play.json.collection.JSONCollection
