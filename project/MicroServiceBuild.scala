@@ -39,7 +39,7 @@ private object AppDependencies {
   private val reactiveMongoTest             = "4.1.0-play-25"
   private val mockitoCoreVersion            = "1.9.5"
   private val hmrcTestVersion               = "3.4.0-play-25"
-  private val reactiveMongoVer              = "0.16.0"
+  private val reactiveMongoVer              = "0.16.1"
   
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
