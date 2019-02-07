@@ -44,7 +44,7 @@ object MicroserviceAuditConnector extends AuditConnector with RunMode {
 }
 
 trait WSHttp extends HttpGet with WSGet with HttpPut with WSPut with HttpPost with WSPost with HttpDelete with WSDelete with Hooks with AppName{
-  override protected def actorSystem: ActorSystem = akka.actor.ActorSystem()
+  override protected def actorSystem: ActorSystem = Play.current.actorSystem
   override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
   override protected def appNameConfiguration: Configuration = Play.current.configuration
 }
