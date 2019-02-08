@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,14 @@ package connectors
 
 import config.WSHttp
 import org.joda.time.LocalDate
-import play.api.Logger
+import play.api.Mode.Mode
+import play.api.{Configuration, Logger, Play}
 import play.api.libs.json.Json
 import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpPost }
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 
 case class ReceivedUploadTemplate(email: String, uploadReference: String)
 
@@ -39,6 +40,9 @@ object SendTemplatedEmailRequest {
 trait EmailConnector extends ServicesConfig {
 
   val http: HttpPost = WSHttp
+
+  override protected def mode: Mode = Play.current.mode
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 
   def sendReceivedTemplatedEmail(template: ReceivedUploadTemplate)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
