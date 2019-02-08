@@ -30,7 +30,7 @@ private object AppDependencies {
   private val playReactivemongoVersion      = "6.2.0"
   private val akkaContribVersion            = "2.4.10"
   private val playSchedulingVersion         = "5.4.0"
-  private val mongoLockVersion              = "6.6.0-play-25"
+  private val mongoLockVersion              = "6.8.0-play-25"
   private val reactiveCircuitBreakerVersion = "3.3.0"
   private val taxyearVersion                = "0.5.0"
   private val scalatestVersion              = "3.0.2"
