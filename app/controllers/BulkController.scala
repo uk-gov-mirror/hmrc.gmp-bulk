@@ -16,6 +16,7 @@
 
 package controllers
 
+import com.google.inject.Inject
 import connectors.{EmailConnector, ReceivedUploadTemplate}
 import models._
 import play.api.libs.json.Json
@@ -25,11 +26,9 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait BulkController extends BaseController {
+class BulkController @Inject()(emailConnector: EmailConnector, csvGenerator: CsvGenerator) extends BaseController {
 
-  val repository: BulkCalculationRepository
-  val emailConnector: EmailConnector
-  val csvGenerator: CsvGenerator = CsvGenerator
+  val repository: BulkCalculationRepository = BulkCalculationRepository()
 
   def post(userId: String) = Action.async(parse.json(maxLength = 1024 * 10000)) {
     implicit request =>
@@ -92,12 +91,4 @@ trait BulkController extends BaseController {
         case _ => NotFound
       }
   }
-
-}
-
-object BulkController extends BulkController {
-  // $COVERAGE-OFF$
-  override val repository = BulkCalculationRepository()
-  override val emailConnector = EmailConnector
-  // $COVERAGE-ON$
 }

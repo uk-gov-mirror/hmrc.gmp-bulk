@@ -20,15 +20,14 @@ import play.api.Logger
 //import play.modules.reactivemongo.ReactiveMongoPlugin
 import play.modules.reactivemongo.MongoDbConnection
 import repositories.BulkCalculationRepository
-import uk.gov.hmrc.lock.{LockRepository, LockKeeper, LockMongoRepository}
-import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-trait BulkCompletionService extends MongoDbConnection{
+class BulkCompletionService extends MongoDbConnection{
 
   val connection = {
-    import play.api.Play.current
     //ReactiveMongoPlugin.mongoConnector.db
     db
   }
@@ -89,5 +88,3 @@ trait BulkCompletionService extends MongoDbConnection{
     }
   }
 }
-
-object BulkCompletionService extends BulkCompletionService

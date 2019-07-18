@@ -19,19 +19,19 @@ package connectors
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-import config.{ApplicationConfig, WSHttp}
-import metrics.Metrics
+import com.google.inject.Inject
+import config.ApplicationConfig
+import metrics.ApplicationMetrics
 import models.{CalculationResponse, ValidCalculationRequest}
 import play.api.Mode.Mode
-import play.api.{Configuration, Logger, Play}
 import play.api.http.Status._
+import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier, HttpGet, HttpReads, HttpResponse, NotFoundException, Upstream4xxResponse, Upstream5xxResponse}
 
 sealed trait DesGetResponse
 sealed trait DesPostResponse
@@ -42,7 +42,10 @@ case object DesGetNotFoundResponse extends DesGetResponse
 case object DesGetUnexpectedResponse extends DesGetResponse
 case class DesGetErrorResponse(e: Exception) extends DesGetResponse
 
-trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircuitBreaker {
+class DesConnector @Inject()(environment: Environment,
+                             val runModeConfiguration: Configuration,
+                             http: HttpGet,
+                             val metrics: ApplicationMetrics) extends ServicesConfig with UsingCircuitBreaker {
 
   private val PrefixStart = 0
   private val PrefixEnd = 1
@@ -51,14 +54,15 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
   private val SuffixStart = 8
   private val SuffixEnd = 9
 
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
+  implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
+    override def read(method: String, url: String, response: HttpResponse) = response
+  }
+
+  override protected def mode: Mode = environment.mode
 
   val serviceKey = getConfString("nps.key", "")
   val serviceEnvironment = getConfString("nps.environment", "")
   def citizenDetailsUrl: String = baseUrl("citizen-details")
-  val http: HttpGet = WSHttp
-  val metrics: Metrics
 
   lazy val serviceURL = baseUrl("nps")
   val baseURI = "pensions/individuals/gmp"
@@ -193,10 +197,4 @@ trait DesConnector extends ServicesConfig with RawResponseReads with UsingCircui
         DesGetErrorResponse(e)
     }
   }
-}
-
-object DesConnector extends DesConnector {
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val metrics = Metrics
-  // $COVERAGE-ON$
 }

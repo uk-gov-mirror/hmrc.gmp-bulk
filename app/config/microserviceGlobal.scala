@@ -29,11 +29,11 @@ import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
+import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, RunningOfScheduledJobs, ScheduledJob}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 
 
 object ControllerConfiguration extends ControllerConfig {
@@ -95,7 +95,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
           override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
             if(env != "Test") {
-              BulkCompletionService.checkForComplete()
+              val bulkCompletionService = Play.current.injector.instanceOf[BulkCompletionService]
+              bulkCompletionService.checkForComplete()
               Future.successful(Result("started"))
             }else {
               Future.successful(Result("not running scheduled jobs"))

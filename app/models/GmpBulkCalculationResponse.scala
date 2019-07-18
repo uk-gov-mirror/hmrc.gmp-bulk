@@ -17,11 +17,10 @@
 package models
 
 import org.joda.time.LocalDate
-import play.api.i18n.Messages
-import play.api.libs.json.Json
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import play.api.Play.current
+import play.api.i18n.Messages
 import play.api.i18n.Messages.Implicits._
+import play.api.libs.json.Json
 
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 

@@ -16,13 +16,13 @@
 
 package controllers
 
-import connectors.{ReceivedUploadTemplate, EmailConnector}
+import connectors.{EmailConnector, ReceivedUploadTemplate}
 import helpers.RandomNino
 import models._
-import org.joda.time.{LocalDateTime, LocalDate}
-import org.mockito.{ArgumentCaptor, Matchers}
+import org.joda.time.{LocalDate, LocalDateTime}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.mockito.{ArgumentCaptor, Matchers}
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.i18n.Messages
 import play.api.libs.json.{JsString, Json}
@@ -31,6 +31,7 @@ import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.BulkCalculationRepository
 import uk.gov.hmrc.mongo.Awaiting
+
 import scala.concurrent.Future
 //import play.api.Play.current
 import play.api.i18n.Messages.Implicits._
@@ -40,10 +41,11 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
   val mockRepo = mock[BulkCalculationRepository]
   val mockEmailConnector = mock[EmailConnector]
   val createdAt = Some(LocalDateTime.now)
+  val csvGenerator = app.injector.instanceOf[CsvGenerator]
 
-  object TestBulkController extends BulkController {
-    override val repository: BulkCalculationRepository = mockRepo
-    override val emailConnector = mockEmailConnector
+  object TestBulkController extends BulkController(mockEmailConnector, csvGenerator) {
+    override val repository = mockRepo
+
   }
 
   val nino = RandomNino.generate

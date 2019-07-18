@@ -16,16 +16,16 @@
 
 package connectors
 
-import config.WSHttp
+import com.google.inject.Inject
 import org.joda.time.LocalDate
 import play.api.Mode.Mode
-import play.api.{Configuration, Logger, Play}
 import play.api.libs.json.Json
+import play.api.{Configuration, Environment, Logger}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 
 case class ReceivedUploadTemplate(email: String, uploadReference: String)
 
@@ -37,12 +37,11 @@ object SendTemplatedEmailRequest {
   implicit val format = Json.format[SendTemplatedEmailRequest]
 }
 
-trait EmailConnector extends ServicesConfig {
+class EmailConnector @Inject()(http: HttpPost,
+                               environment: Environment,
+                               val runModeConfiguration: Configuration) extends ServicesConfig {
 
-  val http: HttpPost = WSHttp
-
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
+  override protected def mode: Mode = environment.mode
 
   def sendReceivedTemplatedEmail(template: ReceivedUploadTemplate)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
@@ -74,5 +73,3 @@ trait EmailConnector extends ServicesConfig {
     }
   }
 }
-
-object EmailConnector extends EmailConnector

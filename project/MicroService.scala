@@ -24,6 +24,7 @@ import play.sbt.PlayImport.PlayKeys._
 import uk.gov.hmrc.versioning.SbtGitVersioning
 import play.sbt.routes.RoutesKeys._
 import play.routes.compiler.StaticRoutesGenerator
+import play.sbt.PlayImport.PlayKeys
 
 trait MicroService {
 
@@ -68,8 +69,9 @@ trait MicroService {
       parallelExecution in Test := false,
       fork in Test := false,
       retrieveManaged := true,
+      PlayKeys.playDefaultPort := 9955,
       routesImport += "extensions.Binders._",
-      routesGenerator := StaticRoutesGenerator
+      routesGenerator := InjectedRoutesGenerator
     )
     .settings(Repositories.playPublishingSettings : _*)
     .configs(IntegrationTest)

@@ -18,10 +18,10 @@ package config
 
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import play.api.{Configuration, Play}
 import play.api.Mode.Mode
-import uk.gov.hmrc.http.{HttpDelete, HttpGet, HttpPost, HttpPut}
+import play.api.{Configuration, Play}
 import uk.gov.hmrc.http.hooks.HttpHooks
+import uk.gov.hmrc.http.{HttpDelete, HttpGet, HttpPost, HttpPut}
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.auth.microservice.connectors.AuthConnector

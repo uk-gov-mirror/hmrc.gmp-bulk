@@ -19,12 +19,13 @@ package controllers
 import models._
 import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
-import scala.collection.mutable.ListBuffer
-import play.api.i18n.Messages
 import play.api.Play.current
+import play.api.i18n.Messages
 import play.api.i18n.Messages.Implicits._
 
-trait CsvGenerator {
+import scala.collection.mutable.ListBuffer
+
+class CsvGenerator {
 
   val DATE_DEFAULT_FORMAT = "dd/MM/yyyy"
 
@@ -532,5 +533,3 @@ trait CsvGenerator {
   }
 
 }
-
-object CsvGenerator extends CsvGenerator

@@ -17,36 +17,36 @@
 package connectors
 
 import java.util.UUID
+
 import config.ApplicationConfig
 import helpers.RandomNino
-import metrics.Metrics
+import metrics.ApplicationMetrics
 import models.ValidCalculationRequest
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play._
-import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
+import play.api.Environment
+import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException}
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.http._
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpGet, HttpResponse, NotFoundException, Upstream4xxResponse, Upstream5xxResponse }
-import uk.gov.hmrc.http.logging.SessionId
 
 class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
 
   val mockHttp = mock[HttpGet]
+  val metrics = mock[ApplicationMetrics]
+  val environment = app.injector.instanceOf[Environment]
 
-  object TestDesConnector extends DesConnector {
-    override val http: HttpGet = mockHttp
-    override val metrics = mock[Metrics]
-  }
+  object TestDesConnector extends DesConnector(environment, app.configuration, mockHttp, metrics)
 
   val nino = RandomNino.generate
 
@@ -132,10 +132,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
 
       "return an unhealthy service exception when 503 returned more than {numberOfCallsToTriggerStateChange} times" in {
 
-        object Test503DesConnector extends DesConnector {
-          override val http: HttpGet = mockHttp
-          override val metrics = mock[Metrics]
-
+        object Test503DesConnector extends DesConnector(environment, app.configuration, mockHttp, metrics) {
           override def circuitBreakerConfig = {
             CircuitBreakerConfig("DesConnector", 5, 300, 300)
           }
@@ -297,11 +294,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
       "catch calculate audit failure and continue" in {
         val mockAuditConnector = mock[AuditConnector]
 
-        object TestNpsConnector extends DesConnector {
-
-          override val http: HttpGet = mockHttp
-          override val metrics = mock[Metrics]
-        }
+        object TestNpsConnector extends DesConnector(environment, app.configuration, mockHttp, metrics)
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](Matchers.any())
