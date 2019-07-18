@@ -20,7 +20,7 @@ import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
 import org.joda.time.LocalDate
 import org.scalatest.{BeforeAndAfter, MustMatchers}
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.{Application, Mode}
 import play.api.i18n.Messages

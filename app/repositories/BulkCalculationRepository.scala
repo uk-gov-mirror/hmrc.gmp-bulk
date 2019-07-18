@@ -24,12 +24,12 @@ import events.BulkEvent
 import metrics.Metrics
 import models._
 import org.joda.time.{DateTime, LocalDateTime}
-import play.api.Logger
 import play.api.libs.iteratee.{Iteratee, _}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
+import play.api.{Logger, Play}
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.collections.GenericCollection
-import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
+import reactivemongo.api.commands.MultiBulkWriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, DefaultDB, ReadPreference}
 import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONObjectID}
@@ -44,8 +44,6 @@ import scala.collection.immutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
-
-
 
 class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
   extends ReactiveRepository[BulkCalculationRequest, BSONObjectID](
@@ -514,7 +512,7 @@ trait BulkCalculationRepository extends ReactiveRepository[BulkCalculationReques
 
   def metrics: Metrics = Metrics
 
-  val emailConnector: EmailConnector = EmailConnector
+  val emailConnector: EmailConnector = Play.current.injector.instanceOf[EmailConnector]
   val auditConnector: AuditConnector = MicroserviceGlobal.auditConnector
 
   def insertResponseByReference(reference: String, lineId: Int, calculationResponse: GmpBulkCalculationResponse): Future[Boolean]

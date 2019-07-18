@@ -22,7 +22,7 @@ import helpers.RandomNino
 import models.BulkCalculationRequest
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
 import play.api.libs.json.Json
 import reactivemongo.play.json._

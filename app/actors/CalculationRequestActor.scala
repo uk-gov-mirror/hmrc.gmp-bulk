@@ -19,17 +19,16 @@ package actors
 import java.util.concurrent.TimeUnit
 
 import akka.actor._
-import connectors.{DesGetHiddenRecordResponse, DesConnector}
+import connectors.{DesConnector, DesGetHiddenRecordResponse}
 import metrics.Metrics
-import models.{ProcessReadyCalculationRequest, CalculationResponse, GmpBulkCalculationResponse, ValidCalculationRequest}
-import play.api.Logger
-import repositories.BulkCalculationRepository
-import uk.gov.hmrc.play.http._
+import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
 import play.api.http.Status
+import play.api.{Logger, Play}
+import repositories.BulkCalculationRepository
+import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
-import uk.gov.hmrc.http.{ HeaderCarrier, Upstream4xxResponse }
 
 trait CalculationRequestActorComponent {
   val desConnector: DesConnector
@@ -148,7 +147,7 @@ class DefaultCalculationRequestActor extends CalculationRequestActor with Defaul
 
 trait DefaultCalculationRequestComponent extends CalculationRequestActorComponent {
   // $COVERAGE-OFF$
-  override val desConnector = DesConnector
+  override val desConnector = Play.current.injector.instanceOf[DesConnector]
   override val repository = BulkCalculationRepository()
   override val metrics = Metrics
   // $COVERAGE-ON$

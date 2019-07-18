@@ -16,25 +16,25 @@
 
 package connectors
 
-import org.mockito.ArgumentCaptor
-import org.scalatest.{BeforeAndAfter, _}
-import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import org.joda.time.LocalDate
+import org.mockito.ArgumentCaptor
+import org.mockito.Matchers._
+import org.mockito.Mockito._
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfter, _}
+import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import play.api.Environment
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
-import org.mockito.Mockito._
-import org.mockito.Matchers._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse}
 
 class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
 
   lazy val mockHttp = mock[HttpPost]
+  val environment = app.injector.instanceOf[Environment]
 
-  class TestEmailConnector extends EmailConnector {
-    override val http: HttpPost = mockHttp
-  }
+  class TestEmailConnector extends EmailConnector(mockHttp, environment, app.configuration)
 
   implicit lazy val hc = HeaderCarrier()
 
