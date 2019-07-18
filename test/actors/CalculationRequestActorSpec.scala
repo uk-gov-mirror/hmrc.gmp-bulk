@@ -18,37 +18,35 @@ package actors
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
-import connectors.{DesGetSuccessResponse, DesGetHiddenRecordResponse, DesConnector}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse}
 import helpers.RandomNino
-import metrics.Metrics
+import metrics.ApplicationMetrics
 import models._
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import org.mockito.internal.verification.Times
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import repositories.BulkCalculationRepository
+import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import uk.gov.hmrc.http.{ HeaderCarrier, Upstream4xxResponse }
 
-class CalculationRequestActorMock(val desConnector: DesConnector, val repository: BulkCalculationRepository,val metrics: Metrics) extends CalculationRequestActor
-  with CalculationRequestActorComponent
-
+class CalculationRequestActorMock(val desConnector: DesConnector, val repository: BulkCalculationRepository, val metrics: ApplicationMetrics)
+  extends CalculationRequestActor with CalculationRequestActorComponent
 
 class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationActorSystem")) with UnitSpec with MockitoSugar
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils with BeforeAndAfter {
 
   val mockDesConnector = mock[DesConnector]
   val mockRepository = mock[BulkCalculationRepository]
-  val mockMetrics = mock[Metrics]
+  val mockMetrics = mock[ApplicationMetrics]
 
   val testTimeout = 10 seconds
-  
+
   object CalculationRequestActorMock {
-    def props(desConnector: DesConnector, repository: BulkCalculationRepository, metrics: Metrics) = Props(classOf[CalculationRequestActorMock], desConnector, repository,metrics)
+    def props(desConnector: DesConnector, repository: BulkCalculationRepository, metrics: ApplicationMetrics) = Props(classOf[CalculationRequestActorMock], desConnector, repository, metrics)
   }
 
   before {
@@ -65,12 +63,12 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
   "Calculation Request Actor" must {
 
-    val response = CalculationResponse("",0,None,None,None,Scon("",0,""),Nil)
+    val response = CalculationResponse("", 0, None, None, None, Scon("", 0, ""), Nil)
 
     "successfully save" in {
 
       when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.successful(response))
-      when(mockRepository.insertResponseByReference(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(true))
+      when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
@@ -103,7 +101,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       when(ex.reportAs) thenReturn 400
 
       when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.failed(ex))
-      when(mockRepository.insertResponseByReference(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(true))
+      when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 
@@ -121,7 +119,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
       val nino = "ST281614D"
       when(mockDesConnector.getPersonDetails(Matchers.eq(nino))(Matchers.any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
-      when(mockRepository.insertResponseByReference(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(true))
+      when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
 
       val actorRef = system.actorOf(CalculationRequestActorMock.props(mockDesConnector, mockRepository, mockMetrics))
 

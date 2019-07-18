@@ -20,7 +20,7 @@ import java.util.UUID
 
 import config.ApplicationConfig
 import helpers.RandomNino
-import metrics.Metrics
+import metrics.ApplicationMetrics
 import models.ValidCalculationRequest
 import org.mockito.Matchers._
 import org.mockito.Mockito._
@@ -32,8 +32,8 @@ import play.api.Environment
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException}
-import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.Future
@@ -43,7 +43,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
   implicit val hc = HeaderCarrier()
 
   val mockHttp = mock[HttpGet]
-  val metrics = mock[Metrics]
+  val metrics = mock[ApplicationMetrics]
   val environment = app.injector.instanceOf[Environment]
 
   object TestDesConnector extends DesConnector(environment, app.configuration, mockHttp, metrics)

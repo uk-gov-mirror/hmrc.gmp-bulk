@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor._
 import connectors.{DesConnector, DesGetHiddenRecordResponse}
-import metrics.Metrics
+import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
 import play.api.http.Status
 import play.api.{Logger, Play}
@@ -33,7 +33,7 @@ import scala.util.{Failure, Success, Try}
 trait CalculationRequestActorComponent {
   val desConnector: DesConnector
   val repository: BulkCalculationRepository
-  val metrics: Metrics
+  val metrics: ApplicationMetrics
 }
 
 class CalculationRequestActor extends Actor with ActorUtils {
@@ -149,7 +149,7 @@ trait DefaultCalculationRequestComponent extends CalculationRequestActorComponen
   // $COVERAGE-OFF$
   override val desConnector = Play.current.injector.instanceOf[DesConnector]
   override val repository = BulkCalculationRepository()
-  override val metrics = Metrics
+  override val metrics = Play.current.injector.instanceOf[ApplicationMetrics]
   // $COVERAGE-ON$
 }
 

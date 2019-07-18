@@ -18,16 +18,17 @@ package repositories
 
 import java.util.concurrent.TimeUnit
 
+import com.google.inject.{Inject, Provider, Singleton}
 import config.{ApplicationConfig, MicroserviceGlobal}
 import connectors.{EmailConnector, ProcessedUploadTemplate}
 import events.BulkEvent
-import metrics.Metrics
+import metrics.ApplicationMetrics
 import models._
 import org.joda.time.{DateTime, LocalDateTime}
 import play.api.libs.iteratee.{Iteratee, _}
 import play.api.libs.json.Json
 import play.api.{Logger, Play}
-import play.modules.reactivemongo.MongoDbConnection
+import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
 import reactivemongo.api.collections.GenericCollection
 import reactivemongo.api.commands.MultiBulkWriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -45,8 +46,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
-class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
-  extends ReactiveRepository[BulkCalculationRequest, BSONObjectID](
+@Singleton
+class BulkCalculationMongoRepositoryProvider @Inject()(component: ReactiveMongoComponent, metrics: ApplicationMetrics) extends Provider[BulkCalculationMongoRepository] {
+  override def get(): BulkCalculationMongoRepository = {
+    new BulkCalculationMongoRepository(metrics)(component.mongoConnector.db)
+  }
+}
+
+class BulkCalculationMongoRepository @Inject()(metrics: ApplicationMetrics)(implicit mongo: () => DefaultDB) extends ReactiveRepository[BulkCalculationRequest, BSONObjectID](
     "bulk-calculation",
     mongo,
     BulkCalculationRequest.formats) with BulkCalculationRepository {
@@ -510,7 +517,7 @@ class BulkCalculationMongoRepository(implicit mongo: () => DefaultDB)
 
 trait BulkCalculationRepository extends ReactiveRepository[BulkCalculationRequest, BSONObjectID] {
 
-  def metrics: Metrics = Metrics
+  def metrics: ApplicationMetrics = Play.current.injector.instanceOf[ApplicationMetrics]
 
   val emailConnector: EmailConnector = Play.current.injector.instanceOf[EmailConnector]
   val auditConnector: AuditConnector = MicroserviceGlobal.auditConnector
@@ -534,8 +541,7 @@ trait BulkCalculationRepository extends ReactiveRepository[BulkCalculationReques
 
 object BulkCalculationRepository extends MongoDbConnection {
   // $COVERAGE-OFF$
-  private lazy val repository = new BulkCalculationMongoRepository
-
+  private lazy val repository = Play.current.injector.instanceOf[BulkCalculationMongoRepository]
   // $COVERAGE-ON$
   def apply(): BulkCalculationMongoRepository = repository
 }

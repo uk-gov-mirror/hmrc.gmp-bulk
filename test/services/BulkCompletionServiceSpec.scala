@@ -25,25 +25,18 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
 import play.api.libs.json.Json
-import reactivemongo.play.json._
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
+import scala.concurrent.Future
 
 class BulkCompletionServiceSpec extends UnitSpec with MockitoSugar with OneServerPerSuite with BeforeAndAfterEach with MongoSpecSupport {
 
-  lazy val bulkCalculationRespository = new BulkCalculationMongoRepository
+  lazy val bulkCalculationRespository =app.injector.instanceOf[BulkCalculationMongoRepository]
 
   object TestBulkCompletionService extends BulkCompletionService {
     override lazy val repository = bulkCalculationRespository
-  }
-
-  override protected def beforeEach() {
-    //Await.result(bulkCalculationRespository.collection.remove(Json.obj()), 30 seconds)
   }
 
   val nino = RandomNino.generate
@@ -139,9 +132,9 @@ class BulkCompletionServiceSpec extends UnitSpec with MockitoSugar with OneServe
     }
     """)
 
-  "completion service" ignore {
+  "completion service" must {
 
-    "get a lock and check for completed documents" ignore {
+    "get a lock and check for completed documents" in {
 
       val request = jsonWithResponses.as[BulkCalculationRequest]
       val uploadRef = UUID.randomUUID().toString
@@ -154,7 +147,7 @@ class BulkCompletionServiceSpec extends UnitSpec with MockitoSugar with OneServe
       result.get.total should be(4)
     }
 
-    "cant get a lock" ignore {
+    "cant get a lock" in {
       val mockRepository = mock[BulkCalculationRepository]
       object TestBulkCompletionService extends BulkCompletionService {
         override lazy val repository = mockRepository

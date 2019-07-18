@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 
 import com.google.inject.Inject
 import config.ApplicationConfig
-import metrics.Metrics
+import metrics.ApplicationMetrics
 import models.{CalculationResponse, ValidCalculationRequest}
 import play.api.Mode.Mode
 import play.api.http.Status._
@@ -45,7 +45,7 @@ case class DesGetErrorResponse(e: Exception) extends DesGetResponse
 class DesConnector @Inject()(environment: Environment,
                              val runModeConfiguration: Configuration,
                              http: HttpGet,
-                             val metrics: Metrics) extends ServicesConfig with RawResponseReads with UsingCircuitBreaker {
+                             val metrics: ApplicationMetrics) extends ServicesConfig with UsingCircuitBreaker {
 
   private val PrefixStart = 0
   private val PrefixEnd = 1
@@ -53,6 +53,10 @@ class DesConnector @Inject()(environment: Environment,
   private val NumberEnd = 8
   private val SuffixStart = 8
   private val SuffixEnd = 9
+
+  implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
+    override def read(method: String, url: String, response: HttpResponse) = response
+  }
 
   override protected def mode: Mode = environment.mode
 
