@@ -16,12 +16,12 @@
 
 package controllers
 
-import connectors.{ReceivedUploadTemplate, EmailConnector}
+import connectors.{EmailConnector, ReceivedUploadTemplate}
 import helpers.RandomNino
 import models._
-import org.joda.time.{LocalDateTime, LocalDate}
-import org.mockito.{ArgumentCaptor, Matchers}
+import org.joda.time.{LocalDate, LocalDateTime}
 import org.mockito.Mockito._
+import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.i18n.Messages
@@ -31,6 +31,7 @@ import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.BulkCalculationRepository
 import uk.gov.hmrc.mongo.Awaiting
+
 import scala.concurrent.Future
 //import play.api.Play.current
 import play.api.i18n.Messages.Implicits._

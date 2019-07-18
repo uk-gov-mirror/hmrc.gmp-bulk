@@ -19,14 +19,14 @@ package models
 import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
 import org.joda.time.LocalDate
-import org.scalatest.{BeforeAndAfter, MustMatchers}
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfter, MustMatchers}
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
-import play.api.{Application, Mode}
 import play.api.i18n.Messages
-import play.api.libs.json.Json
 import play.api.i18n.Messages.Implicits._
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import play.api.libs.json.Json
+import play.api.{Application, Mode}
 
 class GmpBulkCalculationResponseSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
 

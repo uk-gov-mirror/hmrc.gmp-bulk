@@ -18,7 +18,6 @@ package models
 
 import org.joda.time.LocalDateTime
 import play.api.libs.json._
-import reactivemongo.bson.{BSONDateTime, BSONReader}
 
 case class BulkPreviousRequest(uploadReference: String, reference: String, timestamp: LocalDateTime, processedDateTime: LocalDateTime)
 

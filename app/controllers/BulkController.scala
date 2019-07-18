@@ -21,7 +21,7 @@ import connectors.{EmailConnector, ReceivedUploadTemplate}
 import models._
 import play.api.libs.json.Json
 import play.api.mvc._
-import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
+import repositories.BulkCalculationRepository
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -19,23 +19,22 @@ package actors
 import akka.actor.{ActorSystem, Props}
 import akka.contrib.throttle.Throttler.SetTarget
 import akka.testkit._
+import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
-import models.{ValidCalculationRequest, ProcessReadyCalculationRequest}
+import models.{ProcessReadyCalculationRequest, ValidCalculationRequest}
+import org.mockito.Matchers._
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfterAll}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
-import reactivemongo.api.DefaultDB
-import reactivemongo.play.json.collection.JSONCollection
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import play.api.{Application, Mode}
 import repositories.BulkCalculationRepository
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.play.test.UnitSpec
-import org.mockito.Matchers._
-import scala.concurrent.duration._
+
 import scala.concurrent.Future
-import play.api.{Application, Mode}
-import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
-import com.kenshoo.play.metrics.PlayModule
+import scala.concurrent.duration._
 
 class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with UnitSpec with MockitoSugar with OneServerPerSuite
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils {
