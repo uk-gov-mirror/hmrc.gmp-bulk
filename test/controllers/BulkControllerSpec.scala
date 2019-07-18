@@ -22,7 +22,7 @@ import models._
 import org.joda.time.{LocalDateTime, LocalDate}
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.i18n.Messages
 import play.api.libs.json.{JsString, Json}
@@ -40,10 +40,11 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
   val mockRepo = mock[BulkCalculationRepository]
   val mockEmailConnector = mock[EmailConnector]
   val createdAt = Some(LocalDateTime.now)
+  val csvGenerator = app.injector.instanceOf[CsvGenerator]
 
-  object TestBulkController extends BulkController {
-    override val repository: BulkCalculationRepository = mockRepo
-    override val emailConnector = mockEmailConnector
+  object TestBulkController extends BulkController(mockEmailConnector, csvGenerator) {
+    override val repository = mockRepo
+
   }
 
   val nino = RandomNino.generate

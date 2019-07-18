@@ -69,7 +69,7 @@ trait MicroService {
       fork in Test := false,
       retrieveManaged := true,
       routesImport += "extensions.Binders._",
-      routesGenerator := StaticRoutesGenerator
+      routesGenerator := InjectedRoutesGenerator
     )
     .settings(Repositories.playPublishingSettings : _*)
     .configs(IntegrationTest)

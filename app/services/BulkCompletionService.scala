@@ -25,7 +25,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait BulkCompletionService extends MongoDbConnection{
+class BulkCompletionService extends MongoDbConnection{
 
   val connection = {
     import play.api.Play.current
@@ -89,5 +89,3 @@ trait BulkCompletionService extends MongoDbConnection{
     }
   }
 }
-
-object BulkCompletionService extends BulkCompletionService

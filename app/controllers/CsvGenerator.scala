@@ -24,7 +24,7 @@ import play.api.i18n.Messages
 import play.api.Play.current
 import play.api.i18n.Messages.Implicits._
 
-trait CsvGenerator {
+class CsvGenerator {
 
   val DATE_DEFAULT_FORMAT = "dd/MM/yyyy"
 
@@ -532,5 +532,3 @@ trait CsvGenerator {
   }
 
 }
-
-object CsvGenerator extends CsvGenerator

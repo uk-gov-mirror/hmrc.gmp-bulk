@@ -95,7 +95,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
           override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
             if(env != "Test") {
-              BulkCompletionService.checkForComplete()
+              val bulkCompletionService = Play.current.injector.instanceOf[BulkCompletionService]
+              bulkCompletionService.checkForComplete()
               Future.successful(Result("started"))
             }else {
               Future.successful(Result("not running scheduled jobs"))
