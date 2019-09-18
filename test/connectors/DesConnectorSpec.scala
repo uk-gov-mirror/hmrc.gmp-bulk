@@ -18,6 +18,7 @@ package connectors
 
 import java.util.UUID
 
+import com.kenshoo.play.metrics.Metrics
 import config.ApplicationConfig
 import helpers.RandomNino
 import metrics.ApplicationMetrics
@@ -109,7 +110,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
           .thenReturn(Future.successful(HttpResponse(500, Some(calcResponseJson))))
 
         val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
-        intercept[Upstream5xxResponse] {
+        intercept[TestDesConnector.BreakerException] {
           await(result)
           verify(TestDesConnector.metrics).registerFailedRequest
         }
@@ -130,31 +131,34 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
         }
       }
 
-      "return an unhealthy service exception when 503 returned more than {numberOfCallsToTriggerStateChange} times" in {
+      val errorCodes = List(TOO_MANY_REQUESTS, 499, BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT, INTERNAL_SERVER_ERROR)
+      for (errorCode <- errorCodes) {
+        s"return an unhealthy service exception when $errorCode returned more than {numberOfCallsToTriggerStateChange} times" in {
 
-        object Test503DesConnector extends DesConnector(environment, app.configuration, mockHttp, metrics) {
-          override def circuitBreakerConfig = {
-            CircuitBreakerConfig("DesConnector", 5, 300, 300)
+          object TestErrorDesConnector extends DesConnector(environment, app.configuration, mockHttp, metrics) {
+            override def circuitBreakerConfig = {
+              CircuitBreakerConfig("DesConnector", 5, 300, 300)
+            }
           }
-        }
 
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        val request = ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)
+          implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+          val request = ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)
 
-        when(mockHttp.GET[HttpResponse](Matchers.anyString)(Matchers.any(), Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(HttpResponse(503, Some(calcResponseJson))))
+          when(mockHttp.GET[HttpResponse](Matchers.anyString)(Matchers.any(), Matchers.any(), Matchers.any()))
+            .thenReturn(Future.successful(HttpResponse(errorCode, Some(calcResponseJson))))
 
-        for (x <- 1 to ApplicationConfig.numberOfCallsToTriggerStateChange) {
-          intercept[Upstream5xxResponse] {
-            await(Test503DesConnector.calculate(request))
-            Thread.sleep(2)
+          for (x <- 1 to ApplicationConfig.numberOfCallsToTriggerStateChange) {
+            intercept[TestErrorDesConnector.BreakerException] {
+              await(TestErrorDesConnector.calculate(request))
+              Thread.sleep(2)
+            }
           }
-        }
 
-        intercept[UnhealthyServiceException] {
-          await(Test503DesConnector.calculate(request))
-          verify(Test503DesConnector.metrics).registerFailedRequest
-          verify(Test503DesConnector.metrics) registerStatusCode "503"
+          intercept[UnhealthyServiceException] {
+            await(TestErrorDesConnector.calculate(request))
+            verify(TestErrorDesConnector.metrics).registerFailedRequest
+            verify(TestErrorDesConnector.metrics) registerStatusCode errorCode.toString
+          }
         }
       }
 

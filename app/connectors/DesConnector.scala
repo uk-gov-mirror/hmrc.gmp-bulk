@@ -27,11 +27,11 @@ import play.api.Mode.Mode
 import play.api.http.Status._
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
-import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpGet, HttpReads, HttpResponse, NotFoundException, Upstream4xxResponse}
 
 sealed trait DesGetResponse
 sealed trait DesPostResponse
@@ -70,6 +70,8 @@ class DesConnector @Inject()(environment: Environment,
 
   val calcURI = s"$serviceURL/$baseURI"
 
+  class BreakerException extends Exception
+
   def calculate(request: ValidCalculationRequest): Future[CalculationResponse] = {
 
     val paramMap: Map[String, Option[Any]] = Map(
@@ -96,7 +98,6 @@ class DesConnector @Inject()(environment: Environment,
           SuffixEnd).toUpperCase
       }/nino/${request.nino.toUpperCase}/surname/$surname/firstname/$firstname/calculation/${buildEncodedQueryString(paramMap)}"""
 
-
     Logger.info(s"[DesConnector][calculate] contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
@@ -116,14 +117,14 @@ class DesConnector @Inject()(environment: Environment,
           metrics.registerFailedRequest()
 
           errorStatus match {
-            case BAD_REQUEST => throw new Upstream4xxResponse("A 400 Bad Request exception was encountered", errorStatus, BAD_REQUEST)
-            case e => throw new Upstream5xxResponse("DES connector calculate failed: " + response.body, errorStatus, INTERNAL_SERVER_ERROR)
+            case e if e>=500 && e<600 => throw new BreakerException
+            case TOO_MANY_REQUESTS => throw new BreakerException
+            case 499 => throw new BreakerException
+            case e => throw new Upstream4xxResponse(s"An error status $errorStatus was encountered", errorStatus, errorStatus)
           }
-
         }
       }
     })(hc=npsRequestHeaderCarrier)
-
     result
   }
 
@@ -157,8 +158,9 @@ class DesConnector @Inject()(environment: Environment,
   override protected def breakOnException(t: Throwable): Boolean = {
     t match {
       // $COVERAGE-OFF$
-      case e: Upstream5xxResponse if e.upstreamResponseCode == 503 && !e.message.contains("digital_rate_limit") => true
-      case e: BadGatewayException => true
+      case _: BreakerException => true
+      case _: BadGatewayException => true
+      case _: GatewayTimeoutException => true
       case _ => false
       // $COVERAGE-ON$
     }
