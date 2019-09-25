@@ -27,7 +27,8 @@ object AppDependencies {
     "org.reactivemongo" %% "reactivemongo-iteratees" % "0.16.1",
     "com.typesafe.akka" %% "akka-testkit" % "2.5.23",
     "org.mockito" % "mockito-all" % "1.9.5",
-    "uk.gov.hmrc" %% "tax-year" % "0.6.0"
+    "uk.gov.hmrc" %% "tax-year" % "0.6.0",
+    "com.github.tomakehurst" % "wiremock-standalone" % "2.21.0"
   ).map(_ % "test")
 
   val all: Seq[ModuleID] = compile ++ test

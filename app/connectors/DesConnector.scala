@@ -47,13 +47,6 @@ class DesConnector @Inject()(environment: Environment,
                              http: HttpGet,
                              val metrics: ApplicationMetrics) extends ServicesConfig with UsingCircuitBreaker {
 
-  private val PrefixStart = 0
-  private val PrefixEnd = 1
-  private val NumberStart = 1
-  private val NumberEnd = 8
-  private val SuffixStart = 8
-  private val SuffixEnd = 9
-
   implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
     override def read(method: String, url: String, response: HttpResponse) = response
   }
@@ -62,7 +55,7 @@ class DesConnector @Inject()(environment: Environment,
 
   val serviceKey = getConfString("nps.key", "")
   val serviceEnvironment = getConfString("nps.environment", "")
-  def citizenDetailsUrl: String = baseUrl("citizen-details")
+  lazy val citizenDetailsUrl: String = baseUrl("citizen-details")
 
   lazy val serviceURL = baseUrl("nps")
   val baseURI = "pensions/individuals/gmp"
@@ -73,36 +66,13 @@ class DesConnector @Inject()(environment: Environment,
   class BreakerException extends Exception
 
   def calculate(request: ValidCalculationRequest): Future[CalculationResponse] = {
-
-    val paramMap: Map[String, Option[Any]] = Map(
-      "revalrate" -> request.revaluationRate, "revaldate" -> request.revaluationDate, "calctype" -> request.calctype,
-      "request_earnings" -> Some(1), "dualcalc" -> request.dualCalc, "term_date" -> request.terminationDate)
-
-    val surname = URLEncoder.encode((if (request.surname.replace(" ", "").length < 3) {
-      request.surname.replace(" ", "")
-    } else {
-      request.surname.replace(" ", "").substring(0, 3)
-    }).toUpperCase, "UTF-8")
-
-    val firstname = URLEncoder.encode(request.firstForename.charAt(0).toUpper.toString, "UTF-8")
-
-    val uri =
-      s"""$calcURI/scon/${
-        request.scon.substring(PrefixStart,
-          PrefixEnd).toUpperCase
-      }/${
-        request.scon.substring(NumberStart,
-          NumberEnd)
-      }/${
-        request.scon.substring(SuffixStart,
-          SuffixEnd).toUpperCase
-      }/nino/${request.nino.toUpperCase}/surname/$surname/firstname/$firstname/calculation/${buildEncodedQueryString(paramMap)}"""
-
-    Logger.info(s"[DesConnector][calculate] contacting DES at $uri")
+    val url = calcURI + request.uri
+    Logger.info(s"[DesConnector][calculate] contacting DES at $url")
 
     val startTime = System.currentTimeMillis()
 
-    val result = withCircuitBreaker(http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
+    withCircuitBreaker(http.GET[HttpResponse](url, request.params)
+      (hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.registerStatusCode(response.status.toString)
       metrics.desConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -113,7 +83,7 @@ class DesConnector @Inject()(environment: Environment,
           response.json.as[CalculationResponse]
 
         case errorStatus: Int => {
-          Logger.error(s"[DesConnector][calculate] DES URI $uri returned code $errorStatus and response body: ${response.body}")
+          Logger.error(s"[DesConnector][calculate] DES URI $url returned code $errorStatus and response body: ${response.body}")
           metrics.registerFailedRequest()
 
           errorStatus match {
@@ -125,7 +95,6 @@ class DesConnector @Inject()(environment: Environment,
         }
       }
     })(hc=npsRequestHeaderCarrier)
-    result
   }
 
   private def npsRequestHeaderCarrier: HeaderCarrier = {
