@@ -71,7 +71,7 @@ class DesConnector @Inject()(environment: Environment,
 
     val startTime = System.currentTimeMillis()
 
-    withCircuitBreaker(http.GET[HttpResponse](url, request.params)
+    withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams)
       (hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.registerStatusCode(response.status.toString)

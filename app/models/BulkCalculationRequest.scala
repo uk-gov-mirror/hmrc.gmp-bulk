@@ -16,8 +16,6 @@
 
 package models
 
-import java.net.URLEncoder
-
 import org.joda.time.LocalDateTime
 import play.api.Play.current
 import play.api.i18n.Messages
@@ -25,59 +23,6 @@ import play.api.i18n.Messages.Implicits._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class ValidCalculationRequest(scon: String,
-                                   nino: String,
-                                   surname: String,
-                                   firstForename: String,
-                                   memberReference: Option[String],
-                                   calctype: Option[Int],
-                                   revaluationDate: Option[String] = None,
-                                   revaluationRate: Option[Int] = None,
-                                   dualCalc: Option[Int] = None,
-                                   terminationDate: Option[String] = None,
-                                   memberIsInScheme: Option[Boolean] = None
-                                  ) {
-
-  private val PrefixStart = 0
-  private val PrefixEnd = 1
-  private val NumberStart = 1
-  private val NumberEnd = 8
-  private val SuffixStart = 8
-  private val SuffixEnd = 9
-
-  private val paramMap: Map[String, Option[Any]] = Map(
-    "revalrate" -> revaluationRate, "revaldate" -> revaluationDate, "calctype" -> calctype,
-    "request_earnings" -> Some(1), "dualcalc" -> dualCalc, "term_date" -> terminationDate)
-
-  private val truncatedSurname = URLEncoder.encode((if (surname.replace(" ", "").length < 3) {
-    surname.replace(" ", "")
-  } else {
-    surname.replace(" ", "").substring(0, 3)
-  }).toUpperCase, "UTF-8")
-
-  private val firstname = URLEncoder.encode(firstForename.charAt(0).toUpper.toString, "UTF-8")
-
-  val params: Seq[(String, String)] = paramMap.collect{case (k, v) if v.isDefined => (k, v.get.toString)}.toSeq
-
-  val uri = {
-    s"""/scon/${
-      scon.substring(PrefixStart,
-        PrefixEnd).toUpperCase
-    }/${
-      scon.substring(NumberStart,
-        NumberEnd)
-    }/${
-      scon.substring(SuffixStart,
-        SuffixEnd).toUpperCase
-    }/nino/${nino.toUpperCase}/surname/$truncatedSurname/firstname/$firstname/calculation/"""
-  }
-
-}
-
-object ValidCalculationRequest {
-  implicit val formats = Json.format[ValidCalculationRequest]
-
-}
 
 case class CalculationRequest(bulkId: Option[String],
                               lineId: Int,
