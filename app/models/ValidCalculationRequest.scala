@@ -43,15 +43,15 @@ case class ValidCalculationRequest(scon: String,
       "term_date" -> terminationDate
     ).collect{case (k, v) if v.isDefined => (k, v.get.toString)}
 
-  private val truncatedSurname = URLEncoder.encode(surname.replaceAllLiterally(" ", "").take(3).toUpperCase, "UTF-8")
+  private lazy val truncatedSurname = URLEncoder.encode(surname.replaceAllLiterally(" ", "").take(3).toUpperCase, "UTF-8")
 
-  private val initial = URLEncoder.encode(firstForename.head.toUpper.toString, "UTF-8")
+  private lazy val initial = URLEncoder.encode(firstForename.head.toUpper.toString, "UTF-8")
 
   //TODO align scon formatting to api spec. ([s])([1-9]{1,7}[A-Z])
-  private val (sconPrefix, sconNumber, sconSuffix) =
+  private lazy val (sconPrefix, sconNumber, sconSuffix) =
     (scon.substring(0, 1).toUpperCase, scon.substring(1, 8), scon.substring(8, 9).toUpperCase)
 
-  val uri: String =
+  lazy val uri: String =
     s"""/scon/$sconPrefix/$sconNumber/$sconSuffix/nino/${nino.toUpperCase}/surname/$truncatedSurname/firstname/$initial/calculation/"""
 
 
