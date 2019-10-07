@@ -49,34 +49,34 @@ class ValidCalculationRequestSpec extends PlaySpec with OneAppPerSuite with Must
 
     "format the surname in the uri" when {
       "surname is longer than 3 letters" in {
-        emptyRequest.copy(surname = "Hook").uri must include("surname/HOO/")
+        emptyRequest.copy(surname = "Hook").desUri must include("surname/HOO/")
       }
 
       "Surname is 4 letters long" in {
-        emptyRequest.copy(surname = "May").uri must include("surname/MAY/")
+        emptyRequest.copy(surname = "May").desUri must include("surname/MAY/")
       }
 
       "Surname is less than 3 Letters long" in {
-        emptyRequest.copy(surname = "Xi").uri must include("surname/XI/")
+        emptyRequest.copy(surname = "Xi").desUri must include("surname/XI/")
       }
 
       "Surname contains apostrophe" in {
-        emptyRequest.copy(surname = "O'Neil").uri must include("surname/O%27N/")
+        emptyRequest.copy(surname = "O'Neil").desUri must include("surname/O%27N/")
       }
     }
 
     "Take first name Initial" in {
-      emptyRequest.copy(firstForename = "Pascal").uri must include("firstname/P/")
+      emptyRequest.copy(firstForename = "Pascal").desUri must include("firstname/P/")
     }
 
     "format the scon" in {
-      emptyRequest.uri must include("scon/S")
-      emptyRequest.uri must include("/1234567/")
-      emptyRequest.uri must include("/A/nino")
+      emptyRequest.desUri must include("scon/S")
+      emptyRequest.desUri must include("/1234567/")
+      emptyRequest.desUri must include("/A/nino")
     }
 
     "Construct the request uri" in {
-      emptyRequest.uri mustEqual s"/scon/S/1234567/A/nino/$nino/surname/PAN/firstname/P/calculation/"
+      emptyRequest.desUri mustEqual s"/scon/S/1234567/A/nino/$nino/surname/PAN/firstname/P/calculation/"
     }
   }
 }

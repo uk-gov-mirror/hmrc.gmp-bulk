@@ -66,7 +66,7 @@ class DesConnector @Inject()(environment: Environment,
   class BreakerException extends Exception
 
   def calculate(request: ValidCalculationRequest): Future[CalculationResponse] = {
-    val url = calcURI + request.uri
+    val url = calcURI + request.desUri
     Logger.info(s"[DesConnector][calculate] contacting DES at $url")
 
     val startTime = System.currentTimeMillis()
