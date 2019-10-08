@@ -16,7 +16,6 @@
 
 package connectors
 
-import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 import com.google.inject.Inject
@@ -27,11 +26,11 @@ import play.api.Mode.Mode
 import play.api.http.Status._
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpGet, HttpReads, HttpResponse, NotFoundException, Upstream4xxResponse}
 
 sealed trait DesGetResponse
 sealed trait DesPostResponse
@@ -46,6 +45,8 @@ class DesConnector @Inject()(environment: Environment,
                              val runModeConfiguration: Configuration,
                              http: HttpGet,
                              val metrics: ApplicationMetrics) extends ServicesConfig with UsingCircuitBreaker {
+
+  val logger = Logger(this.getClass)
 
   implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
     override def read(method: String, url: String, response: HttpResponse) = response
@@ -67,7 +68,7 @@ class DesConnector @Inject()(environment: Environment,
 
   def calculate(request: ValidCalculationRequest): Future[CalculationResponse] = {
     val url = calcURI + request.desUri
-    Logger.info(s"[DesConnector][calculate] contacting DES at $url")
+    logger.info(s"[calculate] contacting DES at $url")
 
     val startTime = System.currentTimeMillis()
 
@@ -83,14 +84,14 @@ class DesConnector @Inject()(environment: Environment,
           response.json.as[CalculationResponse]
 
         case errorStatus: Int => {
-          Logger.error(s"[DesConnector][calculate] DES URI $url returned code $errorStatus and response body: ${response.body}")
+          logger.error(s"[calculate] DES URI $url returned code $errorStatus and response body: ${response.body}")
           metrics.registerFailedRequest()
 
           errorStatus match {
-            case e if e>=500 && e<600 => throw new BreakerException
+            case status if status >= 500 && status < 600 => throw new BreakerException
             case TOO_MANY_REQUESTS => throw new BreakerException
             case 499 => throw new BreakerException
-            case e => throw new Upstream4xxResponse(s"An error status $errorStatus was encountered", errorStatus, errorStatus)
+            case _ => throw Upstream4xxResponse(s"An error status $errorStatus was encountered", errorStatus, errorStatus)
           }
         }
       }
@@ -104,17 +105,6 @@ class DesConnector @Inject()(environment: Environment,
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
-  }
-
-  private def buildEncodedQueryString(params: Map[String, Any]): String = {
-    val encoded = for {
-      (name, value) <- params if value != None
-      encodedValue = value match {
-        case Some(x) => URLEncoder.encode(x.toString, "UTF8")
-      }
-    } yield name + "=" + encodedValue
-
-    encoded.mkString("?", "&", "")
   }
 
   override protected def circuitBreakerConfig: CircuitBreakerConfig = {
@@ -145,7 +135,7 @@ class DesConnector @Inject()(environment: Environment,
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
 
-    Logger.debug(s"[DesConnector][getPersonDetails] Contacting DES at $url")
+    logger.debug(s"[getPersonDetails] Contacting DES at $url")
 
     http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc, ec = ExecutionContext.global) map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -163,7 +153,7 @@ class DesConnector @Inject()(environment: Environment,
     } recover {
       case e: NotFoundException => DesGetNotFoundResponse
       case e: Exception =>
-        Logger.error(s"[DesConnector][getPersonDetails] Exception thrown getting individual record from DES: $e")
+        logger.error(s"[getPersonDetails] Exception thrown getting individual record from DES: $e")
         metrics.mciErrorResult()
         DesGetErrorResponse(e)
     }
