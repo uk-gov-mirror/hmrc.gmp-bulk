@@ -16,7 +16,6 @@
 
 package connectors
 
-import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 import com.google.inject.Inject
@@ -47,12 +46,7 @@ class DesConnector @Inject()(environment: Environment,
                              http: HttpGet,
                              val metrics: ApplicationMetrics) extends ServicesConfig with UsingCircuitBreaker {
 
-  private val PrefixStart = 0
-  private val PrefixEnd = 1
-  private val NumberStart = 1
-  private val NumberEnd = 8
-  private val SuffixStart = 8
-  private val SuffixEnd = 9
+  val logger = Logger(this.getClass)
 
   implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
     override def read(method: String, url: String, response: HttpResponse) = response
@@ -62,7 +56,7 @@ class DesConnector @Inject()(environment: Environment,
 
   val serviceKey = getConfString("nps.key", "")
   val serviceEnvironment = getConfString("nps.environment", "")
-  def citizenDetailsUrl: String = baseUrl("citizen-details")
+  lazy val citizenDetailsUrl: String = baseUrl("citizen-details")
 
   lazy val serviceURL = baseUrl("nps")
   val baseURI = "pensions/individuals/gmp"
@@ -70,38 +64,16 @@ class DesConnector @Inject()(environment: Environment,
 
   val calcURI = s"$serviceURL/$baseURI"
 
+  class BreakerException extends Exception
+
   def calculate(request: ValidCalculationRequest): Future[CalculationResponse] = {
-
-    val paramMap: Map[String, Option[Any]] = Map(
-      "revalrate" -> request.revaluationRate, "revaldate" -> request.revaluationDate, "calctype" -> request.calctype,
-      "request_earnings" -> Some(1), "dualcalc" -> request.dualCalc, "term_date" -> request.terminationDate)
-
-    val surname = URLEncoder.encode((if (request.surname.replace(" ", "").length < 3) {
-      request.surname.replace(" ", "")
-    } else {
-      request.surname.replace(" ", "").substring(0, 3)
-    }).toUpperCase, "UTF-8")
-
-    val firstname = URLEncoder.encode(request.firstForename.charAt(0).toUpper.toString, "UTF-8")
-
-    val uri =
-      s"""$calcURI/scon/${
-        request.scon.substring(PrefixStart,
-          PrefixEnd).toUpperCase
-      }/${
-        request.scon.substring(NumberStart,
-          NumberEnd)
-      }/${
-        request.scon.substring(SuffixStart,
-          SuffixEnd).toUpperCase
-      }/nino/${request.nino.toUpperCase}/surname/$surname/firstname/$firstname/calculation/${buildEncodedQueryString(paramMap)}"""
-
-
-    Logger.info(s"[DesConnector][calculate] contacting DES at $uri")
+    val url = calcURI + request.desUri
+    logger.info(s"[calculate] contacting DES at $url")
 
     val startTime = System.currentTimeMillis()
 
-    val result = withCircuitBreaker(http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
+    withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams)
+      (hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.registerStatusCode(response.status.toString)
       metrics.desConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -112,19 +84,18 @@ class DesConnector @Inject()(environment: Environment,
           response.json.as[CalculationResponse]
 
         case errorStatus: Int => {
-          Logger.error(s"[DesConnector][calculate] DES URI $uri returned code $errorStatus and response body: ${response.body}")
+          logger.error(s"[calculate] DES URI $url returned code $errorStatus and response body: ${response.body}")
           metrics.registerFailedRequest()
 
           errorStatus match {
-            case BAD_REQUEST => throw new Upstream4xxResponse("A 400 Bad Request exception was encountered", errorStatus, BAD_REQUEST)
-            case e => throw new Upstream5xxResponse("DES connector calculate failed: " + response.body, errorStatus, INTERNAL_SERVER_ERROR)
+            case status if status >= 500 && status < 600 => throw new BreakerException
+            case TOO_MANY_REQUESTS => throw new BreakerException
+            case 499 => throw new BreakerException
+            case _ => throw Upstream4xxResponse(s"An error status $errorStatus was encountered", errorStatus, errorStatus)
           }
-
         }
       }
     })(hc=npsRequestHeaderCarrier)
-
-    result
   }
 
   private def npsRequestHeaderCarrier: HeaderCarrier = {
@@ -134,17 +105,6 @@ class DesConnector @Inject()(environment: Environment,
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
-  }
-
-  private def buildEncodedQueryString(params: Map[String, Any]): String = {
-    val encoded = for {
-      (name, value) <- params if value != None
-      encodedValue = value match {
-        case Some(x) => URLEncoder.encode(x.toString, "UTF8")
-      }
-    } yield name + "=" + encodedValue
-
-    encoded.mkString("?", "&", "")
   }
 
   override protected def circuitBreakerConfig: CircuitBreakerConfig = {
@@ -157,8 +117,9 @@ class DesConnector @Inject()(environment: Environment,
   override protected def breakOnException(t: Throwable): Boolean = {
     t match {
       // $COVERAGE-OFF$
-      case e: Upstream5xxResponse if e.upstreamResponseCode == 503 && !e.message.contains("digital_rate_limit") => true
-      case e: BadGatewayException => true
+      case _: BreakerException => true
+      case _: BadGatewayException => true
+      case _: GatewayTimeoutException => true
       case _ => false
       // $COVERAGE-ON$
     }
@@ -174,7 +135,7 @@ class DesConnector @Inject()(environment: Environment,
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
 
-    Logger.debug(s"[DesConnector][getPersonDetails] Contacting DES at $url")
+    logger.debug(s"[getPersonDetails] Contacting DES at $url")
 
     http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc, ec = ExecutionContext.global) map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -192,7 +153,7 @@ class DesConnector @Inject()(environment: Environment,
     } recover {
       case e: NotFoundException => DesGetNotFoundResponse
       case e: Exception =>
-        Logger.error(s"[DesConnector][getPersonDetails] Exception thrown getting individual record from DES: $e")
+        logger.error(s"[getPersonDetails] Exception thrown getting individual record from DES: $e")
         metrics.mciErrorResult()
         DesGetErrorResponse(e)
     }

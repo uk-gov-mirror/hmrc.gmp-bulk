@@ -28,7 +28,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import play.api.{Application, Mode}
 
-class BulkCalculationRequestSpec extends PlaySpec  with OneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
+class BulkCalculationRequestSpec extends PlaySpec with OneAppPerSuite with MustMatchers {
 
   def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
     "logger.play" -> "ERROR",

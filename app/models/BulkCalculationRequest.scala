@@ -23,23 +23,6 @@ import play.api.i18n.Messages.Implicits._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class ValidCalculationRequest(scon: String,
-                                   nino: String,
-                                   surname: String,
-                                   firstForename: String,
-                                   memberReference: Option[String],
-                                   calctype: Option[Int],
-                                   revaluationDate: Option[String] = None,
-                                   revaluationRate: Option[Int] = None,
-                                   dualCalc: Option[Int] = None,
-                                   terminationDate: Option[String] = None,
-                                   memberIsInScheme: Option[Boolean] = None
-                                  )
-
-object ValidCalculationRequest {
-  implicit val formats = Json.format[ValidCalculationRequest]
-
-}
 
 case class CalculationRequest(bulkId: Option[String],
                               lineId: Int,

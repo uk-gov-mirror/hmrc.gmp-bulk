@@ -18,39 +18,60 @@ package connectors
 
 import java.util.UUID
 
-import config.ApplicationConfig
+import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models.ValidCalculationRequest
-import org.mockito.Matchers._
 import org.mockito.Mockito._
-import org.mockito.{ArgumentCaptor, Matchers}
+import org.mockito.{Matchers, Mockito}
 import org.scalatest._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play._
 import play.api.Environment
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.SessionId
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import utils.WireMockHelper
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
-class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
+class DesConnectorSpec extends PlaySpec with OneServerPerSuite with WireMockHelper with BeforeAndAfter with MockitoSugar {
 
-  implicit val hc = HeaderCarrier()
+  private val injector = app.injector
+  private val mockMetrics = mock[ApplicationMetrics]
+  private val environment = injector.instanceOf[Environment]
+  private val http = injector.instanceOf[HttpGet]
+  private val mockHttp = mock[HttpGet]
+  private val NGINX_CLIENT_CLOSED_REQUEST = 499
 
-  val mockHttp = mock[HttpGet]
-  val metrics = mock[ApplicationMetrics]
-  val environment = app.injector.instanceOf[Environment]
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    Mockito.reset(mockMetrics)
+  }
 
-  object TestDesConnector extends DesConnector(environment, app.configuration, mockHttp, metrics)
+  def stubServiceGet(url: String, responseStatus: Int, responseBody: String, queryParam: (String, String)*): StubMapping = {
+    server.stubFor(get(urlPathEqualTo(url))
+      .withQueryParams(queryParam.map(qp => (qp._1, equalTo(qp._2))).toMap.asJava)
+      .willReturn(
+        aResponse()
+        .withStatus(responseStatus)
+        .withBody(responseBody)
+      )
+    )
+  }
 
-  val nino = RandomNino.generate
+  class SUT(http:HttpGet = http) extends DesConnector(environment, app.configuration, http, mockMetrics) {
+    override lazy val serviceURL: String = "http://localhost:" + server.port()
+    override lazy val citizenDetailsUrl: String = serviceURL
+  }
 
-  val calcResponseJson = Json.parse(
+  private val nino = RandomNino.generate
+  implicit val hc: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+
+  val calcResponseJson: String =
     s"""{
            "nino":"$nino",
            "rejection_reason":0,
@@ -70,310 +91,126 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar
                 "reval_calc_switch_ind": 0
               }
            ]
-        }""")
+        }"""
 
-  val citizenDetailsJson = Json.parse(
+  val citizenDetailsJson: String =
             """{
                   "etag" : "115"
                 }
-            """.stripMargin)
-
-  before {
-    reset(mockHttp)
-    reset(TestDesConnector.metrics)
-  }
+            """
 
   "The Nps Connector" must {
 
     "calculate" must {
 
-      "return a calculation request" in {
+      "return a calculation request" in new SUT {
+        val url = s"/pensions/individuals/gmp/scon/S/1234567/T/nino/$nino/surname/BIX/firstname/B/calculation/"
+        stubServiceGet(url, OK, calcResponseJson, ("request_earnings" -> "1"), ("calctype" -> "0"))
 
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+        val result = await(calculate(ValidCalculationRequest("S1234567T", nino, "Bixby", "Bill", None, Some(0), None, Some(1), None, None)))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1234567T", nino, "Bixby", "Bill", None, Some(0), None, Some(1), None, None))
-        val calcResponse = await(result)
-
-        calcResponse.npsLgmpcalc.length must be(1)
-        verify(TestDesConnector.metrics).registerSuccessfulRequest
+        result.npsLgmpcalc.length must be(1)
+        Mockito.verify(mockMetrics).registerSuccessfulRequest()
       }
 
-      "return an error when 500 returned" in {
+      "return not found when scon does not exist" in new SUT {
+        val request = ValidCalculationRequest("S1234567T", nino, "Bixby", "Bill", None, Some(0), None, Some(1), None, None)
 
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+        val url = s"/pensions/individuals/gmp/scon/S/1234567/T/nino/$nino/surname/BIX/firstname/B/calculation/"
+        stubServiceGet(url, NOT_FOUND, "", ("request_earnings" -> "1"), ("calctype" -> "0"))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(HttpResponse(500, Some(calcResponseJson))))
-
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
-        intercept[Upstream5xxResponse] {
-          await(result)
-          verify(TestDesConnector.metrics).registerFailedRequest
+        intercept[Upstream4xxResponse] {
+          await(calculate(request))
         }
       }
 
-      "return an error when 400 returned" in {
-
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-
+      "return an error when 400 returned" in new SUT {
         when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(HttpResponse(400, None)))
+          .thenReturn(Future.successful(HttpResponse(BAD_REQUEST, None)))
 
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
+        val url = s"/pensions/individuals/gmp/scon/S/1401234/Q/nino/$nino/surname/SMI/firstname/B/calculation/"
+        stubServiceGet(url, BAD_REQUEST, "Bad request", ("request_earnings" -> "1"))
+
+        val result = calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
 
         intercept[Upstream4xxResponse] {
           await(result)
-          verify(TestDesConnector.metrics).registerFailedRequest
         }
+        Mockito.verify(metrics).registerFailedRequest()
       }
 
-      "return an unhealthy service exception when 503 returned more than {numberOfCallsToTriggerStateChange} times" in {
+      val errorCodes = List(TOO_MANY_REQUESTS, NGINX_CLIENT_CLOSED_REQUEST, BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT, INTERNAL_SERVER_ERROR)
+      for (errorCode <- errorCodes) {
+        s"return a BreakerException exception when $errorCode returned from DES" in new SUT {
+          val request = ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)
 
-        object Test503DesConnector extends DesConnector(environment, app.configuration, mockHttp, metrics) {
-          override def circuitBreakerConfig = {
-            CircuitBreakerConfig("DesConnector", 5, 300, 300)
+          val url = s"""/pensions/individuals/gmp/scon/S/1401234/Q/nino/${request.nino.toUpperCase}/surname/SMI/firstname/B/calculation/"""
+          stubServiceGet(url, errorCode, "", ("request_earnings" -> "1"))
+
+          intercept[BreakerException] {
+            await(calculate(request))
           }
-        }
-
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        val request = ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)
-
-        when(mockHttp.GET[HttpResponse](Matchers.anyString)(Matchers.any(), Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(HttpResponse(503, Some(calcResponseJson))))
-
-        for (x <- 1 to ApplicationConfig.numberOfCallsToTriggerStateChange) {
-          intercept[Upstream5xxResponse] {
-            await(Test503DesConnector.calculate(request))
-            Thread.sleep(2)
-          }
-        }
-
-        intercept[UnhealthyServiceException] {
-          await(Test503DesConnector.calculate(request))
-          verify(Test503DesConnector.metrics).registerFailedRequest
-          verify(Test503DesConnector.metrics) registerStatusCode "503"
+          Mockito.verify(mockMetrics).registerFailedRequest()
         }
       }
 
-      "return a success when 422 returned" in {
+      "return a success when 422 returned" in new SUT {
+        val url = s"""/pensions/individuals/gmp/scon/S/1401234/Q/nino/$nino/surname/SMI/firstname/B/calculation/"""
+        stubServiceGet(url, UNPROCESSABLE_ENTITY, calcResponseJson, ("request_earnings" -> "1"), ("calctype" -> "0"))
 
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+        val result = await(calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None)))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(HttpResponse(422, Some(calcResponseJson))))
+        result.rejection_reason must be(0)
 
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None))
-        val calcResponse = await(result)
-
-        calcResponse.rejection_reason must be(0)
-
-        verify(TestDesConnector.metrics).registerSuccessfulRequest
-        verify(TestDesConnector.metrics) registerStatusCode "422"
-      }
-
-      "generate a DES url" in {
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must endWith(s"/scon/S/1401234/Q/nino/$nino/surname/SMI/firstname/B/calculation/?request_earnings=1&calctype=0")
-      }
-
-      "generate correct url when no revaluation" in {
-
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must endWith("/?request_earnings=1&calctype=0")
-      }
-
-      "truncate surname to 3 chars if length greater than 3 chars" in {
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must include("/surname/SMI/")
-      }
-
-      "not truncate surname if length less than 3 chars" in {
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "Fr", "Bill", None, Some(0), None, None, None, None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must include("surname/FR/")
-      }
-
-      "remove any whitespace from names" in {
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "LE BON", "Bill", None, Some(0), None, None, None, None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must include("surname/LEB/")
-
-      }
-
-      "generate correct url when names contains special char" in {
-
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino, "O'Smith", "Bill", None, Some(0), None, None, None, None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must include("/surname/O%27S/")
-      }
-
-      "generate correct url when nino is not all uppercase" in {
-
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("S1401234Q", nino.toLowerCase, "Smith", "Bill", None, Some(0), None, None, None, None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must include(nino)
-      }
-
-      "generate correct url when scon is not all uppercase" in {
-
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("s1401234q", nino, "Smith", "Bill", None, None, None, None, None, None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must include("S/1401234/Q")
-      }
-
-      "generate correct url with revalrate" in {
-
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("s1401234q", nino, "Smith", "Bill", None, Some(1), None, Some(1), None, None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must include("revalrate")
-      }
-
-      "generate correct url with contribution and earnings" in {
-
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("s1401234q", nino, "Smith", "Bill", None, Some(1), None, Some(1), Some(1), None))
-
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
-
-        urlCaptor.getValue must include("request_earnings")
-      }
-
-      "catch calculate audit failure and continue" in {
-        val mockAuditConnector = mock[AuditConnector]
-
-        object TestNpsConnector extends DesConnector(environment, app.configuration, mockHttp, metrics)
-
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate(ValidCalculationRequest("s1401234q", nino, "Smith", "Bill", None, Some(1), None, Some(1), None, None))
-
+        Mockito.verify(mockMetrics).registerStatusCode(UNPROCESSABLE_ENTITY.toString)
+        Mockito.verify(mockMetrics).desConnectionTime(Matchers.any(), Matchers.any())
       }
     }
 
     "Calling getPersonDetails" should {
 
-      val nino = "AB123456C"
+      val getPersonDetailTestScenarios = List(
+        (OK, citizenDetailsJson, DesGetSuccessResponse),
+        (LOCKED, citizenDetailsJson, DesGetHiddenRecordResponse),
+        (NOT_FOUND, "", DesGetNotFoundResponse),
+        (INTERNAL_SERVER_ERROR, "", DesGetUnexpectedResponse),
+        (SERVICE_UNAVAILABLE, "", DesGetUnexpectedResponse),
+        (TOO_MANY_REQUESTS, "", DesGetUnexpectedResponse),
+        (NGINX_CLIENT_CLOSED_REQUEST, "", DesGetUnexpectedResponse)
+      )
 
-      "return a DesHiddenRecordResponse when manualCorrespondenceInd=true" in {
+      for ((status, body, expected) <- getPersonDetailTestScenarios) {
+        s"return a ${expected.getClass.toString} when status from DES is $status" in new SUT {
+          val url = s"/citizen-details/$nino/etag"
+          stubServiceGet(url, status, body)
 
-        val response = HttpResponse(423, Some(citizenDetailsJson))
-
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any(), any())) thenReturn {
-          Future.successful(response)
+          await(getPersonDetails(nino)) must be(expected)
         }
-
-        val pd = TestDesConnector.getPersonDetails(nino)
-        await(pd) must be(DesGetHiddenRecordResponse)
-        verify(TestDesConnector.metrics, times(1)).mciLockResult()
       }
 
-      "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {
+      s"hit metrics mciLockResult when status from DES is 423" in new SUT {
+        val url = s"/citizen-details/$nino/etag"
+        stubServiceGet(url, LOCKED, citizenDetailsJson)
 
-        val response = HttpResponse(200, Some(citizenDetailsJson))
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any(), any())) thenReturn {
-          Future.successful(response)
-        }
-
-        val pd = TestDesConnector.getPersonDetails(nino)
-        await(pd) must be(DesGetSuccessResponse)
+        await(getPersonDetails(nino))
+        Mockito.verify(mockMetrics).mciLockResult()
       }
 
-      "return a DesNotFoundResponse when HOD returns 404" in {
-
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any(), any())) thenReturn {
-          Future.failed(new NotFoundException("Not found"))
-        }
-
-        val pd = TestDesConnector.getPersonDetails(nino)
-        await(pd) must be(DesGetNotFoundResponse)
-      }
-
-      "return a DesErrorResponse if any other issues" in {
+      "return a DesErrorResponse if any other issues" in new SUT(mockHttp) {
         val ex = new Exception("Exception")
-        val r = HttpResponse(200,  Some(citizenDetailsJson))
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any(), any())) thenReturn {
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())) thenReturn {
           Future.failed(ex)
         }
 
-        val pd = TestDesConnector.getPersonDetails(nino)
-        await(pd) must be(DesGetErrorResponse(ex))
-
+        await(getPersonDetails(nino)) must be(DesGetErrorResponse(ex))
       }
 
-      "return a success response if the MCI flag does not appear in the response" in {
-        val json = Json.parse("{}")
-        val response = HttpResponse(200, Some(json))
+      "return a success response if the MCI flag does not appear in the response" in new SUT {
+        val url = s"/citizen-details/$nino/etag"
+        stubServiceGet(url, OK, "{}")
 
-        when(mockHttp.GET[HttpResponse](anyString)(any(), any(), any())) thenReturn Future.successful(response)
-
-        val result = TestDesConnector.getPersonDetails(nino)
-        await(result) must be(DesGetSuccessResponse)
+        await(getPersonDetails(nino)) must be(DesGetSuccessResponse)
       }
-
-      "return an Unexpected Response with Internal Server response or DES is down" in {
-        val response = HttpResponse(500, Some(citizenDetailsJson))
-
-        when(mockHttp.GET[HttpResponse](anyString)(any(), any(), any())) thenReturn Future.successful(response)
-
-        val result = TestDesConnector.getPersonDetails(nino)
-        await(result) must be(DesGetUnexpectedResponse)
-      }
-
     }
   }
-
 }
