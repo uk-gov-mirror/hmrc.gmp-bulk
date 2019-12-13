@@ -27,6 +27,7 @@ import play.api.http.Status._
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -43,7 +44,7 @@ case class DesGetErrorResponse(e: Exception) extends DesGetResponse
 
 class DesConnector @Inject()(environment: Environment,
                              val runModeConfiguration: Configuration,
-                             http: HttpGet,
+                             http: HttpClient,
                              val metrics: ApplicationMetrics) extends ServicesConfig with UsingCircuitBreaker {
 
   val logger = Logger(this.getClass)

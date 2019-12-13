@@ -31,6 +31,7 @@ import play.api.mvc._
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.BulkCalculationRepository
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.mongo.Awaiting
 
 import scala.concurrent.Future
@@ -43,8 +44,10 @@ class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting w
   val mockEmailConnector = mock[EmailConnector]
   val createdAt = Some(LocalDateTime.now)
   val csvGenerator = app.injector.instanceOf[CsvGenerator]
+  val authConnector = mock[AuthConnector]
+  val fakeAuthAction = FakeAuthAction(authConnector)
 
-  object TestBulkController extends BulkController(FakeAuthAction, mockEmailConnector, csvGenerator) {
+  object TestBulkController extends BulkController(fakeAuthAction, mockEmailConnector, csvGenerator) {
     override val repository = mockRepo
   }
 

@@ -33,6 +33,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import utils.WireMockHelper
 
 import scala.collection.JavaConverters._
@@ -43,8 +44,8 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with WireMockHelp
   private val injector = app.injector
   private val mockMetrics = mock[ApplicationMetrics]
   private val environment = injector.instanceOf[Environment]
-  private val http = injector.instanceOf[HttpGet]
-  private val mockHttp = mock[HttpGet]
+  private val http = injector.instanceOf[HttpClient]
+  private val mockHttp = mock[HttpClient]
   private val NGINX_CLIENT_CLOSED_REQUEST = 499
 
   override def beforeEach(): Unit = {
@@ -63,7 +64,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with WireMockHelp
     )
   }
 
-  class SUT(http:HttpGet = http) extends DesConnector(environment, app.configuration, http, mockMetrics) {
+  class SUT(httpC:HttpClient = http) extends DesConnector(environment, app.configuration, httpC, mockMetrics) {
     override lazy val serviceURL: String = "http://localhost:" + server.port()
     override lazy val citizenDetailsUrl: String = serviceURL
   }

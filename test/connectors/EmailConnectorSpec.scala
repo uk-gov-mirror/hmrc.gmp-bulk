@@ -25,13 +25,14 @@ import org.scalatest.{BeforeAndAfter, _}
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.Environment
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 class EmailConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
 
-  lazy val mockHttp = mock[HttpPost]
+  lazy val mockHttp = mock[HttpClient]
   val environment = app.injector.instanceOf[Environment]
 
   class TestEmailConnector extends EmailConnector(mockHttp, environment, app.configuration)
