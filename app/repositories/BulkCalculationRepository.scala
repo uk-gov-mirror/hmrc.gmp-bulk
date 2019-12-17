@@ -19,7 +19,7 @@ package repositories
 import java.util.concurrent.TimeUnit
 
 import com.google.inject.{Inject, Provider, Singleton}
-import config.{ApplicationConfig, MicroserviceGlobal}
+import config.ApplicationConfig
 import connectors.{EmailConnector, ProcessedUploadTemplate}
 import events.BulkEvent
 import metrics.ApplicationMetrics
@@ -47,16 +47,23 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class BulkCalculationMongoRepositoryProvider @Inject()(component: ReactiveMongoComponent, metrics: ApplicationMetrics) extends Provider[BulkCalculationMongoRepository] {
+class BulkCalculationMongoRepositoryProvider @Inject()(component: ReactiveMongoComponent,
+                                                       metrics: ApplicationMetrics,
+                                                       auditConnector: AuditConnector)
+  extends Provider[BulkCalculationMongoRepository] {
   override def get(): BulkCalculationMongoRepository = {
-    new BulkCalculationMongoRepository(metrics)(component.mongoConnector.db)
+    new BulkCalculationMongoRepository(metrics, auditConnector)(component.mongoConnector.db)
   }
 }
 
-class BulkCalculationMongoRepository @Inject()(metrics: ApplicationMetrics)(implicit mongo: () => DefaultDB) extends ReactiveRepository[BulkCalculationRequest, BSONObjectID](
+class BulkCalculationMongoRepository @Inject()(metrics: ApplicationMetrics,
+                                               ac: AuditConnector)(implicit mongo: () => DefaultDB)
+  extends ReactiveRepository[BulkCalculationRequest, BSONObjectID](
     "bulk-calculation",
     mongo,
     BulkCalculationRequest.formats) with BulkCalculationRepository {
+
+  override val auditConnector: AuditConnector = ac
 
   lazy val proxyCollection: GenericCollection[JSONSerializationPack.type] = collection
 
@@ -520,7 +527,7 @@ trait BulkCalculationRepository extends ReactiveRepository[BulkCalculationReques
   def metrics: ApplicationMetrics = Play.current.injector.instanceOf[ApplicationMetrics]
 
   val emailConnector: EmailConnector = Play.current.injector.instanceOf[EmailConnector]
-  val auditConnector: AuditConnector = MicroserviceGlobal.auditConnector
+  val auditConnector: AuditConnector
 
   def insertResponseByReference(reference: String, lineId: Int, calculationResponse: GmpBulkCalculationResponse): Future[Boolean]
 
