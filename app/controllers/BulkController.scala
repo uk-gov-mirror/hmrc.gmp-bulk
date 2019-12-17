@@ -22,7 +22,7 @@ import controllers.auth.AuthAction
 import models._
 import play.api.libs.json.Json
 import repositories.BulkCalculationRepository
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

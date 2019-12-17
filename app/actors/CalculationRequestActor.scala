@@ -17,6 +17,7 @@
 package actors
 
 import java.util.concurrent.TimeUnit
+
 import akka.actor._
 import connectors.{DesConnector, DesGetHiddenRecordResponse}
 import metrics.ApplicationMetrics
@@ -25,6 +26,7 @@ import play.api.http.Status
 import play.api.{Logger, Play}
 import repositories.BulkCalculationRepository
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 

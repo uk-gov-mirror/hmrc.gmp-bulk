@@ -17,12 +17,10 @@
 package controllers.auth
 
 import play.api.mvc.{Request, Result}
-import uk.gov.hmrc.auth.core.AuthConnector
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-case class FakeAuthAction(override val authConnector: AuthConnector) extends AuthAction(authConnector) {
+object FakeAuthAction extends AuthAction {
 
   override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
 

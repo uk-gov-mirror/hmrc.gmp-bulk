@@ -16,26 +16,22 @@
 
 package config
 
-import com.google.inject.{AbstractModule, Provides, Singleton}
+import com.google.inject.{Provides, Singleton}
+import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DefaultDB
 import repositories.{BulkCalculationMongoRepository, BulkCalculationMongoRepositoryProvider}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.bootstrap.audit.DefaultAuditConnector
-import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
+import uk.gov.hmrc.http.{HttpGet, HttpPost}
 
-class GmpModule(environment: Environment, configuration: Configuration) extends AbstractModule {
+class GmpModule extends Module{
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = Seq(
+    bind[BulkCalculationMongoRepository].toProvider(classOf[BulkCalculationMongoRepositoryProvider]),
+    bind[HttpGet].to(WSHttp),
+    bind[HttpPost].to(WSHttp)
+  )
 
-  def configure(): Unit = {
-    bind(classOf[Scheduler]).asEagerSingleton()
-    bind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
-    bind(classOf[AuditConnector]).to(classOf[DefaultAuditConnector])
-    bind(classOf[BulkCalculationMongoRepository]).toProvider(classOf[BulkCalculationMongoRepositoryProvider])
-  }
-
-    @Provides
-    @Singleton
-    def mongoDB(reactiveMongoComponent: ReactiveMongoComponent): () => DefaultDB = reactiveMongoComponent.mongoConnector.db
-
+@Provides
+@Singleton
+def mongoDB(reactiveMongoComponent: ReactiveMongoComponent): () => DefaultDB = reactiveMongoComponent.mongoConnector.db
 }

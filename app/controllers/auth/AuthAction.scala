@@ -22,15 +22,15 @@ import play.api.http.Status.UNAUTHORIZED
 import play.api.mvc.Results._
 import play.api.mvc.{ActionBuilder, ActionFunction, Request, Result}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.auth.core._
+import uk.gov.hmrc.auth.core.{AuthorisedFunctions, ConfidenceLevel, NoActiveSession, PlayAuthConnector}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthAction @Inject()(override val authConnector: AuthConnector)
-                              (implicit ec: ExecutionContext) extends ActionBuilder[Request] with AuthorisedFunctions {
+class AuthActionImpl @Inject()(override val authConnector: MicroserviceAuthConnector)
+                              (implicit ec: ExecutionContext) extends AuthAction with AuthorisedFunctions {
 
   override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
@@ -42,4 +42,16 @@ class AuthAction @Inject()(override val authConnector: AuthConnector)
         Status(UNAUTHORIZED)
     }
   }
+}
+
+@ImplementedBy(classOf[AuthActionImpl])
+trait AuthAction extends ActionBuilder[Request] with ActionFunction[Request, Request]
+
+
+class MicroserviceAuthConnector @Inject()( val http: HttpPost,
+                                           val runModeConfiguration: Configuration,
+                                           environment: Environment
+                                         ) extends PlayAuthConnector with ServicesConfig {
+  override val serviceUrl: String = baseUrl("auth")
+  override protected def mode: Mode = environment.mode
 }
