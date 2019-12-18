@@ -16,21 +16,21 @@
 
 package controllers.auth
 
-import com.google.inject.{ImplementedBy, Inject}
-import play.api.Mode.Mode
+import com.google.inject.Inject
 import play.api.http.Status.UNAUTHORIZED
 import play.api.mvc.Results._
-import play.api.mvc.{ActionBuilder, ActionFunction, Request, Result}
-import play.api.{Configuration, Environment}
+import play.api.mvc._
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.HeaderCarrierConverter
-import uk.gov.hmrc.play.config.ServicesConfig
-
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthAction @Inject()(override val authConnector: AuthConnector)
-                              (implicit ec: ExecutionContext) extends ActionBuilder[Request] with AuthorisedFunctions {
+class AuthAction @Inject()(override val authConnector: AuthConnector,
+                           controllerComponents: ControllerComponents)
+  extends ActionBuilder[Request, AnyContent] with AuthorisedFunctions {
+
+  implicit val executionContext = controllerComponents.executionContext
+  val parser: BodyParser[AnyContent] = controllerComponents.parsers.defaultBodyParser
 
   override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)

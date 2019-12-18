@@ -19,18 +19,25 @@ package controllers
 import com.google.inject.Inject
 import connectors.{EmailConnector, ReceivedUploadTemplate}
 import controllers.auth.AuthAction
+import javax.inject.Singleton
 import models._
 import play.api.libs.json.Json
+import play.api.mvc.ControllerComponents
 import repositories.BulkCalculationRepository
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.{BackendController, BaseController}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class BulkController @Inject()(authAction: AuthAction, emailConnector: EmailConnector, csvGenerator: CsvGenerator) extends BaseController {
+@Singleton
+class BulkController @Inject()(authAction: AuthAction,
+                               emailConnector: EmailConnector,
+                               csvGenerator: CsvGenerator,
+                               cc: ControllerComponents) extends BackendController(cc) {
 
-  val repository: BulkCalculationRepository = BulkCalculationRepository()
+  lazy val repository: BulkCalculationRepository = BulkCalculationRepository()
 
   def post(userId: String) = authAction.async(parse.json(maxLength = 1024 * 10000)) {
+        println("******")
     implicit request =>
       withJsonBody[BulkCalculationRequest] { bulkCalculationRequest =>
         repository.insertBulkDocument(bulkCalculationRequest).map {

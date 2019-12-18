@@ -17,29 +17,37 @@
 package config
 
 import actors.{ActorUtils, ProcessingSupervisor}
-import akka.actor.Props
+import akka.actor.{ActorSystem, Props}
+import com.google.inject.Singleton
 import com.typesafe.config.Config
+import javax.inject.Inject
 import net.ceedubs.ficus.Ficus._
 import play.api.Mode.Mode
 import play.api.Play.current
+import play.api.inject.DefaultApplicationLifecycle
 import play.api.libs.concurrent.Akka
-import play.api.{Application, Configuration, Play}
+import play.api.{Application, Configuration, Environment, Play}
 import services.BulkCompletionService
-import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, RunningOfScheduledJobs, ScheduledJob}
+
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class Scheduler extends RunMode with RunningOfScheduledJobs with ActorUtils {
+@Singleton
+class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLifecycle,
+                         actorSystem: ActorSystem,
+                         env: Environment,
+                        override val application: Application)(implicit val ec: ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
 
-  override val scheduledJobs: Seq[ScheduledJob] = {
+  lazy val scheduledJobs: Seq[ScheduledJob] = {
     Seq(new ExclusiveScheduledJob {
-          lazy val processingSupervisor = Akka.system.actorOf(Props[ProcessingSupervisor], "processing-supervisor")
+          lazy val processingSupervisor = actorSystem.actorOf(Props[ProcessingSupervisor], "processing-supervisor")
 
           override def name: String = "BulkProcesssingService"
 
           override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
-            if(env != "Test") {
+            if(env.mode != "Test") {
               processingSupervisor ! START
               Future.successful(Result("started"))
             }else {
@@ -47,9 +55,9 @@ class Scheduler extends RunMode with RunningOfScheduledJobs with ActorUtils {
             }
           }
 
-          override def interval: FiniteDuration = ApplicationConfig.bulkProcessingInterval
+          override def interval: FiniteDuration = 15 seconds
 
-          override def initialDelay: FiniteDuration = 0 seconds
+          override def initialDelay: FiniteDuration = 1 seconds
         },
         new ExclusiveScheduledJob {
 
@@ -65,13 +73,10 @@ class Scheduler extends RunMode with RunningOfScheduledJobs with ActorUtils {
 
           override def name: String = "BulkCompletionService"
 
-          override def interval: FiniteDuration = ApplicationConfig.bulkCompleteInterval
+          override def interval: FiniteDuration = 1 minute
 
-          override def initialDelay: FiniteDuration = 0 seconds
+          override def initialDelay: FiniteDuration = 1 seconds
         })
   }
 
-  override protected def mode: Mode = Play.current.mode
-
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }

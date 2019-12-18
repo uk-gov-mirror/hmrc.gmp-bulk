@@ -25,13 +25,13 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.audit.DefaultAuditConnector
 import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
 
-class GmpModule(environment: Environment, configuration: Configuration) extends AbstractModule {
+class Module(environment: Environment, configuration: Configuration) extends AbstractModule {
 
   def configure(): Unit = {
-    bind(classOf[Scheduler]).asEagerSingleton()
     bind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
     bind(classOf[AuditConnector]).to(classOf[DefaultAuditConnector])
     bind(classOf[BulkCalculationMongoRepository]).toProvider(classOf[BulkCalculationMongoRepositoryProvider])
+    bind(classOf[Scheduler]).asEagerSingleton()
   }
 
     @Provides
