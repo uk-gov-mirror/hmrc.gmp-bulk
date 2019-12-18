@@ -21,14 +21,18 @@ import models._
 import org.joda.time.{LocalDate, LocalDateTime}
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.i18n.Messages
+import play.api.i18n.{Messages, MessagesImpl}
 import uk.gov.hmrc.mongo.Awaiting
+import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 //import play.api.Play.current
 import play.api.i18n.Messages.Implicits._
 
-class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting with MockitoSugar {
+class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with Awaiting with MockitoSugar {
 
+  val cc = stubMessagesControllerComponents()
+  implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
   object TestCsvGenerator extends CsvGenerator
 
   final val CSV_HEADER_ROWS = 2
@@ -85,9 +89,9 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
       val date = LocalDate.now().toString(DEFAULT_DATE_FORMAT)
 
       val csvRows = s"""Success,S2730000B,$nino,John,Smith,ref1,Date of leaving,,$date,,No,3.12,1.23,,,$date,$date,3.12,1.23,,,,,,,"""
-      val columnHeaders = s"Status,${Messages("gmp.bulk.csv.headers")},${Messages("gmp.bulk.totals.headers")},$periodColumns"
+      val columnHeaders = s"Status,${messages("gmp.bulk.csv.headers")},${messages("gmp.bulk.totals.headers")},$periodColumns"
       val headerCount = columnHeaders.split(",").size
-      val guidanceText = s"${Messages("gmp.bulk.csv.guidance")}${"," * (headerCount - 1)}"
+      val guidanceText = s"${messages("gmp.bulk.csv.guidance")}${"," * (headerCount - 1)}"
 
       val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)) split "\n"
 

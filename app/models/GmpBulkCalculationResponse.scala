@@ -21,6 +21,8 @@ import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.i18n.Messages.Implicits._
 import play.api.libs.json.Json
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 
@@ -52,14 +54,14 @@ case class CalculationPeriod(startDate: Option[LocalDate],
                              contsAndEarnings: Option[List[ContributionsAndEarnings]]
                             ) {
 
-  def getPeriodErrorMessageReason: Option[String] = {
+  def getPeriodErrorMessageReason()(implicit messages: Messages): Option[String] = {
     errorCode > 0 match {
       case true => Some(Messages(s"${errorCode}.reason"))
       case _ => None
     }
   }
 
-  def getPeriodErrorMessageWhat: Option[String] = {
+  def getPeriodErrorMessageWhat()(implicit messages: Messages): Option[String] = {
     errorCode > 0 match {
       case true => Some(Messages(s"${errorCode}.what"))
       case _ => None

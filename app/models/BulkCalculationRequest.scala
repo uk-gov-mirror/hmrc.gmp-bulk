@@ -91,14 +91,14 @@ case class ProcessReadyCalculationRequest(bulkId: String,
 
   def hasNPSErrors = calculationResponse.isDefined && (calculationResponse.get.globalErrorCode > 0 || calculationResponse.get.hasErrors)
 
-  def getGlobalErrorMessageReason: Option[String] = {
+  def getGlobalErrorMessageReason()(implicit messages: Messages): Option[String] = {
     calculationResponse.isDefined match {
       case true if calculationResponse.get.globalErrorCode > 0 => Some(Messages(s"${calculationResponse.get.globalErrorCode}.reason"))
       case _ => None
     }
   }
 
-  def getGlobalErrorMessageWhat: Option[String] = {
+  def getGlobalErrorMessageWhat()(implicit messages: Messages): Option[String] = {
     calculationResponse.isDefined match {
       case true if calculationResponse.get.globalErrorCode > 0 => Some(Messages(s"${calculationResponse.get.globalErrorCode}.what"))
       case _ => None

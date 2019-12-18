@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
- 
-
 package config
 
 import javax.inject.Inject
-import play.api.Mode.Mode
-import play.api.Play._
-import play.api.{Configuration, Play}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import play.api.Configuration
+import scala.concurrent.duration.FiniteDuration
 
 trait ApplicationConfig {
   val bulkProcessingBatchSize: Int

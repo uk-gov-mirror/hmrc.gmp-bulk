@@ -32,7 +32,7 @@ import uk.gov.hmrc.auth.core.{AuthConnector, MissingBearerToken}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-
+import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
 class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
@@ -51,7 +51,7 @@ class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar
         when(mockMicroserviceAuthConnector.authorise(any(),any())(any(), any()))
           .thenReturn(Future.failed(new MissingBearerToken))
 
-        val authAction = new AuthAction(mockMicroserviceAuthConnector)
+        val authAction = new AuthAction(mockMicroserviceAuthConnector, stubMessagesControllerComponents())
         val controller = new Harness(authAction)
         val result = controller.onPageLoad()(FakeRequest("", ""))
         status(result) mustBe UNAUTHORIZED
@@ -66,7 +66,7 @@ class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar
         when(mockMicroserviceAuthConnector.authorise[Unit](any(),any())(any(), any()))
           .thenReturn(Future.successful(()))
 
-        val authAction = new AuthAction(mockMicroserviceAuthConnector)
+        val authAction = new AuthAction(mockMicroserviceAuthConnector, stubMessagesControllerComponents())
         val controller = new Harness(authAction)
 
         val result = controller.onPageLoad()(FakeRequest("", ""))

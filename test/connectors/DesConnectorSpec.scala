@@ -20,6 +20,7 @@ import java.util.UUID
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import config.ApplicationConfiguration
 import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models.ValidCalculationRequest
@@ -33,6 +34,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import utils.WireMockHelper
 
@@ -45,6 +47,8 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with WireMockHelp
   private val mockMetrics = mock[ApplicationMetrics]
   private val environment = injector.instanceOf[Environment]
   private val http = injector.instanceOf[HttpClient]
+  private val servicesConfig = injector.instanceOf[ServicesConfig]
+  private val applicationConfig = injector.instanceOf[ApplicationConfiguration]
   private val mockHttp = mock[HttpClient]
   private val NGINX_CLIENT_CLOSED_REQUEST = 499
 
@@ -64,7 +68,7 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with WireMockHelp
     )
   }
 
-  class SUT(httpC:HttpClient = http) extends DesConnector(environment, app.configuration, httpC, mockMetrics) {
+  class SUT(httpC:HttpClient = http) extends DesConnector(environment, app.configuration, httpC, mockMetrics, servicesConfig, applicationConfig) {
     override lazy val serviceURL: String = "http://localhost:" + server.port()
     override lazy val citizenDetailsUrl: String = serviceURL
   }

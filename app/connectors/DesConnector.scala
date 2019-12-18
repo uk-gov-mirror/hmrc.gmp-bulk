@@ -18,10 +18,9 @@ package connectors
 
 import java.util.concurrent.TimeUnit
 import com.google.inject.Inject
-import config.{ApplicationConfig, ApplicationConfiguration}
+import config.ApplicationConfiguration
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, ValidCalculationRequest}
-import play.api.Mode.Mode
 import play.api.http.Status._
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}

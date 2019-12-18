@@ -19,7 +19,7 @@ package repositories
 import java.util.concurrent.TimeUnit
 
 import com.google.inject.{Inject, Provider, Singleton}
-import config.ApplicationConfig
+import config.{ApplicationConfig, ApplicationConfiguration}
 import connectors.{EmailConnector, ProcessedUploadTemplate}
 import events.BulkEvent
 import metrics.ApplicationMetrics
@@ -49,15 +49,17 @@ import scala.util.{Failure, Success, Try}
 @Singleton
 class BulkCalculationMongoRepositoryProvider @Inject()(component: ReactiveMongoComponent,
                                                        metrics: ApplicationMetrics,
-                                                       auditConnector: AuditConnector)
+                                                       auditConnector: AuditConnector,
+                                                       applicationConfig: ApplicationConfiguration)
   extends Provider[BulkCalculationMongoRepository] {
   override def get(): BulkCalculationMongoRepository = {
-    new BulkCalculationMongoRepository(metrics, auditConnector)(component.mongoConnector.db)
+    new BulkCalculationMongoRepository(metrics, auditConnector, applicationConfig)(component.mongoConnector.db)
   }
 }
 
 class BulkCalculationMongoRepository @Inject()(metrics: ApplicationMetrics,
-                                               ac: AuditConnector)(implicit mongo: () => DefaultDB)
+                                               ac: AuditConnector,
+                                               applicationConfiguration: ApplicationConfiguration)(implicit mongo: () => DefaultDB)
   extends ReactiveRepository[BulkCalculationRequest, BSONObjectID](
     "bulk-calculation",
     mongo,
@@ -241,7 +243,7 @@ class BulkCalculationMongoRepository @Inject()(metrics: ApplicationMetrics,
 
               val childRequests = proxyCollection.find(Json.obj("isChild" -> true, "hasValidationErrors" -> false, "bulkId" -> bulkRequest._id,
                 "hasValidRequest" -> true,
-                "hasResponse" -> false)).cursor[ProcessReadyCalculationRequest](ReadPreference.primary).collect[List](ApplicationConfig.bulkProcessingBatchSize, Cursor.FailOnError[List[ProcessReadyCalculationRequest]]())
+                "hasResponse" -> false)).cursor[ProcessReadyCalculationRequest](ReadPreference.primary).collect[List](applicationConfiguration.bulkProcessingBatchSize, Cursor.FailOnError[List[ProcessReadyCalculationRequest]]())
 
               childRequests
             }

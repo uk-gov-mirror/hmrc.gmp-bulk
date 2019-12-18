@@ -19,16 +19,10 @@ package config
 import actors.{ActorUtils, ProcessingSupervisor}
 import akka.actor.{ActorSystem, Props}
 import com.google.inject.Singleton
-import com.typesafe.config.Config
 import javax.inject.Inject
-import net.ceedubs.ficus.Ficus._
-import play.api.Mode.Mode
-import play.api.Play.current
 import play.api.inject.DefaultApplicationLifecycle
-import play.api.libs.concurrent.Akka
-import play.api.{Application, Configuration, Environment, Play}
+import play.api.{Application, Environment, Play}
 import services.BulkCompletionService
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, RunningOfScheduledJobs, ScheduledJob}
 
 import scala.concurrent.duration._
@@ -38,11 +32,12 @@ import scala.concurrent.{ExecutionContext, Future}
 class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLifecycle,
                          actorSystem: ActorSystem,
                          env: Environment,
-                        override val application: Application)(implicit val ec: ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
+                        override val application: Application,
+                         applicationConfiguration: ApplicationConfiguration)(implicit val ec: ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
 
   lazy val scheduledJobs: Seq[ScheduledJob] = {
     Seq(new ExclusiveScheduledJob {
-          lazy val processingSupervisor = actorSystem.actorOf(Props[ProcessingSupervisor], "processing-supervisor")
+          lazy val processingSupervisor = actorSystem.actorOf(Props(classOf[ProcessingSupervisor], applicationConfiguration), "processing-supervisor")
 
           override def name: String = "BulkProcesssingService"
 
