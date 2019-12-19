@@ -50,7 +50,7 @@ class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLi
             }
           }
 
-          override def interval: FiniteDuration = 15 seconds
+          override def interval: FiniteDuration = applicationConfiguration.bulkProcessingInterval
 
           override def initialDelay: FiniteDuration = 1 seconds
         },
@@ -68,7 +68,7 @@ class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLi
 
           override def name: String = "BulkCompletionService"
 
-          override def interval: FiniteDuration = 1 minute
+          override def interval: FiniteDuration = applicationConfiguration.bulkCompleteInterval
 
           override def initialDelay: FiniteDuration = 1 seconds
         })

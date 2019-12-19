@@ -94,8 +94,11 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
 
         throttlerProbe.expectMsgClass(classOf[SetTarget])
         throttlerProbe.expectMsg(processReadyCalculationRequest)
+        //Add this to be more than one second as we have an initial delay of 1 second
+        Thread.sleep(1500)
         throttlerProbe.expectMsg(STOP)
         processingSupervisor ! STOP // simulate stop coming from calc requestor
+
 
       }
 

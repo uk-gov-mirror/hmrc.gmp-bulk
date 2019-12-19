@@ -38,5 +38,5 @@ class ApplicationConfiguration@Inject()(configuration: Configuration) extends Ap
   override val numberOfCallsToTriggerStateChange = configuration.getInt(s"circuit-breaker.number-of-calls-to-trigger-state-change").getOrElse(10)
   override val unavailablePeriodDuration: Int = configuration.getInt(s"circuit-breaker.unavailable-period-duration").getOrElse(300)
   override val unstablePeriodDuration: Int = configuration.getInt(s"circuit-breaker.unstable-period-duration").getOrElse(60)
-  override lazy val bulkCompleteInterval = FiniteDuration.apply(configuration.getLong(s"bulk-complete-interval").getOrElse(10L), "minute")
+  override lazy val bulkCompleteInterval = FiniteDuration.apply(configuration.getLong(s"bulk-complete-interval").getOrElse(1L), "minute")
 }
