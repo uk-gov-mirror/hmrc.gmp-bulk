@@ -50,9 +50,9 @@ class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLi
             }
           }
 
-          override def interval: FiniteDuration = applicationConfiguration.bulkProcessingInterval
+          override def interval: FiniteDuration = 15 seconds
 
-          override def initialDelay: FiniteDuration = 1 seconds
+          override def initialDelay: FiniteDuration = 0 seconds
         },
         new ExclusiveScheduledJob {
 
@@ -68,9 +68,9 @@ class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLi
 
           override def name: String = "BulkCompletionService"
 
-          override def interval: FiniteDuration = applicationConfiguration.bulkCompleteInterval
+          override def interval: FiniteDuration = 1 minute
 
-          override def initialDelay: FiniteDuration = 1 seconds
+          override def initialDelay: FiniteDuration = 0 seconds
         })
   }
 
