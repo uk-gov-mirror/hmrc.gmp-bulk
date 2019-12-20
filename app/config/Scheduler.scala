@@ -18,18 +18,16 @@ package config
 
 import actors.{ActorUtils, ProcessingSupervisor}
 import akka.actor.{ActorSystem, Props}
-import com.google.inject.Singleton
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.inject.DefaultApplicationLifecycle
 import play.api.{Application, Environment, Play}
 import services.BulkCompletionService
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, RunningOfScheduledJobs, ScheduledJob}
-
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLifecycle,
+class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationLifecycle,
                          actorSystem: ActorSystem,
                          env: Environment,
                          override val application: Application,

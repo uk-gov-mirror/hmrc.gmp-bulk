@@ -20,7 +20,7 @@ import akka.actor._
 import akka.contrib.throttle.Throttler.{SetTarget, _}
 import akka.contrib.throttle.TimerBasedThrottler
 import config.ApplicationConfiguration
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.modules.reactivemongo.MongoDbConnection
 import repositories.BulkCalculationRepository
@@ -29,7 +29,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class ProcessingSupervisor@Inject()(applicationConfig: ApplicationConfiguration) extends Actor with ActorUtils with MongoDbConnection {
+@Singleton
+class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration) extends Actor with ActorUtils with MongoDbConnection {
 
   val lockrepo = LockMongoRepository(db)
 
