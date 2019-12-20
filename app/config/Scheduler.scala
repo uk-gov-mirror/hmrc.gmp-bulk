@@ -32,8 +32,9 @@ import scala.concurrent.{ExecutionContext, Future}
 class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLifecycle,
                          actorSystem: ActorSystem,
                          env: Environment,
-                        override val application: Application,
-                         applicationConfiguration: ApplicationConfiguration)(implicit val ec: ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
+                         override val application: Application,
+                         applicationConfiguration: ApplicationConfiguration
+                        )(implicit val ec: ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
 
   lazy val scheduledJobs: Seq[ScheduledJob] = {
     Seq(new ExclusiveScheduledJob {
@@ -52,7 +53,7 @@ class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLi
 
           override def interval: FiniteDuration = 15 seconds
 
-          override def initialDelay: FiniteDuration = 0 seconds
+          override def initialDelay: FiniteDuration = 1 seconds
         },
         new ExclusiveScheduledJob {
 
@@ -70,7 +71,7 @@ class Scheduler@Inject()(override val applicationLifecycle: DefaultApplicationLi
 
           override def interval: FiniteDuration = 1 minute
 
-          override def initialDelay: FiniteDuration = 0 seconds
+          override def initialDelay: FiniteDuration = 1 seconds
         })
   }
 

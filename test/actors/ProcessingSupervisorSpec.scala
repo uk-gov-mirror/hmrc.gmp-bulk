@@ -84,8 +84,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
         Some(ValidCalculationRequest("S2730000B",RandomNino.generate,"smith","jim",None,None,None,None,None,None)), None, None)
 
       when(mockRepository.findRequestsToProcess()).thenReturn(Future.successful(Some(List(processReadyCalculationRequest))))
-
-      within(5 seconds) {
+      within(20 seconds) {
 
         println("sending start")
         processingSupervisor ! START
@@ -93,9 +92,9 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
         processingSupervisor ! START
 
         throttlerProbe.expectMsgClass(classOf[SetTarget])
-        throttlerProbe.expectMsg(10 seconds, processReadyCalculationRequest)
-        //throttlerProbe.expectMsg(10 seconds, STOP)
-       // processingSupervisor ! STOP // simulate stop coming from calc requestor
+        throttlerProbe.expectMsg(processReadyCalculationRequest)
+        throttlerProbe.expectMsg(15 seconds, STOP)
+       processingSupervisor ! STOP // simulate stop coming from calc requestor
 
 
       }
