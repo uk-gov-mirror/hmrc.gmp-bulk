@@ -21,15 +21,18 @@ import helpers.RandomNino
 import org.joda.time.LocalDateTime
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, MustMatchers}
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
-import play.api.i18n.Messages
+import play.api.i18n.{Messages, MessagesImpl}
 import play.api.i18n.Messages.Implicits._
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import play.api.{Application, Mode}
+import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
-class BulkCalculationRequestSpec extends PlaySpec with OneAppPerSuite with MustMatchers {
-
+class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with MustMatchers {
+  val cc = stubMessagesControllerComponents()
+  implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
   def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
     "logger.play" -> "ERROR",
     "logger.root" -> "ERROR",

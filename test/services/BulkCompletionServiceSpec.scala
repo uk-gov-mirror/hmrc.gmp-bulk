@@ -24,6 +24,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.Json
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.mongo.MongoSpecSupport
@@ -31,7 +32,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class BulkCompletionServiceSpec extends UnitSpec with MockitoSugar with OneServerPerSuite with BeforeAndAfterEach with MongoSpecSupport {
+class BulkCompletionServiceSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite with BeforeAndAfterEach with MongoSpecSupport {
 
   lazy val bulkCalculationRespository =app.injector.instanceOf[BulkCalculationMongoRepository]
 

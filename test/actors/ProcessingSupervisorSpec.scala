@@ -20,6 +20,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.contrib.throttle.Throttler.SetTarget
 import akka.testkit._
 import com.kenshoo.play.metrics.PlayModule
+import config.ApplicationConfiguration
 import helpers.RandomNino
 import models.{ProcessReadyCalculationRequest, ValidCalculationRequest}
 import org.mockito.Matchers._
@@ -27,6 +28,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
+import org.scalatestplus.play.guice.{GuiceOneAppPerSuite, GuiceOneAppPerTest}
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.{Application, Mode}
 import repositories.BulkCalculationRepository
@@ -36,7 +38,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with UnitSpec with MockitoSugar with OneServerPerSuite
+class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with UnitSpec with MockitoSugar with GuiceOneAppPerSuite
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils {
 
   def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
@@ -51,10 +53,11 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
     .bindings(bindModules:_*).in(Mode.Test)
     .build()
 
+  lazy val applicationConfig = app.injector.instanceOf[ApplicationConfiguration]
   val mockLockRepo = mock[LockRepository]
 
   override def beforeAll = {
-    when(mockLockRepo.lock(anyString, anyString, any[org.joda.time.Duration])) thenReturn true
+    when(mockLockRepo.lock(anyString, anyString, any())) thenReturn true
   }
 
   override def afterAll: Unit = {
@@ -65,11 +68,11 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
 
     "send requests to throttler" in {
 
-      val throttlerProbe = TestProbe()
-      val calculationActorProbe = TestProbe()
-      val mockRepository = mock[BulkCalculationRepository]
+      lazy val throttlerProbe = TestProbe()
+      lazy val calculationActorProbe = TestProbe()
+      lazy val mockRepository = mock[BulkCalculationRepository]
 
-      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor {
+      lazy val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig) {
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
@@ -81,8 +84,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
         Some(ValidCalculationRequest("S2730000B",RandomNino.generate,"smith","jim",None,None,None,None,None,None)), None, None)
 
       when(mockRepository.findRequestsToProcess()).thenReturn(Future.successful(Some(List(processReadyCalculationRequest))))
-
-      within(5 seconds) {
+      within(20 seconds) {
 
         println("sending start")
         processingSupervisor ! START
@@ -91,8 +93,9 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
 
         throttlerProbe.expectMsgClass(classOf[SetTarget])
         throttlerProbe.expectMsg(processReadyCalculationRequest)
-        throttlerProbe.expectMsg(STOP)
-        processingSupervisor ! STOP // simulate stop coming from calc requestor
+        throttlerProbe.expectMsg(15 seconds, STOP)
+       processingSupervisor ! STOP // simulate stop coming from calc requestor
+
 
       }
 
@@ -104,7 +107,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
       val calculationActorProbe = TestProbe()
       val mockRepository = mock[BulkCalculationRepository]
 
-      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor {
+      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig) {
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
@@ -128,7 +131,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
       val calculationActorProbe = TestProbe()
       val mockRepository = mock[BulkCalculationRepository]
 
-      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor {
+      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig) {
 
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref

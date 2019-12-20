@@ -19,23 +19,18 @@ package actors
 import akka.actor._
 import akka.contrib.throttle.Throttler.{SetTarget, _}
 import akka.contrib.throttle.TimerBasedThrottler
-import config.ApplicationConfig
+import config.ApplicationConfiguration
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
-//import play.modules.reactivemongo.ReactiveMongoPlugin
 import play.modules.reactivemongo.MongoDbConnection
 import repositories.BulkCalculationRepository
 import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class ProcessingSupervisor extends Actor with ActorUtils with MongoDbConnection {
-
-/*  val connection = {
-    import play.api.Play.current
-    ReactiveMongoPlugin.mongoConnector.db
-  }*/
+@Singleton
+class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration) extends Actor with ActorUtils with MongoDbConnection {
 
   val lockrepo = LockMongoRepository(db)
 
@@ -62,7 +57,7 @@ class ProcessingSupervisor extends Actor with ActorUtils with MongoDbConnection 
   lazy val requestActor: ActorRef = context.actorOf(CalculationRequestActor.props, "calculation-requester")
 
   lazy val throttler: ActorRef = context.actorOf(Props(classOf[TimerBasedThrottler],
-    ApplicationConfig.bulkProcessingTps msgsPer 1.seconds), "throttler")
+    applicationConfig.bulkProcessingTps msgsPer 1.seconds), "throttler")
 
   throttler ! SetTarget(Some(requestActor))
 
@@ -84,7 +79,7 @@ class ProcessingSupervisor extends Actor with ActorUtils with MongoDbConnection 
         repository.findRequestsToProcess().map {
           case Some(requests) if requests.nonEmpty => {
             Logger.debug(s"[ProcessingSupervisor][receive] took ${requests.size} request/s")
-            for (request <- requests.take(ApplicationConfig.bulkProcessingBatchSize)) {
+            for (request <- requests.take(applicationConfig.bulkProcessingBatchSize)) {
 
               throttler ! request
             }

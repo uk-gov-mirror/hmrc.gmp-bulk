@@ -18,12 +18,11 @@ package connectors
 
 import com.google.inject.Inject
 import org.joda.time.LocalDate
-import play.api.Mode.Mode
 import play.api.libs.json.Json
 import play.api.{Configuration, Environment, Logger}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
-import uk.gov.hmrc.play.config.ServicesConfig
-
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -37,11 +36,10 @@ object SendTemplatedEmailRequest {
   implicit val format = Json.format[SendTemplatedEmailRequest]
 }
 
-class EmailConnector @Inject()(http: HttpPost,
+class EmailConnector @Inject()(http: HttpClient,
                                environment: Environment,
-                               val runModeConfiguration: Configuration) extends ServicesConfig {
-
-  override protected def mode: Mode = environment.mode
+                               val runModeConfiguration: Configuration,
+                               servicesConfig: ServicesConfig) {
 
   def sendReceivedTemplatedEmail(template: ReceivedUploadTemplate)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
@@ -61,7 +59,7 @@ class EmailConnector @Inject()(http: HttpPost,
 
   private def sendEmail(request: SendTemplatedEmailRequest)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
-    val url = s"${baseUrl("email")}/hmrc/email"
+    val url = s"${servicesConfig.baseUrl("email")}/hmrc/email"
 
     Logger.debug(s"[EmailConnector] Sending email to ${request.to.mkString(", ")}")
 

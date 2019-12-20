@@ -14,38 +14,25 @@
  * limitations under the License.
  */
 
- 
-
 package config
 
-import play.api.Mode.Mode
-import play.api.Play._
-import play.api.{Configuration, Play}
-import uk.gov.hmrc.play.config.ServicesConfig
-
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import javax.inject.Inject
+import play.api.Configuration
+import scala.concurrent.duration.FiniteDuration
 
 trait ApplicationConfig {
   val bulkProcessingBatchSize: Int
-  val bulkProcessingInterval: FiniteDuration
   val numberOfCallsToTriggerStateChange: Int
   val unavailablePeriodDuration: Int
   val unstablePeriodDuration: Int
-  val bulkCompleteInterval: FiniteDuration
   val bulkProcessingTps: Int
 }
 
-object ApplicationConfig extends ApplicationConfig with ServicesConfig {
+class ApplicationConfiguration@Inject()(configuration: Configuration) extends ApplicationConfig {
 
   override lazy val bulkProcessingBatchSize = configuration.getInt(s"bulk-batch-size").getOrElse(100)
   override lazy val bulkProcessingTps = configuration.getInt(s"bulk-processing-tps").getOrElse(10)
-  override lazy val bulkProcessingInterval = Duration.apply(configuration.getString(s"bulk-processing-interval").getOrElse("10 seconds")).asInstanceOf[FiniteDuration]
   override val numberOfCallsToTriggerStateChange = configuration.getInt(s"circuit-breaker.number-of-calls-to-trigger-state-change").getOrElse(10)
   override val unavailablePeriodDuration: Int = configuration.getInt(s"circuit-breaker.unavailable-period-duration").getOrElse(300)
   override val unstablePeriodDuration: Int = configuration.getInt(s"circuit-breaker.unstable-period-duration").getOrElse(60)
-
-  override lazy val bulkCompleteInterval = Duration.apply(configuration.getString(s"bulk-complete-interval").getOrElse("10 seconds")).asInstanceOf[FiniteDuration]
-
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }

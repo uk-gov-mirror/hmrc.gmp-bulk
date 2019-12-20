@@ -124,7 +124,7 @@ class CsvGenerator {
     def build: Row = ResponseRow(cells, Some(errorCell), Some(errorResolutionCell))
   }
 
-  class ResponseRowBuilder(request: ProcessReadyCalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
+  class ResponseRowBuilder(request: ProcessReadyCalculationRequest)(implicit filter: CsvFilter, messages: Messages) extends RowBuilder {
 
     request.validCalculationRequest match {
       case Some(x) =>
@@ -313,7 +313,7 @@ class CsvGenerator {
     }
   }
 
-  class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter) extends RowBuilder {
+  class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter, messages: Messages) extends RowBuilder {
 
     addCell(calculationPeriod.startDate match {
       case Some(date) => date.toString(DATE_DEFAULT_FORMAT)
@@ -361,7 +361,7 @@ class CsvGenerator {
 
   }
 
-  class HeaderRowBuilder(periodCount: Int)(implicit filter: CsvFilter) extends RowBuilder {
+  class HeaderRowBuilder(periodCount: Int)(implicit filter: CsvFilter, messages: Messages) extends RowBuilder {
 
     val periodCell = (msg: String, periodIndex: Int) => new Cell {
       val text = s"${Messages("gmp.period")} $periodIndex ${Messages(msg)}"
@@ -424,7 +424,7 @@ class CsvGenerator {
 
   }
 
-  def generateCsv(result: ProcessedBulkCalculationRequest, csvFilter: Option[CsvFilter]): String = {
+  def generateCsv(result: ProcessedBulkCalculationRequest, csvFilter: Option[CsvFilter])(implicit messages: Messages): String = {
 
     implicit val filter = csvFilter.get
 
@@ -449,7 +449,7 @@ class CsvGenerator {
     csvBuilder.build
   }
 
-  def generateContributionsCsv(request: ProcessedBulkCalculationRequest): String = {
+  def generateContributionsCsv(request: ProcessedBulkCalculationRequest)(implicit messages: Messages): String = {
 
     Messages("gmp.bulk.csv.contributions.headers") + "\n" + request.calculationRequests.map {
       case calcRequest => {

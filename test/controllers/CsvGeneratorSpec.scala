@@ -21,14 +21,18 @@ import models._
 import org.joda.time.{LocalDate, LocalDateTime}
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.i18n.Messages
+import play.api.i18n.{Messages, MessagesImpl}
 import uk.gov.hmrc.mongo.Awaiting
+import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 //import play.api.Play.current
 import play.api.i18n.Messages.Implicits._
 
-class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting with MockitoSugar {
+class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with Awaiting with MockitoSugar {
 
+  val cc = stubMessagesControllerComponents()
+  implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
   object TestCsvGenerator extends CsvGenerator
 
   final val CSV_HEADER_ROWS = 2
@@ -79,15 +83,14 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "return bulk result as a csv string" in {
 
-      val periodColumns = "Period 1 (start date),Period 1 (end date),Period 1 (total GMP),Period 1 (post 1988),Period 1 (post 1990 - true gender)," +
-        "Period 1 (post 1990 - opposite gender),Period 1 (revaluation rate),Period 1 Error,Period 1 What to do,Error,What to do"
+      val periodColumns = "gmp.period 1 gmp.period.start_date,gmp.period 1 gmp.period.end_date,gmp.period 1 gmp.period.total,gmp.period 1 gmp.period.post_88,gmp.period 1 gmp.period.post_90_true,gmp.period 1 gmp.period.post_90_opp,gmp.period 1 gmp.period.reval_rate,gmp.period 1 gmp.period.error,gmp.period 1 gmp.period.what,gmp.bulk.csv.globalerror.headers"
 
       val date = LocalDate.now().toString(DEFAULT_DATE_FORMAT)
 
-      val csvRows = s"""Success,S2730000B,$nino,John,Smith,ref1,Date of leaving,,$date,,No,3.12,1.23,,,$date,$date,3.12,1.23,,,,,,,"""
-      val columnHeaders = s"Status,${Messages("gmp.bulk.csv.headers")},${Messages("gmp.bulk.totals.headers")},$periodColumns"
+      val csvRows = s"""gmp.success,S2730000B,$nino,John,Smith,ref1,gmp.calc_type.leaving,,$date,,gmp.generic.no,3.12,1.23,,,$date,$date,3.12,1.23,,,,,,,"""
+      val columnHeaders = s"gmp.status,${messages("gmp.bulk.csv.headers")},${messages("gmp.bulk.totals.headers")},$periodColumns"
       val headerCount = columnHeaders.split(",").size
-      val guidanceText = s"${Messages("gmp.bulk.csv.guidance")}${"," * (headerCount - 1)}"
+      val guidanceText = s"${messages("gmp.bulk.csv.guidance")},,,,,,,,,,,,"
 
       val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)) split "\n"
 
@@ -129,13 +132,9 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
       val bulkCalculationRequest = ProcessedBulkCalculationRequest("1", "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), true, 1, 0)
 
       "return bulk result as a csv string" in {
-        val periodColumns = "Period 1 (start date),Period 1 (end date),Period 1 (total GMP),Period 1 (post 1988),Period 1 (post 1990 - true gender)," +
-          "Period 1 (post 1990 - opposite gender),Period 1 (revaluation rate),Period 1 Error,Period 1 What to do,Period 2 (start date),Period 2 (end date)," +
-          "Period 2 (total GMP),Period 2 (post 1988),Period 2 (post 1990 - true gender),Period 2 (post 1990 - opposite gender),Period 2 (revaluation rate)," +
-          "Period 2 Error,Period 2 What to do,Period 3 (start date),Period 3 (end date),Period 3 (total GMP),Period 3 (post 1988)," +
-          "Period 3 (post 1990 - true gender),Period 3 (post 1990 - opposite gender),Period 3 (revaluation rate),Period 3 Error,Period 3 What to do"
+        val periodColumns = "gmp.period 1 gmp.period.start_date,gmp.period 1 gmp.period.end_date,gmp.period 1 gmp.period.total,gmp.period 1 gmp.period.post_88,gmp.period 1 gmp.period.post_90_true,gmp.period 1 gmp.period.post_90_opp,gmp.period 1 gmp.period.reval_rate,gmp.period 1 gmp.period.error,gmp.period 1 gmp.period.what,gmp.period 2 gmp.period.start_date,gmp.period 2 gmp.period.end_date,gmp.period 2 gmp.period.total,gmp.period 2 gmp.period.post_88,gmp.period 2 gmp.period.post_90_true,gmp.period 2 gmp.period.post_90_opp,gmp.period 2 gmp.period.reval_rate,gmp.period 2 gmp.period.error,gmp.period 2 gmp.period.what,gmp.period 3 gmp.period.start_date,gmp.period 3 gmp.period.end_date,gmp.period 3 gmp.period.total,gmp.period 3 gmp.period.post_88,gmp.period 3 gmp.period.post_90_true,gmp.period 3 gmp.period.post_90_opp,gmp.period 3 gmp.period.reval_rate,gmp.period 3 gmp.period.error,gmp.period 3 gmp.period.what"
 
-        val csvRows = """Success,S2730000B,BH000007A,John,Smith,ref1,GMP specific date,,21/08/2035,HMRC,No,12.48,4.92,,,21/08/2040,21/08/2035,3.12,1.23,,,s148,,,21/08/2000,21/08/2005,3.12,1.23,,,Fixed,,,21/08/1999,21/08/2000,3.12,1.23,,,Limited,,,21/08/1999,21/08/2000,3.12,1.23,,,s148,,,,"""
+        val csvRows = """gmp.success,S2730000B,BH000007A,John,Smith,ref1,gmp.calc_type.specific_date,,21/08/2035,HMRC,gmp.generic.no,12.48,4.92,,,21/08/2040,21/08/2035,3.12,1.23,,,s148,,,21/08/2000,21/08/2005,3.12,1.23,,,Fixed,,,21/08/1999,21/08/2000,3.12,1.23,,,Limited,,,21/08/1999,21/08/2000,3.12,1.23,,,s148,,,,"""
         val guidanceText = s"${Messages("gmp.bulk.csv.guidance")},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
         val columnHeaders = Messages("gmp.bulk.csv.headers") + "," + Messages("gmp.bulk.totals.headers") + "," + periodColumns
 
@@ -353,7 +352,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
       val result = TestCsvGenerator.generateCsv(bulkRequest, Some(CsvFilter.All))
 
-      result must include("The line has an error,See the instruction file on the GMP checker dashboard. Resend the calculation request with the missing field(s)")
+      result must include("The line has an error,gmp.error.line.too_few")
     }
 
     "contain the line error when present in the correct column with failed results" in {
@@ -364,7 +363,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
       val result = TestCsvGenerator.generateCsv(bulkRequest, Some(CsvFilter.Failed))
 
-      result must include("The line has an error,See the instruction file on the GMP checker dashboard. Resend the calculation request without the extra field(s)")
+      result must include("The line has an error,gmp.error.line.too_many")
     }
 
     "contain the correct line error when there are no calculations" in {
@@ -464,7 +463,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "return correct number of trailing commas for single period line when successful calculations requested" in {
 
-      val expectedResult = s"S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,"
+      val expectedResult = s"S2730000B,${nino},John,Smith,ref1,gmp.calc_type.leaving,,${date},,gmp.generic.no,3.12,1.23,,,${date},${date},3.12,1.23,,,"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestSingle, Some(CsvFilter.Successful))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
@@ -473,8 +472,8 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "return correct number of trailing commas for multiple period line when successful calculations requested" in {
 
-      val expectedResult = s"S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,9.36,3.69,,,${date},${date},3.12,1.23,,,,${date},${date},3.12,1.23,,,,${date},${date},3.12,1.23,,," +
-        "\n" + s"S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,,,,,,,,,,,"
+      val expectedResult = s"S2730000B,${nino},John,Smith,ref1,gmp.calc_type.leaving,,${date},,gmp.generic.no,9.36,3.69,,,${date},${date},3.12,1.23,,,,${date},${date},3.12,1.23,,,,${date},${date},3.12,1.23,,," +
+        "\n" + s"S2730000B,${nino},John,Smith,ref1,gmp.calc_type.leaving,,${date},,gmp.generic.no,3.12,1.23,,,${date},${date},3.12,1.23,,,,,"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestMultiple, Some(CsvFilter.Successful))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
@@ -483,7 +482,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "return correct number of trailing commas for single period line when all calculations requested" in {
 
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,"
+      val expectedResult = s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.leaving,,${date},,gmp.generic.no,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestSingle, Some(CsvFilter.All))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
@@ -492,8 +491,8 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "return correct number of trailing commas for multiple period line when all calculations requested" in {
 
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,9.36,3.69,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,," +
-        "\n" + s"Success,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,,,,,,,,,,,,,,,,,,,"
+      val expectedResult = s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.leaving,,${date},,gmp.generic.no,9.36,3.69,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,${date},${date},3.12,1.23,,,,,,," +
+        "\n" + s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.leaving,,${date},,gmp.generic.no,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,,,,,,,"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestMultiple, Some(CsvFilter.All))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
@@ -502,7 +501,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "add no commas when no calculation response" in {
 
-      val expectedResult = s"S2730000B,${nino},John,Smith,ref1,Date of leaving,,,,No,0,0,,"
+      val expectedResult = s"S2730000B,${nino},John,Smith,ref1,gmp.calc_type.leaving,,,,gmp.generic.no,0,0,,"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestNoReponse, Some(CsvFilter.Successful))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
@@ -512,7 +511,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "add 8 commas when calculation error exists" in {
 
-      val expectedResult = s"Error,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,Member must confirm their date of birth,Contact HMRC through Shared Workspace"
+      val expectedResult = s"gmp.error,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.leaving,,${date},,gmp.generic.no,3.12,1.23,,,${date},${date},3.12,1.23,,,,,,56010.reason,56010.what"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestWithError, Some(CsvFilter.All))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
@@ -521,7 +520,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "add 6 commas when nps error exists" in {
 
-      val expectedResult = s"Error,S2730000B,${nino},John,Smith,ref1,Date of leaving,,${date},,No,3.12,1.23,,,${date},${date},3.12,1.23,,,,Member has a Married Woman's Reduced Rate Election for contracted out period,Nothing - there is no GMP liability,,"
+      val expectedResult = s"gmp.error,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.leaving,,${date},,gmp.generic.no,3.12,1.23,,,${date},${date},3.12,1.23,,,,56018.reason,56018.what,,"
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequestWithNpsError, Some(CsvFilter.All))
       val rows = result.split("\n").tail.tail.mkString("\n")
 
@@ -529,7 +528,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
     }
 
     "show no reval rate for calctype 1 and member still in scheme" in {
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,${date},${date},,No,3.12,1.23,,,07/03/1983,${date},3.12,1.23,,,,,,,"
+      val expectedResult = s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.specific_date,${date},${date},,gmp.generic.no,3.12,1.23,,,07/03/1983,${date},3.12,1.23,,,,,,,"
       val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(LocalDate.now().toString()), None, Some(0), Some(LocalDate.now().toString()), Some(true))
       val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.now(), "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))
@@ -542,7 +541,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
     }
 
     "show no reval rate for calctype 1 and member not still in scheme but first period still open" in {
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,${date},${date},,No,3.12,1.23,,,07/03/1983,${date},3.12,1.23,,,,,,,"
+      val expectedResult = s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.specific_date,${date},${date},,gmp.generic.no,3.12,1.23,,,07/03/1983,${date},3.12,1.23,,,,,,,"
       val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(LocalDate.now.toString()), None, Some(0), Some(LocalDate.now().toString()), Some(false))
       val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.now, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))
@@ -556,7 +555,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "not show reval rate for calctype 1 and member not still in scheme and period closed" in {
       val yesterdaysDate = LocalDate.now.minusDays(1)
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,${date},${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},,No,3.12,1.23,,,07/03/1983,${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},3.12,1.23,,,,,,,"
+      val expectedResult = s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.specific_date,${date},${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},,gmp.generic.no,3.12,1.23,,,07/03/1983,${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},3.12,1.23,,,,,,,"
       val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(yesterdaysDate.toString()), None, Some(0), Some(LocalDate.now().toString()), Some(false))
       val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), yesterdaysDate, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))
@@ -570,7 +569,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
 
     "not show reval rate for calctype 1 and SM, where DOL and reval date dates exist in the same tax year, reval date after current date" in {
       val yesterdaysDate = LocalDate.now.minusDays(1)
-      val expectedResult = s"Success,S2730000B,${nino},John,Smith,ref1,GMP specific date,03/03/2017,01/01/2017,,No,3.12,1.23,,,07/03/1983,03/03/2017,3.12,1.23,,,,,,,"
+      val expectedResult = s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.specific_date,03/03/2017,01/01/2017,,gmp.generic.no,3.12,1.23,,,07/03/1983,03/03/2017,3.12,1.23,,,,,,,"
       val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(LocalDate.parse("2017-01-01").toString), None, Some(0), Some(LocalDate.parse("2017-03-03").toString()), Some(false))
       val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.parse("2017-03-03"), "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))
@@ -583,7 +582,7 @@ class CsvGeneratorSpec extends PlaySpec with OneServerPerSuite with Awaiting wit
     }
 
     "not calculate revalution rate where DOL and reval dates exist in the same tax year, rval date before current date" in {
-      val expectedResult = s"Success,S2730000B,BH000002A,HARRY,STYLES,E2E06,GMP specific date,12/10/2016,03/01/2017,,Yes,17.70,9.91,6.93,7.79,07/03/1983,12/10/2016,17.70,9.91,6.93,7.79,,,,,"
+      val expectedResult = s"gmp.success,S2730000B,BH000002A,HARRY,STYLES,E2E06,gmp.calc_type.specific_date,12/10/2016,03/01/2017,,gmp.generic.yes,17.70,9.91,6.93,7.79,07/03/1983,12/10/2016,17.70,9.91,6.93,7.79,,,,,"
       val validCalcRequest = ValidCalculationRequest("S2730000B", "BH000002A", "STYLES", "HARRY", Some("E2E06"), Some(1), Some(LocalDate.parse("2017-01-03").toString), None, Some(1), Some(LocalDate.parse("2016-10-12").toString), Some(false))
       val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.parse("2016-10-12"), "17.70", "9.91", 1, 0, Some(1), Some("6.93"), Some("7.79"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))

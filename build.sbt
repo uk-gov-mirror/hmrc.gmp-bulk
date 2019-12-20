@@ -2,6 +2,8 @@ import sbt.Keys.resolvers
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, defaultSettings, scalaSettings, targetJvm}
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
+import java.time.LocalDate
+import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{HeaderLicense, headerLicense}
 
 val appName = "gmp-bulk"
 
@@ -18,6 +20,7 @@ lazy val plugins : Seq[Plugins] = Seq(
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(plugins : _*)
+  .settings(headerLicense := {Some(HeaderLicense.ALv2(LocalDate.now().getYear.toString, "HM Revenue & Customs"))})
   .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning, SbtArtifactory, SbtDistributablesPlugin)
   .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
   .settings(scoverageSettings,
@@ -37,3 +40,4 @@ lazy val microservice = Project(appName, file("."))
     resolvers += Resolver.jcenterRepo,
     resolvers += "hmrc-releases" at "https://artefacts.tax.service.gov.uk/artifactory/hmrc-releases/"
   )
+  

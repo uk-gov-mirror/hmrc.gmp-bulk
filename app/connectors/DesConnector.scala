@@ -17,18 +17,16 @@
 package connectors
 
 import java.util.concurrent.TimeUnit
-
 import com.google.inject.Inject
-import config.ApplicationConfig
+import config.ApplicationConfiguration
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, ValidCalculationRequest}
-import play.api.Mode.Mode
 import play.api.http.Status._
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.config.ServicesConfig
-
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,8 +41,10 @@ case class DesGetErrorResponse(e: Exception) extends DesGetResponse
 
 class DesConnector @Inject()(environment: Environment,
                              val runModeConfiguration: Configuration,
-                             http: HttpGet,
-                             val metrics: ApplicationMetrics) extends ServicesConfig with UsingCircuitBreaker {
+                             http: HttpClient,
+                             val metrics: ApplicationMetrics,
+                             servicesConfig: ServicesConfig,
+                             applicationConfig: ApplicationConfiguration) extends UsingCircuitBreaker {
 
   val logger = Logger(this.getClass)
 
@@ -52,13 +52,11 @@ class DesConnector @Inject()(environment: Environment,
     override def read(method: String, url: String, response: HttpResponse) = response
   }
 
-  override protected def mode: Mode = environment.mode
+  val serviceKey = servicesConfig.getConfString("nps.key", "")
+  val serviceEnvironment = servicesConfig.getConfString("nps.environment", "")
+  lazy val citizenDetailsUrl: String = servicesConfig.baseUrl("citizen-details")
 
-  val serviceKey = getConfString("nps.key", "")
-  val serviceEnvironment = getConfString("nps.environment", "")
-  lazy val citizenDetailsUrl: String = baseUrl("citizen-details")
-
-  lazy val serviceURL = baseUrl("nps")
+  lazy val serviceURL = servicesConfig.baseUrl("nps")
   val baseURI = "pensions/individuals/gmp"
   val baseSconURI = "pensions/gmp/scon"
 
@@ -101,7 +99,7 @@ class DesConnector @Inject()(environment: Environment,
   private def npsRequestHeaderCarrier: HeaderCarrier = {
 
     HeaderCarrier(extraHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id",""),
+      "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("nps.originator-id",""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
@@ -109,9 +107,9 @@ class DesConnector @Inject()(environment: Environment,
 
   override protected def circuitBreakerConfig: CircuitBreakerConfig = {
     CircuitBreakerConfig("DesConnector",
-      ApplicationConfig.numberOfCallsToTriggerStateChange,
-      ApplicationConfig.unavailablePeriodDuration,
-      ApplicationConfig.unstablePeriodDuration)
+      applicationConfig.numberOfCallsToTriggerStateChange,
+      applicationConfig.unavailablePeriodDuration,
+      applicationConfig.unstablePeriodDuration)
   }
 
   override protected def breakOnException(t: Throwable): Boolean = {
@@ -128,7 +126,7 @@ class DesConnector @Inject()(environment: Environment,
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
 
     val newHc = HeaderCarrier(extraHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
+      "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("des.originator-id",""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 

@@ -24,28 +24,34 @@ import org.joda.time.{LocalDate, LocalDateTime}
 import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.i18n.Messages
+import play.api.i18n.{Messages, MessagesImpl}
 import play.api.libs.json.{JsString, Json}
 import play.api.mvc._
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.BulkCalculationRepository
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.mongo.Awaiting
 
 import scala.concurrent.Future
-//import play.api.Play.current
+import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 import play.api.i18n.Messages.Implicits._
 
-class BulkControllerSpec extends PlaySpec with OneServerPerSuite with Awaiting with MockitoSugar {
+class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Awaiting with MockitoSugar {
 
+  val cc = stubMessagesControllerComponents()
+  implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
   val mockRepo = mock[BulkCalculationRepository]
   val mockEmailConnector = mock[EmailConnector]
   val createdAt = Some(LocalDateTime.now)
   val csvGenerator = app.injector.instanceOf[CsvGenerator]
+  val authConnector = mock[AuthConnector]
+  val fakeAuthAction = FakeAuthAction(authConnector)
 
-  object TestBulkController extends BulkController(FakeAuthAction, mockEmailConnector, csvGenerator) {
-    override val repository = mockRepo
+  object TestBulkController extends BulkController(fakeAuthAction, mockEmailConnector, csvGenerator, stubMessagesControllerComponents()) {
+    override lazy val repository = mockRepo
   }
 
   val nino = RandomNino.generate
