@@ -23,6 +23,7 @@ import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.i18n.Messages.Implicits._
 
+import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 
 class CsvGenerator {
@@ -428,12 +429,15 @@ class CsvGenerator {
 
     implicit val filter = csvFilter.get
 
-    val maxPeriods = result.calculationRequests.map {
-      _.calculationResponse match {
-        case Some(x: GmpBulkCalculationResponse) if x.calculationPeriods.nonEmpty => x.calculationPeriods.size
-        case _ => 0
-      }
-    }.max
+    val maxPeriods: Int = result.calculationRequests match {
+      case calcRequests @ h :: tail => calcRequests.map {
+        _.calculationResponse match {
+          case Some(x: GmpBulkCalculationResponse) if x.calculationPeriods.nonEmpty => x.calculationPeriods.size
+          case _ => 0
+        }
+      }.max
+      case Nil => 0
+    }
 
     val headerRow = new HeaderRowBuilder(maxPeriods).build
     val csvBuilder = new CsvBuilder(headerRow.cells.size)
