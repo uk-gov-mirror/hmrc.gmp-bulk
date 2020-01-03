@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,19 +24,21 @@ import models._
 import play.api.i18n.{Messages, MessagesImpl}
 import play.api.libs.json.Json
 import play.api.mvc.MessagesControllerComponents
-import repositories.BulkCalculationRepository
+import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
 class BulkController @Inject()(authAction: AuthAction,
                                emailConnector: EmailConnector,
                                csvGenerator: CsvGenerator,
-                               cc: MessagesControllerComponents) extends BackendController(cc) {
+                               cc: MessagesControllerComponents,
+                               bulkCalculationMongoRepository : BulkCalculationMongoRepository) extends BackendController(cc) {
 
   implicit lazy val messages: Messages = MessagesImpl(cc.langs.availables.head, messagesApi)
 
-  lazy val repository: BulkCalculationRepository = BulkCalculationRepository()
+  lazy val repository: BulkCalculationRepository = bulkCalculationMongoRepository
 
   def post(userId: String) = authAction.async(parse.json(maxLength = 1024 * 10000)) {
     implicit request =>
