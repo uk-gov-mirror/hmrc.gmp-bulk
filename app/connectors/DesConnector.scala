@@ -86,7 +86,8 @@ class DesConnector @Inject()(environment: Environment,
           metrics.registerFailedRequest()
 
           errorStatus match {
-            case status if status >= 500 && status < 600 => throw new BreakerException
+            case status if status >= 500 && status < 600 =>
+              throw UpstreamErrorResponse(s"Call to Individual Pension calculation on NPS Service failed with status code ${status}", status, status)
             case TOO_MANY_REQUESTS => throw new BreakerException
             case 499 => throw new BreakerException
             case _ => throw UpstreamErrorResponse(s"An error status $errorStatus was encountered", errorStatus, errorStatus)

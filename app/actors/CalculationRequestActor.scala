@@ -26,7 +26,7 @@ import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalc
 import play.api.http.Status
 import play.api.Logger
 import repositories.BulkCalculationMongoRepository
-import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse, Upstream5xxResponse, UpstreamErrorResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -61,6 +61,7 @@ class CalculationRequestActor extends Actor with ActorUtils {
 
           val tryCallingDes = Try {
             desConnector.calculate(request.validCalculationRequest.get)
+
           }
 
           tryCallingDes match {
@@ -104,11 +105,30 @@ class CalculationRequestActor extends Actor with ActorUtils {
             }
 
             case Failure(f) => {
-              // $COVERAGE-OFF$
-              Logger.error(s"[CalculationRequestActor] Calling DES failed with error: ${ f.getMessage }")
-              // $COVERAGE-ON$
 
-              origSender ! akka.actor.Status.Failure(f)
+              f match {
+
+                case Upstream5xxResponse(message, responseCode, _, _) => {
+                  // $COVERAGE-OFF$
+                  Logger.error(s"[CalculationRequestActor] Error : ${message} Exception: $f")
+                  // $COVERAGE-ON$
+
+                  // Record the response as a failure, which will help out with cyclic processing of messages
+                  repository.insertResponseByReference(request.bulkId, request.lineId,
+                    GmpBulkCalculationResponse(List(), responseCode, None, None, None, containsErrors = true)).map { result =>
+
+                    origSender ! akka.actor.Status.Failure(f)
+                  }
+                }
+
+                case _ => {
+                  // $COVERAGE-OFF$
+                  Logger.error(s"[CalculationRequestActor] Calling DES failed with error: ${ f.getMessage }")
+                  // $COVERAGE-ON$
+                  origSender ! akka.actor.Status.Failure(f)
+
+                }
+              }
             }
 
           }
@@ -118,7 +138,7 @@ class CalculationRequestActor extends Actor with ActorUtils {
         case e =>
           // $COVERAGE-OFF$
           Logger.error(s"[CalculationRequestActor] Calling getPersonDetails failed with error: ${ e.getMessage }")
-          // $COVERAGE-ON$
+        // $COVERAGE-ON$
       }
 
 
