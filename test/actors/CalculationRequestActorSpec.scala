@@ -143,7 +143,6 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       within(testTimeout) {
 
         actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
-        //expectMsg(true)
         expectMsgClass(classOf[akka.actor.Status.Failure])
 
         //verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 500, None, None, None, containsErrors = true))
