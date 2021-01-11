@@ -143,8 +143,8 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with WireMockHelp
         Mockito.verify(metrics).registerFailedRequest()
       }
 
-      val errorCodes = List(TOO_MANY_REQUESTS, NGINX_CLIENT_CLOSED_REQUEST, BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT, INTERNAL_SERVER_ERROR)
-      for (errorCode <- errorCodes) {
+      val errorCodes4xx = List(TOO_MANY_REQUESTS, NGINX_CLIENT_CLOSED_REQUEST)
+      for (errorCode <- errorCodes4xx) {
         s"return a BreakerException exception when $errorCode returned from DES" in new SUT {
           val request = ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)
 
@@ -152,6 +152,21 @@ class DesConnectorSpec extends PlaySpec with OneServerPerSuite with WireMockHelp
           stubServiceGet(url, errorCode, "", ("request_earnings" -> "1"))
 
           intercept[BreakerException] {
+            await(calculate(request))
+          }
+          Mockito.verify(mockMetrics).registerFailedRequest()
+        }
+      }
+
+      val errorCodes5xx = List(BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT, INTERNAL_SERVER_ERROR)
+      for (errorCode <- errorCodes5xx) {
+        s"return a UpstreamErrorResponse exception when $errorCode returned from DES" in new SUT {
+          val request = ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)
+
+          val url = s"""/pensions/individuals/gmp/scon/S/1401234/Q/nino/${request.nino.toUpperCase}/surname/SMI/firstname/B/calculation/"""
+          stubServiceGet(url, errorCode, "", ("request_earnings" -> "1"))
+
+          intercept[UpstreamErrorResponse] {
             await(calculate(request))
           }
           Mockito.verify(mockMetrics).registerFailedRequest()
