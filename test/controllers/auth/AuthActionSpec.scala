@@ -23,7 +23,9 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.{OK, UNAUTHORIZED}
-import play.api.mvc.{Action, AnyContent, Controller}
+import play.api.mvc.{Action, AnyContent}
+import com.google.inject.Inject
+import play.api.mvc.{BaseController, ControllerComponents}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.status
 import uk.gov.hmrc.auth.core.{AuthConnector, MissingBearerToken}
@@ -35,8 +37,10 @@ import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
 class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
-  class Harness(authAction: AuthAction) extends Controller {
+  class Harness(authAction: AuthAction) extends BaseController {
     def onPageLoad(): Action[AnyContent] = authAction { request => Ok }
+
+    override def controllerComponents: ControllerComponents = stubMessagesControllerComponents()
   }
 
   implicit val timeout: Timeout = 5 seconds

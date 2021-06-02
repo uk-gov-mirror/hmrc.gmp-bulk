@@ -21,9 +21,8 @@ import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
 import play.api.i18n.Messages
 import play.api.i18n.Messages.Implicits._
-
-import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
+import com.github.ghik.silencer.silent
 
 class CsvGenerator {
 
@@ -45,6 +44,7 @@ class CsvGenerator {
 
     val cells: Traversable[Cell]
 
+    @silent
     def toCsvString(cellCount: Int)(implicit csvFilter: CsvFilter) = {
       cells map {
         _.text
@@ -124,6 +124,7 @@ class CsvGenerator {
     def build: Row = ResponseRow(cells, Some(errorCell), Some(errorResolutionCell))
   }
 
+  @silent
   class ResponseRowBuilder(request: ProcessReadyCalculationRequest)(implicit filter: CsvFilter, messages: Messages) extends RowBuilder {
 
     request.validCalculationRequest match {

@@ -24,11 +24,12 @@ import metrics.ApplicationMetrics
 import models._
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import repositories.BulkCalculationMongoRepository
-import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse, Upstream5xxResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.test.UnitSpec
+import scala.language.postfixOps
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -50,7 +51,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
     reset(mockRepository)
     reset(mockMetrics)
 
-    when(mockDesConnector.getPersonDetails(Matchers.any())(Matchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
+    when(mockDesConnector.getPersonDetails(Matchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
   }
 
   override def afterAll: Unit = {
@@ -93,8 +94,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
     "insert a failed response when a 400 code is returned from DES" in {
 
-      val ex = mock[Upstream4xxResponse]
-      when(ex.reportAs) thenReturn 400
+      val ex = UpstreamErrorResponse("Call to Individual Pension calculation on NPS Service failed with status code 400", 400, 400)
 
       when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.failed(ex))
       when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
@@ -114,7 +114,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
     "insert a 423 failed response when a 423 code is returned from DES" in {
 
       val nino = "ST281614D"
-      when(mockDesConnector.getPersonDetails(Matchers.eq(nino))(Matchers.any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+      when(mockDesConnector.getPersonDetails(Matchers.eq(nino))).thenReturn(Future.successful(DesGetHiddenRecordResponse))
       when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
 
       val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockMetrics))
@@ -125,16 +125,16 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
         expectMsg(true)
 
         verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 423, None, None, None, containsErrors = true))
-        verify(mockDesConnector).getPersonDetails(Matchers.eq(nino))(Matchers.any[HeaderCarrier])
+        verify(mockDesConnector).getPersonDetails(Matchers.eq(nino))
         verify(mockDesConnector, times(0)).calculate(Matchers.any[ValidCalculationRequest])
       }
 
     }
 
     "insert a failed response when a 500 code is returned from DES" in {
-      val exObj = Upstream5xxResponse("Call to Individual Pension calculation on NPS Service failed with status code 500", 500, 500)
+      val exObj = UpstreamErrorResponse("Call to Individual Pension calculation on NPS Service failed with status code 500", 500, 500)
 
-      when(mockDesConnector.getPersonDetails(Matchers.any())(Matchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
+      when(mockDesConnector.getPersonDetails(Matchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
       when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.failed(exObj))
       when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
 
