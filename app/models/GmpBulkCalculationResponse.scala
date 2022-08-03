@@ -69,6 +69,8 @@ case class CalculationPeriod(startDate: Option[LocalDate],
 }
 
 object CalculationPeriod {
+  import play.api.libs.json.JodaWrites._
+  import play.api.libs.json.JodaReads._
   implicit val formats = Json.format[CalculationPeriod]
 
   def createFromNpsLgmpcalc(npsLgmpcalc: NpsLgmpcalc): CalculationPeriod = {
@@ -114,6 +116,8 @@ case class GmpBulkCalculationResponse(
 }
 
 object GmpBulkCalculationResponse {
+  import play.api.libs.json.JodaWrites._
+  import play.api.libs.json.JodaReads._
   implicit val formats = Json.format[GmpBulkCalculationResponse]
 
   def createFromCalculationResponse(calculationResponse: CalculationResponse):
