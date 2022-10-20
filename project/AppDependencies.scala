@@ -5,13 +5,13 @@ import play.core.PlayVersion
 object AppDependencies {
 
   val playVersion = "play-28"
-  val akkaVersion = "2.6.14"
+  val akkaVersion = "2.6.19"
   val mongoVersion = "0.68.0"
 
   val compile: Seq[ModuleID] = Seq(
     ws,
     "uk.gov.hmrc.mongo"   %% "hmrc-mongo-play-28"         % mongoVersion,
-    "uk.gov.hmrc"         %% "bootstrap-backend-play-28"  % "5.12.0",
+    "uk.gov.hmrc"         %% "bootstrap-backend-play-28"  % "7.8.0",
     "uk.gov.hmrc"         %% "domain"                     % s"6.2.0-$playVersion",
     "uk.gov.hmrc"         %% "mongo-lock"                 % s"7.0.0-$playVersion",
     "uk.gov.hmrc"         %% "reactive-circuit-breaker"   % "3.5.0",
@@ -22,7 +22,7 @@ object AppDependencies {
   )
 
  val test: Seq[ModuleID] = Seq(
-      "uk.gov.hmrc"             %% s"bootstrap-test-$playVersion"   % "5.3.0" % "test",
+      "uk.gov.hmrc"             %% s"bootstrap-test-$playVersion"   % "7.8.0" % "test",
       "com.typesafe.akka"       %% "akka-testkit"                   % akkaVersion % "test",
       "com.github.tomakehurst"  %  "wiremock-jre8"                  % "2.27.1"         % "test",
       "uk.gov.hmrc.mongo"       %% s"hmrc-mongo-test-$playVersion"        % mongoVersion        % "test",

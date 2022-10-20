@@ -29,7 +29,7 @@ class Module(environment: Environment, configuration: Configuration) extends Abs
 
   override def configure(): Unit = {
     bind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
-    bind(classOf[AuditConnector]).to(classOf[DefaultAuditConnector])
+    //bind(classOf[AuditConnector]).to(classOf[DefaultAuditConnector])
     bind(classOf[BulkCalculationMongoRepository]).toProvider(classOf[BulkCalculationMongoRepositoryProvider])
     bind(classOf[Scheduler]).asEagerSingleton()
   }
