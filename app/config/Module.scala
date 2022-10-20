@@ -21,15 +21,12 @@ import play.api.{Configuration, Environment}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DefaultDB
 import repositories.{BulkCalculationMongoRepository, BulkCalculationMongoRepositoryProvider}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.bootstrap.audit.DefaultAuditConnector
 import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
 
 class Module(environment: Environment, configuration: Configuration) extends AbstractModule {
 
   override def configure(): Unit = {
     bind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
-    //bind(classOf[AuditConnector]).to(classOf[DefaultAuditConnector])
     bind(classOf[BulkCalculationMongoRepository]).toProvider(classOf[BulkCalculationMongoRepositoryProvider])
     bind(classOf[Scheduler]).asEagerSingleton()
   }
