@@ -25,6 +25,7 @@ import connectors.DesConnector
 import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models.{ProcessReadyCalculationRequest, ValidCalculationRequest}
+import org.mockito.Matchers.anyString
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.scalatestplus.mockito.MockitoSugar
@@ -37,9 +38,11 @@ import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with WordSpecLike with MockitoSugar with GuiceOneAppPerSuite
+
+class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with WordSpecLike with MockitoSugar
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils {
 
   def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
@@ -47,16 +50,10 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
     "logger.root" -> "ERROR",
     "org.apache.logging" -> "ERROR",
     "com.codahale" -> "ERROR")
-  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
 
-  implicit override lazy val app: Application = new GuiceApplicationBuilder()
-    .configure(additionalConfiguration)
-    .bindings(bindModules:_*).in(Mode.Test)
-    .build()
 
-  lazy val applicationConfig = app.injector.instanceOf[ApplicationConfiguration]
   val mockLockRepo = new LockClient {
-    override val lockRepository: LockRepository = mock[MongoLockRepository]
+    override val lockRepository: LockRepository = mongoApi
     override val lockId: String = "bulkprocessing"
     override val ttl: Duration = 5.minutes
 
@@ -65,11 +62,15 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
 
   }
 
-  val mongoApi  = app.injector.instanceOf[MongoLockRepository]
-  val desConnector = app.injector.instanceOf[DesConnector]
-  val metrics = app.injector.instanceOf[ApplicationMetrics]
+  val applicationConfig  = mock[ApplicationConfiguration]
+  val mongoApi  = mock[MongoLockRepository]
+  val desConnector = mock[DesConnector]
+  val metrics = mock[ApplicationMetrics]
   lazy val mockRepository = mock[BulkCalculationMongoRepository]
 
+  override def beforeAll(): Unit = {
+    when(mongoApi.releaseLock(anyString(), anyString())).thenReturn(Future(()))
+  }
 
 
 
