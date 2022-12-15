@@ -6,14 +6,13 @@ object AppDependencies {
 
   val playVersion = "play-28"
   val akkaVersion = "2.6.19"
-  val mongoVersion = "0.68.0"
+  val mongoVersion = "0.74.0"
 
   val compile: Seq[ModuleID] = Seq(
     ws,
     "uk.gov.hmrc.mongo"                          %% "hmrc-mongo-play-28"         % mongoVersion,
     "uk.gov.hmrc"                                %% "bootstrap-backend-play-28"  % "7.8.0",
     "uk.gov.hmrc"                                %% "domain"                     % s"8.1.0-$playVersion",
-    "uk.gov.hmrc"                                %% "mongo-lock"                 % s"7.1.0-$playVersion",
     "uk.gov.hmrc"                                %% "reactive-circuit-breaker"   % "3.5.0",
     "uk.gov.hmrc"                                %% "tax-year"                   % "3.0.0",
     "com.typesafe.play"                          %% "play-json-joda"             % "2.9.3",

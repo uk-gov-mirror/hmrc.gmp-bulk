@@ -18,8 +18,6 @@ package config
 
 import com.google.inject.{AbstractModule, Provides, Singleton}
 import play.api.{Configuration, Environment}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.DefaultDB
 import repositories.{BulkCalculationMongoRepository, BulkCalculationMongoRepositoryProvider}
 import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
 
@@ -31,8 +29,5 @@ class Module(environment: Environment, configuration: Configuration) extends Abs
     bind(classOf[Scheduler]).asEagerSingleton()
   }
 
-    @Provides
-    @Singleton
-    def mongoDB(reactiveMongoComponent: ReactiveMongoComponent): () => DefaultDB = reactiveMongoComponent.mongoConnector.db
 
 }

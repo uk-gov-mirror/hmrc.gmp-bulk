@@ -19,6 +19,7 @@ package config
 import actors.{ActorUtils, ProcessingSupervisor}
 import akka.actor.{ActorSystem, Props}
 import connectors.DesConnector
+
 import javax.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import play.api.inject.DefaultApplicationLifecycle
@@ -26,6 +27,8 @@ import play.api.{Application, Environment}
 import repositories.BulkCalculationMongoRepository
 import services.BulkCompletionService
 import scheduling._
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,7 +40,7 @@ class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationL
                           override val application: Application,
                           applicationConfiguration: ApplicationConfiguration,
                           bulkCalculationMongoRepository : BulkCalculationMongoRepository,
-                          mongoApi : play.modules.reactivemongo.ReactiveMongoComponent, bulkCompletionService : BulkCompletionService,
+                          mongoApi : MongoLockRepository, bulkCompletionService : BulkCompletionService,
                           desConnector : DesConnector,
                           metrics : ApplicationMetrics
                          )(implicit val ec: ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
