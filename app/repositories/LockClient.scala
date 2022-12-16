@@ -39,19 +39,19 @@ trait LockClient {
         body.flatMap(value => lockRepository.releaseLock(lockId, ownerId).map(_ => Some(value)))
       else
         Future.successful(None)
-    } yield result
+    } yield {
+      result
+    }
       ).recoverWith {
       case ex => lockRepository.releaseLock(lockId, ownerId).flatMap(_ => Future.failed(ex))
     }
 }
 
 object LockClient {
-
-  def apply(lockRepository: LockRepository, lockId: String, ttl: Duration): LockClient = {
-    val (lockRepository1, lockId1, ttl1) = (lockRepository, lockId, ttl)
+  def apply(lockRepo: LockRepository, lId: String, ttl1: Duration): LockClient = {
     new LockClient {
-      override val lockRepository: LockRepository = lockRepository1
-      override val lockId        : String         = lockId1
+      override val lockRepository: LockRepository = lockRepo
+      override val lockId        : String         = lId
       override val ttl           : Duration       = ttl1
     }
   }

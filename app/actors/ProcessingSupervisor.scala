@@ -39,7 +39,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
                                      desConnector : DesConnector,
                                      metrics : ApplicationMetrics) extends Actor with ActorUtils with Logging {
 
-  val lockClient = LockClient(mongoLockRepository, lockId = "bulkprocessing", ttl = 5.minutes)
+  val lockClient = LockClient(mongoLockRepository, "bulkprocessing", 5.minutes)
 
 
   // $COVERAGE-OFF$
