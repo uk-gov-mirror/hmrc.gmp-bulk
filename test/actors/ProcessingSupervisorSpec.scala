@@ -25,21 +25,24 @@ import connectors.DesConnector
 import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models.{ProcessReadyCalculationRequest, ValidCalculationRequest}
-import org.mockito.Matchers._
+import org.mockito.Matchers.{any, anyString}
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.{Application, Mode}
-import repositories.BulkCalculationMongoRepository
-import uk.gov.hmrc.lock.LockRepository
+import repositories.{BulkCalculationMongoRepository, LockClient}
+import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
-class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with WordSpecLike with MockitoSugar with GuiceOneAppPerSuite
+
+
+class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with WordSpecLike with MockitoSugar
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils {
 
   def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
@@ -47,24 +50,21 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
     "logger.root" -> "ERROR",
     "org.apache.logging" -> "ERROR",
     "com.codahale" -> "ERROR")
-  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
 
-  implicit override lazy val app: Application = new GuiceApplicationBuilder()
-    .configure(additionalConfiguration)
-    .bindings(bindModules:_*).in(Mode.Test)
-    .build()
+  val applicationConfig  = mock[ApplicationConfiguration]
+  val mongoApi  = mock[MongoLockRepository]
+  val desConnector = mock[DesConnector]
+  val metrics = mock[ApplicationMetrics]
+  val mockRepository = mock[BulkCalculationMongoRepository]
 
-  lazy val applicationConfig = app.injector.instanceOf[ApplicationConfiguration]
-  val mockLockRepo = mock[LockRepository]
-
-  val mongoApi  = app.injector.instanceOf[play.modules.reactivemongo.ReactiveMongoComponent]
-  val desConnector = app.injector.instanceOf[DesConnector]
-  val metrics = app.injector.instanceOf[ApplicationMetrics]
-  lazy val mockRepository = mock[BulkCalculationMongoRepository]
+  val mockLockRepo = LockClient(mongoApi, "bulkprocessing", 5.minutes)
 
 
-  override def beforeAll = {
-    when(mockLockRepo.lock(anyString, anyString, any())) thenReturn Future.successful(true)
+
+  override def beforeAll:Unit = {
+    when(applicationConfig.bulkProcessingBatchSize).thenReturn(1)
+    when(mongoApi.releaseLock(anyString(), anyString())).thenReturn(Future(())).thenReturn(Future(())).thenReturn(Future(())).thenReturn(Future(()))
+    when(mongoApi.takeLock(anyString(),anyString(), any())).thenReturn(Future(true))
   }
 
   override def afterAll: Unit = {
@@ -82,7 +82,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
-        override val lockrepo = mockLockRepo
+        override val lockClient = mockLockRepo
       }),"process-supervisor")
 
 
@@ -113,9 +113,8 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
-        override val lockrepo = mockLockRepo
+        override val lockClient = mockLockRepo
       }),"process-supervisor2")
-
       when(mockRepository.findRequestsToProcess()).thenReturn(Future.successful(Some(Nil)))
 
       within(5 seconds) {
@@ -137,12 +136,11 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
-        override val lockrepo = mockLockRepo
+        override val lockClient = mockLockRepo
       }),"process-supervisor3")
 
       val processReadyCalculationRequest = ProcessReadyCalculationRequest("test upload",1,
         Some(ValidCalculationRequest("S2730000B",RandomNino.generate,"smith","jim",None,None,None,None,None,None)), None, None)
-      
       when(mockRepository.findRequestsToProcess()).thenReturn(Future.successful(Some(List(processReadyCalculationRequest))))
 
       within(5 seconds) {

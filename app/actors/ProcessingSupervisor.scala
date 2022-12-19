@@ -18,48 +18,30 @@ package actors
 
 import actors.Throttler.{RateInt, SetTarget}
 import akka.actor._
+import com.github.ghik.silencer.silent
 import config.ApplicationConfiguration
 import connectors.DesConnector
-
-import javax.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import play.api.Logging
-import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
-import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
-import com.github.ghik.silencer.silent
+import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository, LockClient}
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
 
 @silent
 @Singleton
 class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration,
                                      bulkCalculationMongoRepository : BulkCalculationMongoRepository,
-                                     mongoApi : play.modules.reactivemongo.ReactiveMongoComponent,
+                                     mongoLockRepository: MongoLockRepository,
                                      desConnector : DesConnector,
                                      metrics : ApplicationMetrics) extends Actor with ActorUtils with Logging {
 
-  val lockrepo = LockMongoRepository(mongoApi.mongoConnector.db)
+  val lockClient = LockClient(mongoLockRepository, "bulkprocessing", 5.minutes)
 
-  val lockKeeper = new LockKeeper {
 
-    override def repo: LockRepository = lockrepo //The repo created before
-
-    override def lockId: String = "bulkprocessing"
-
-    override val forceLockReleaseAfter: org.joda.time.Duration = org.joda.time.Duration.standardMinutes(5)
-
-    // $COVERAGE-OFF$
-    override def tryLock[T](body: => Future[T])(implicit ec : ExecutionContext): Future[Option[T]] = {
-      repo.lock(lockId, serverId, forceLockReleaseAfter)
-        .flatMap { acquired =>
-          if (acquired) { body.map { case x => Some(x) }(global) }
-          else Future.successful(None)
-        }(global).recoverWith { case ex => repo.releaseLock(lockId, serverId).flatMap(_ => Future.failed(ex))(global) }(global)
-    }
-    // $COVERAGE-ON$
-  }
   // $COVERAGE-OFF$
   lazy val repository: BulkCalculationRepository = bulkCalculationMongoRepository
   lazy val requestActor: ActorRef = context.actorOf(Props(classOf[DefaultCalculationRequestActor], bulkCalculationMongoRepository, desConnector, metrics ), "calculation-requester")
@@ -75,12 +57,12 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
 
     case STOP => {
       logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
-      lockrepo.releaseLock(lockKeeper.lockId,lockKeeper.serverId)
+      lockClient.lockRepository.releaseLock(lockClient.lockId, lockClient.ownerId)
     }
 
     case START => {
 
-      lockKeeper.tryLock {
+      lockClient.tryLock {
         context become receiveWhenProcessRunning
         logger.debug("Starting Processing")
 
@@ -121,7 +103,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
     case STOP => {
       import scala.language.postfixOps
       logger.debug("[ProcessingSupervisor][received while processing] STOP received")
-      lockrepo.releaseLock(lockKeeper.lockId,lockKeeper.serverId)
+      lockClient.lockRepository.releaseLock(lockClient.lockId,lockClient.ownerId)
       context unbecome
     }
   }
