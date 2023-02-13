@@ -24,7 +24,7 @@ import connectors.DesConnector
 import metrics.ApplicationMetrics
 import play.api.Logging
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository, LockClient}
-import uk.gov.hmrc.mongo.lock.{MongoLockRepository, TimePeriodLockService}
+import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository, TimePeriodLockService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,11 +34,13 @@ import scala.concurrent.duration._
 @Singleton
 class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration,
                                      bulkCalculationMongoRepository : BulkCalculationMongoRepository,
-                                     mongoLockRepository: MongoLockRepository,
+                                     val mongoLockRepository: MongoLockRepository,
                                      desConnector : DesConnector,
-                                     metrics : ApplicationMetrics) extends Actor with ActorUtils with Logging {
+                                     metrics : ApplicationMetrics) extends Actor with ActorUtils with Logging with TimePeriodLockService {
 
-  val lockService = TimePeriodLockService(mongoLockRepository, "bulkprocessing", 5.minutes)
+  override val lockRepository: LockRepository = mongoLockRepository
+  override val lockId: String = "bulkprocessing"
+  override val ttl: Duration = 5.minutes
 
   // $COVERAGE-OFF$
   lazy val repository: BulkCalculationRepository = bulkCalculationMongoRepository
@@ -56,7 +58,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
     case STOP => logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
 
     case START =>
-      lockService.withRenewedLock {
+      withRenewedLock {
         context become receiveWhenProcessRunning
         logger.debug("Starting Processing")
 
