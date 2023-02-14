@@ -23,7 +23,7 @@ import config.ApplicationConfiguration
 import connectors.DesConnector
 import metrics.ApplicationMetrics
 import play.api.Logging
-import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository, LockClient}
+import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository, TimePeriodLockService}
 
 import javax.inject.{Inject, Singleton}
