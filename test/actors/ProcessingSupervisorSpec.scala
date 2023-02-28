@@ -56,7 +56,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
 
   override def beforeAll:Unit = {
     when(applicationConfig.bulkProcessingBatchSize).thenReturn(1)
-    when(mongoApi.refreshExpiry(anyString(), anyString(), any())).thenReturn(Future(false))
+    when(mongoApi.releaseLock(anyString(), anyString())).thenReturn(Future(())).thenReturn(Future(())).thenReturn(Future(())).thenReturn(Future(()))
     when(mongoApi.takeLock(anyString(),anyString(), any())).thenReturn(Future(true))
   }
 
