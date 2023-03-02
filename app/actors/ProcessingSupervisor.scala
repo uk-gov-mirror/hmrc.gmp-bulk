@@ -23,7 +23,7 @@ import config.ApplicationConfiguration
 import connectors.DesConnector
 import metrics.ApplicationMetrics
 import play.api.Logging
-import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
+import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository, LockClient}
 import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository, TimePeriodLockService}
 
 import javax.inject.{Inject, Singleton}
@@ -36,11 +36,12 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
                                      bulkCalculationMongoRepository : BulkCalculationMongoRepository,
                                      val mongoLockRepository: MongoLockRepository,
                                      desConnector : DesConnector,
-                                     metrics : ApplicationMetrics) extends Actor with ActorUtils with Logging with TimePeriodLockService {
+                                     metrics : ApplicationMetrics)
+  extends Actor with ActorUtils with Logging with TimePeriodLockService with LockClient {
 
   override val lockRepository: LockRepository = mongoLockRepository
   override val lockId: String = "bulkprocessing"
-  override val ttl: Duration = 5.minutes
+  override val ttl: Duration = 45.minutes
 
   // $COVERAGE-OFF$
   lazy val repository: BulkCalculationRepository = bulkCalculationMongoRepository
@@ -56,9 +57,9 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
   override def receive: Receive = {
 
     case STOP => logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
-
+      mongoLockRepository.releaseLock(lockId, ownerId)
     case START =>
-      withRenewedLock {
+      tryLock {
         context become receiveWhenProcessRunning
         logger.debug("Starting Processing")
 
@@ -92,6 +93,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
     case STOP =>
       import scala.language.postfixOps
       logger.debug("[ProcessingSupervisor][received while processing] STOP received")
+      mongoLockRepository.releaseLock(lockId, ownerId)
       context unbecome
   }
 
