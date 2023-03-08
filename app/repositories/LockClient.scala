@@ -38,7 +38,11 @@ trait LockClient extends Logging {
       case false => logger.info(s"unable to take lock for $ownerId, bulkprocessing lock already exists")
         Future.successful(None)
       case true => logger.info(s"bulkprocessing lock acquired for $ownerId")
-        body.flatMap(_ => mongoLockRepository.releaseLock(lockId, ownerId).map(Some(_)))
+        body.flatMap{_ =>
+          logger.info(s"bulkprocessing lock released for $ownerId")
+          mongoLockRepository.releaseLock(lockId, ownerId).map{
+          Some(_)
+        }}
     }
   }
 
