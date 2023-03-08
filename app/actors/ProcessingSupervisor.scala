@@ -23,7 +23,7 @@ import config.ApplicationConfiguration
 import connectors.DesConnector
 import metrics.ApplicationMetrics
 import play.api.Logging
-import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository, LockClient}
+import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository, TimePeriodLockService}
 
 import javax.inject.{Inject, Singleton}
@@ -37,11 +37,11 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
                                      val mongoLockRepository: MongoLockRepository,
                                      desConnector : DesConnector,
                                      metrics : ApplicationMetrics)
-  extends Actor with ActorUtils with TimePeriodLockService with LockClient {
+  extends Actor with ActorUtils with TimePeriodLockService with Logging {
 
   override val lockRepository: LockRepository = mongoLockRepository
   override val lockId: String = "bulkprocessing"
-  override val ttl: Duration = 45.minutes
+  override val ttl: Duration = (2 * applicationConfig.bulkProcessingInterval).seconds
 
   // $COVERAGE-OFF$
   lazy val repository: BulkCalculationRepository = bulkCalculationMongoRepository
@@ -56,10 +56,10 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
 
   override def receive: Receive = {
 
-    case STOP => logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
-      mongoLockRepository.releaseLock(lockId, ownerId)
+    case STOP =>
+      logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
     case START =>
-      tryLock {
+      withRenewedLock {
         context become receiveWhenProcessRunning
         logger.debug("Starting Processing")
 
@@ -78,9 +78,9 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
             throttler ! STOP
         }
       }.map{
-        case Some(res) => logger.debug(s"[ProcessingSupervisor][receive] Finished with $res. Mongo Lock has been renewed.")
+        case Some(res) => logger.info(s"[ProcessingSupervisor][receive] Finished with $res. Mongo Lock has been renewed.")
         // $COVERAGE-OFF$
-        case _ => logger.debug(s"[ProcessingSupervisor][receive] Failed to obtain mongo lock")
+        case _ => logger.info(s"[ProcessingSupervisor][receive] Failed to obtain mongo lock")
         // $COVERAGE-ON$
       }
   }
@@ -93,7 +93,6 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
     case STOP =>
       import scala.language.postfixOps
       logger.debug("[ProcessingSupervisor][received while processing] STOP received")
-      mongoLockRepository.releaseLock(lockId, ownerId)
       context unbecome
   }
 

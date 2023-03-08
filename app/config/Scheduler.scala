@@ -60,7 +60,7 @@ class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationL
         }
       }
 
-      override def interval: FiniteDuration = 15 seconds
+      override def interval: FiniteDuration = applicationConfiguration.bulkProcessingInterval seconds
 
       override def initialDelay: FiniteDuration = 1 seconds
     },
