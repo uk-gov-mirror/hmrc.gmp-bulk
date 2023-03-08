@@ -37,7 +37,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
                                      val mongoLockRepository: MongoLockRepository,
                                      desConnector : DesConnector,
                                      metrics : ApplicationMetrics)
-  extends Actor with ActorUtils with Logging with TimePeriodLockService with LockClient {
+  extends Actor with ActorUtils with TimePeriodLockService with LockClient {
 
   override val lockRepository: LockRepository = mongoLockRepository
   override val lockId: String = "bulkprocessing"

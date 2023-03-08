@@ -18,13 +18,14 @@ package repositories
 
 import com.google.inject.{Inject, Singleton}
 import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository}
+import play.api.Logging
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationInt}
 
 
-trait LockClient {
+trait LockClient extends Logging {
 
   val mongoLockRepository: MongoLockRepository
   val lockId: String
@@ -32,9 +33,12 @@ trait LockClient {
   val ownerId: String = UUID.randomUUID().toString
 
   def tryLock(body: => Future[Unit])(implicit ec: ExecutionContext): Future[Option[Unit]] = {
+    logger.info(s"Attempting to build bulkprocessing lock for $ownerId")
     mongoLockRepository.takeLock(lockId, ownerId, ttl).flatMap{
-      case false => Future.successful(None)
-      case true => body.flatMap(_ => mongoLockRepository.releaseLock(lockId, ownerId).map(Some(_)))
+      case false => logger.info(s"unable to take lock for $ownerId, bulkprocessing lock already exists")
+        Future.successful(None)
+      case true => logger.info(s"bulkprocessing lock acquired for $ownerId")
+        body.flatMap(_ => mongoLockRepository.releaseLock(lockId, ownerId).map(Some(_)))
     }
   }
 
