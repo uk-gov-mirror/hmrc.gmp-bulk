@@ -17,6 +17,7 @@
 package actors
 
 import java.util.concurrent.TimeUnit
+
 import akka.actor._
 import com.google.inject.Inject
 import connectors.{DesConnector, DesGetHiddenRecordResponse}
@@ -27,7 +28,7 @@ import play.api.Logging
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 trait CalculationRequestActorComponent {
@@ -36,7 +37,7 @@ trait CalculationRequestActorComponent {
   val metrics: ApplicationMetrics
 }
 
-class CalculationRequestActor(implicit ec: ExecutionContext) extends Actor with ActorUtils with Logging {
+class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
   self: CalculationRequestActorComponent =>
 
@@ -167,4 +168,4 @@ class CalculationRequestActor(implicit ec: ExecutionContext) extends Actor with 
 class DefaultCalculationRequestActor @Inject()(override val repository : BulkCalculationMongoRepository,
                                                override val desConnector : DesConnector,
                                                override val metrics : ApplicationMetrics
-                                              )(implicit ec: ExecutionContext)extends CalculationRequestActor with CalculationRequestActorComponent
+                                              ) extends CalculationRequestActor with CalculationRequestActorComponent

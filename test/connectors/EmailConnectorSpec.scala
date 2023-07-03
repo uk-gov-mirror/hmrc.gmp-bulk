@@ -22,7 +22,6 @@ import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, _}
-import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.{PlaySpec}
 import play.api.Environment
@@ -34,9 +33,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with Matchers with BeforeAndAfter {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
+class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
 
   lazy val mockHttp = mock[HttpClient]
   val environment = app.injector.instanceOf[Environment]

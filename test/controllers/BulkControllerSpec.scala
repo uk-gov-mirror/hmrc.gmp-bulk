@@ -34,7 +34,7 @@ import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.auth.core.AuthConnector
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
@@ -47,8 +47,6 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
   val authConnector = mock[AuthConnector]
   val fakeAuthAction = FakeAuthAction(authConnector)
   lazy val mockRepository = mock[BulkCalculationMongoRepository]
-
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   object TestBulkController extends BulkController(fakeAuthAction, mockEmailConnector, csvGenerator, stubMessagesControllerComponents(), mockRepository) {
     override lazy val repository = mockRepo

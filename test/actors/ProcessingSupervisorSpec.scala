@@ -26,11 +26,10 @@ import metrics.ApplicationMetrics
 import models.{ProcessReadyCalculationRequest, ValidCalculationRequest}
 import org.mockito.Matchers.{any, anyString}
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.scalatestplus.mockito.MockitoSugar
 import repositories.BulkCalculationMongoRepository
-import uk.gov.hmrc.mongo.lock.MongoLockRepository
+import uk.gov.hmrc.mongo.lock.{MongoLockRepository, TimePeriodLockService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -39,7 +38,7 @@ import scala.language.postfixOps
 
 
 
-class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with AnyWordSpecLike with MockitoSugar
+class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with WordSpecLike with MockitoSugar
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils {
 
   def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
