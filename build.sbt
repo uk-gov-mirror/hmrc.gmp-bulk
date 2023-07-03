@@ -1,6 +1,6 @@
 import sbt.Keys.resolvers
 import scoverage.ScoverageKeys
-import uk.gov.hmrc.DefaultBuildSettings.{defaultSettings, scalaSettings}
+import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, defaultSettings, scalaSettings, targetJvm}
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 import java.time.LocalDate
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{HeaderLicense, headerLicense}
@@ -38,14 +38,16 @@ lazy val microservice = Project(appName, file("."))
     retrieveManaged := true,
     PlayKeys.playDefaultPort := 9955,
     routesGenerator := InjectedRoutesGenerator,
+    resolvers += Resolver.bintrayRepo("hmrc", "releases"),
     resolvers += Resolver.typesafeRepo("releases"),
     resolvers += "hmrc-releases" at "https://artefacts.tax.service.gov.uk/artifactory/hmrc-releases/"
   )
-  .settings(scalaVersion := "2.13.8")
+  .settings(scalaVersion := "2.12.14")
   .settings(
     scalacOptions ++= List(
       "-Yrangepos",
       "-Xlint:-missing-interpolator,_",
+      "-Yno-adapted-args",
       "-feature",
       "-unchecked",
       "-language:implicitConversions",

@@ -27,6 +27,7 @@ import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpClient
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait DesGetResponse
@@ -43,8 +44,7 @@ class DesConnector @Inject()(environment: Environment,
                              http: HttpClient,
                              val metrics: ApplicationMetrics,
                              servicesConfig: ServicesConfig,
-                             applicationConfig: ApplicationConfiguration)(implicit ec: ExecutionContext)
-  extends UsingCircuitBreaker {
+                             applicationConfig: ApplicationConfiguration) extends UsingCircuitBreaker {
 
   val logger = Logger(this.getClass)
 
@@ -73,7 +73,7 @@ class DesConnector @Inject()(environment: Environment,
     val startTime = System.currentTimeMillis()
 
     withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers= npsHeaders)
-      (hc = hc, rds = httpReads, ec = ec).map { response =>
+      (hc = hc, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.registerStatusCode(response.status.toString)
       metrics.desConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -96,7 +96,7 @@ class DesConnector @Inject()(environment: Environment,
           }
         }
       }
-    })
+    })(hc=hc)
   }
 
   private def npsHeaders =Seq(
@@ -134,7 +134,7 @@ class DesConnector @Inject()(environment: Environment,
 
     logger.debug(s"[getPersonDetails] Contacting DES at $url")
 
-    http.GET[HttpResponse](url, headers = desHeaders)(implicitly[HttpReads[HttpResponse]], hc, ec) map { response =>
+    http.GET[HttpResponse](url, headers = desHeaders)(implicitly[HttpReads[HttpResponse]], hc, ec = ExecutionContext.global) map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {
