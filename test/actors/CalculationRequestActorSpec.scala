@@ -30,10 +30,10 @@ import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import scala.language.postfixOps
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
-class CalculationRequestActorMock(val desConnector: DesConnector, val repository: BulkCalculationMongoRepository, val metrics: ApplicationMetrics)
+class CalculationRequestActorMock(val desConnector: DesConnector, val repository: BulkCalculationMongoRepository, val metrics: ApplicationMetrics)(implicit ec: ExecutionContext)
   extends CalculationRequestActor with CalculationRequestActorComponent
 
 class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationActorSystem")) with WordSpecLike with MockitoSugar
