@@ -34,9 +34,9 @@ import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.auth.core.AuthConnector
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
+class BulkControllerSpec(implicit ec: ExecutionContext) extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
   val cc = stubMessagesControllerComponents()
   implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
