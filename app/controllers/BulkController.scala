@@ -19,7 +19,6 @@ package controllers
 import com.google.inject.Inject
 import connectors.{EmailConnector, ReceivedUploadTemplate}
 import controllers.auth.AuthAction
-
 import javax.inject.Singleton
 import models._
 import play.api.i18n.{Messages, MessagesImpl}
@@ -28,14 +27,14 @@ import play.api.mvc.MessagesControllerComponents
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
 class BulkController @Inject()(authAction: AuthAction,
                                emailConnector: EmailConnector,
                                csvGenerator: CsvGenerator,
                                cc: MessagesControllerComponents,
-                               bulkCalculationMongoRepository : BulkCalculationMongoRepository)(implicit ec: ExecutionContext) extends BackendController(cc) {
+                               bulkCalculationMongoRepository : BulkCalculationMongoRepository) extends BackendController(cc) {
 
   implicit lazy val messages: Messages = MessagesImpl(cc.langs.availables.head, messagesApi)
 
