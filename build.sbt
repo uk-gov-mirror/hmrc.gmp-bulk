@@ -40,11 +40,12 @@ lazy val microservice = Project(appName, file("."))
     routesGenerator := InjectedRoutesGenerator,
     resolvers += Resolver.typesafeRepo("releases")
   )
-  .settings(scalaVersion := "2.13.8")
+  .settings(scalaVersion := "2.12.14")
   .settings(
     scalacOptions ++= List(
       "-Yrangepos",
       "-Xlint:-missing-interpolator,_",
+      "-Yno-adapted-args",
       "-feature",
       "-unchecked",
       "-language:implicitConversions",
