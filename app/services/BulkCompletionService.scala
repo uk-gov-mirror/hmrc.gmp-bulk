@@ -18,17 +18,15 @@ package services
 
 import com.google.inject.Inject
 import play.api.Logging
-import repositories.BulkCalculationMongoRepository
-import repositories.BulkCalculationRepository
+import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
 
 
 class BulkCompletionService @Inject() (bulkCalculationMongoRepository : BulkCalculationMongoRepository,
-                                       mongoLockRepository: MongoLockRepository) extends Logging {
+                                       mongoLockRepository: MongoLockRepository)(implicit ec: ExecutionContext) extends Logging {
 
 val lockId = "bulkcompletion"
   val lockService: LockService = LockService(mongoLockRepository, lockId = lockId, ttl = 5.minutes)
