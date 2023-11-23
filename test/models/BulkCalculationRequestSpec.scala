@@ -26,8 +26,9 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import play.api.test.Helpers.stubMessagesControllerComponents
 import play.api.{Application, Mode}
+import scala.concurrent.ExecutionContext
 
-class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with MustMatchers {
+class BulkCalculationRequestSpec(implicit ec: ExecutionContext) extends PlaySpec with GuiceOneAppPerSuite with MustMatchers {
   val cc = stubMessagesControllerComponents()
   implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
   def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
