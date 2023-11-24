@@ -26,21 +26,23 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import play.api.test.Helpers.stubMessagesControllerComponents
 import play.api.{Application, Mode}
-import scala.concurrent.ExecutionContext
 
-class BulkCalculationRequestSpec(implicit ec: ExecutionContext) extends PlaySpec with GuiceOneAppPerSuite with MustMatchers {
+class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with MustMatchers {
+
   val cc = stubMessagesControllerComponents()
   implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
-  def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
+
+  def additionalConfiguration: Map[String, String] = Map("logger.application" -> "ERROR",
     "logger.play" -> "ERROR",
     "logger.root" -> "ERROR",
     "org.apache.logging" -> "ERROR",
     "com.codahale" -> "ERROR")
+
   private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
 
   implicit override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(additionalConfiguration)
-    .bindings(bindModules:_*).in(Mode.Test)
+    .bindings(bindModules: _*).in(Mode.Test)
     .build()
   val nino = RandomNino.generate
 
@@ -267,7 +269,7 @@ class BulkCalculationRequestSpec(implicit ec: ExecutionContext) extends PlaySpec
     "return true if globalErrorCode defined" in {
 
       val request = jsonCalculationRequestWithMatchingResponse.as[ProcessReadyCalculationRequest]
-      request.hasErrors must be (true)
+      request.hasErrors must be(true)
       request.getGlobalErrorMessageReason must be(Some(Messages("63151.reason")))
       request.getGlobalErrorMessageWhat must be(Some(Messages("63151.what")))
     }
@@ -275,14 +277,14 @@ class BulkCalculationRequestSpec(implicit ec: ExecutionContext) extends PlaySpec
     "return true if validationErrors defined" in {
 
       val request = jsonCalculationRequestWithValidationError.as[ProcessReadyCalculationRequest]
-      request.hasErrors must be (true)
+      request.hasErrors must be(true)
     }
 
     "return false if no globalErrorCode or validation error" in {
 
       val request = jsonCalculationRequestWithMatchingResponseWithNoError.as[ProcessReadyCalculationRequest]
 
-      request.hasErrors must be (false)
+      request.hasErrors must be(false)
       request.getGlobalErrorMessageReason must be(None)
       request.getGlobalErrorMessageWhat must be(None)
     }
@@ -295,7 +297,7 @@ class BulkCalculationRequestSpec(implicit ec: ExecutionContext) extends PlaySpec
       request.failedRequestCount must be(4)
     }
   }
-  
+
 
   "handle timestamp conversion" in {
     val bprJson = Json.parse(
@@ -311,5 +313,4 @@ class BulkCalculationRequestSpec(implicit ec: ExecutionContext) extends PlaySpec
 
     Json.toJson(bprJson.as[BulkPreviousRequest]) must equal(bprJson)
   }
-
 }
