@@ -80,7 +80,7 @@ class IFConnector @Inject()(
   )
 
   def calculate(request: ValidCalculationRequest): Future[CalculationResponse]= {
-    val url = calcURI + request. ifUri
+    val url = calcURI + request.ifUri
     val logPrefix = "[IFConnector][calculate]"
     logger.info(s"$logPrefix contacting IF at $url")
 
