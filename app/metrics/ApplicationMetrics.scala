@@ -42,6 +42,14 @@ class ApplicationMetrics @Inject()(metrics: Metrics) extends Logging {
     ("des-connector-httpstatus-500", counter),
     ("des-connector-httpstatus-504", counter),
     ("des-connector-timer", timer),
+    ("if-connector-requests-successful", counter),
+    ("if-connector-requests-failed", counter),
+    ("if-connector-httpstatus-200", counter),
+    ("if-connector-httpstatus-400", counter),
+    ("if-connector-httpstatus-422", counter),
+    ("if-connector-httpstatus-500", counter),
+    ("if-connector-httpstatus-504", counter),
+    ("if-connector-timer", timer),
     ("mongo-insertResponseByReference-timer", timer),
     ("mongo-findRequestsToProcess-timer", timer),
     ("mongo-findCountRemaining-timer", timer),
@@ -71,12 +79,16 @@ class ApplicationMetrics @Inject()(metrics: Metrics) extends Logging {
   def processRequest(diff: Long, unit: duration.TimeUnit): Unit = metricTimer(diff, unit, "processRequest-timer")
 
   def registerSuccessfulRequest() = metricCounter("des-connector-requests-successful")
+  def ifRegisterSuccessfulRequest() = metricCounter("des-connector-requests-successful")
 
   def registerFailedRequest() = metricCounter("des-connector-requests-failed")
+  def ifRegisterFailedRequest() = metricCounter("des-connector-requests-failed")
 
   def registerStatusCode(code: String) = metricCounter(s"des-connector-httpstatus-$code")
+  def ifRegisterStatusCode(code: String) = metricCounter(s"des-connector-httpstatus-$code")
 
   def desConnectionTime(diff: Long, timeUnit: TimeUnit) = metricTimer(diff, timeUnit, "des-connector-timer")
+  def ifConnectionTime(diff: Long, timeUnit: TimeUnit) = metricTimer(diff, timeUnit, "des-connector-timer")
 
   def insertResponseByReferenceTimer(diff: Long, unit: duration.TimeUnit): Unit =
     metricTimer(diff, unit, "mongo-insertResponseByReference-timer")
