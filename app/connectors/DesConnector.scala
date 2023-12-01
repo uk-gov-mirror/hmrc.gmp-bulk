@@ -127,7 +127,8 @@ class DesConnector @Inject()(environment: Environment,
     val desHeaders = Seq(
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("des.originator-id",""),
       "Authorization" -> s"Bearer $serviceKey",
-      "Environment" -> serviceEnvironment)
+      "Environment" -> serviceEnvironment
+    )
 
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"

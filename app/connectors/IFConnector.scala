@@ -38,8 +38,8 @@ class IFConnector @Inject()(
                              applicationConfig: ApplicationConfiguration
                            ) extends Logging with UsingCircuitBreaker {
 
-  val serviceKey = servicesConfig.getConfString("nps.key", "")
-  val serviceEnvironment = servicesConfig.getConfString("nps.environment", "")
+  val serviceKey = servicesConfig.getConfString("if.key", "")
+  val serviceEnvironment = servicesConfig.getConfString("if.environment", "")
   lazy val citizenDetailsUrl: String = servicesConfig.baseUrl("citizen-details")
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -73,7 +73,7 @@ class IFConnector @Inject()(
     }
   }
 
-  private def npsHeaders = Seq(
+  private def ifHeaders = Seq(
     "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("nps.originator-id",""),
     "Authorization" -> s"Bearer $serviceKey",
     "Environment" -> serviceEnvironment
@@ -86,7 +86,7 @@ class IFConnector @Inject()(
 
     val startTime = System.currentTimeMillis()
 
-    withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers = npsHeaders)
+    withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers = ifHeaders)
       (hc = hc, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.ifRegisterStatusCode(response.status.toString)
@@ -116,8 +116,9 @@ class IFConnector @Inject()(
 
     val desHeaders = Seq(
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("des.originator-id",""),
-      "Authorization" -> s"Bearer $serviceKey",
-      "Environment" -> serviceEnvironment)
+      "Authorization" -> s"Bearer ${servicesConfig.getConfString("nps.key", "")}",
+      "Environment" -> servicesConfig.getConfString("nps.environment", "")
+    )
 
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
