@@ -23,8 +23,9 @@ import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, _}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import org.scalatestplus.play.{PlaySpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.Environment
+import play.api.test.Helpers
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpClient
@@ -38,8 +39,9 @@ class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
   lazy val mockHttp = mock[HttpClient]
   val environment = app.injector.instanceOf[Environment]
   lazy val servicesConfig = app.injector.instanceOf[ServicesConfig]
+  private implicit lazy val ec = Helpers.stubControllerComponents().executionContext
 
-  class TestEmailConnector extends EmailConnector(mockHttp, environment, app.configuration, servicesConfig)
+  class TestEmailConnector extends EmailConnector(mockHttp, app.configuration, servicesConfig)
 
   implicit lazy val hc = HeaderCarrier()
 

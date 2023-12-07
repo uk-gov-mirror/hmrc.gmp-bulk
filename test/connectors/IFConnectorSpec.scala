@@ -30,6 +30,7 @@ import org.scalatestplus.play._
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Environment
 import play.api.http.Status.UNPROCESSABLE_ENTITY
+import play.api.test.Helpers
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -49,6 +50,7 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
   private val applicationConfig = injector.instanceOf[ApplicationConfiguration]
   private val mockHttp = mock[HttpClient]
   private val NGINX_CLIENT_CLOSED_REQUEST = 499
+  private implicit lazy val ec = Helpers.stubControllerComponents().executionContext
 
   override def beforeEach(): Unit = {
     super.beforeEach()

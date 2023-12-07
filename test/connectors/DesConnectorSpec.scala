@@ -17,7 +17,6 @@
 package connectors
 
 import java.util.UUID
-
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import config.ApplicationConfiguration
@@ -36,6 +35,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpClient
 import utils.WireMockHelper
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.test.Helpers
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -50,6 +50,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMoc
   private val applicationConfig = injector.instanceOf[ApplicationConfiguration]
   private val mockHttp = mock[HttpClient]
   private val NGINX_CLIENT_CLOSED_REQUEST = 499
+  private implicit val ec = Helpers.stubMessagesControllerComponents().executionContext
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -67,7 +68,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMoc
     )
   }
 
-  class SUT(httpC:HttpClient = http) extends DesConnector(environment, app.configuration, httpC, mockMetrics, servicesConfig, applicationConfig) {
+  class SUT(httpC:HttpClient = http) extends DesConnector(app.configuration, httpC, mockMetrics, servicesConfig, applicationConfig) {
     override lazy val serviceURL: String = "http://localhost:" + server.port()
     override lazy val citizenDetailsUrl: String = serviceURL
   }

@@ -18,7 +18,6 @@ package repositories
 
 import java.util.concurrent.TimeUnit
 import com.google.inject.{Inject, Provider, Singleton}
-import com.mongodb.client.model.UpdateOptions
 import config.ApplicationConfiguration
 import connectors.{EmailConnector, ProcessedUploadTemplate}
 import events.BulkEvent
@@ -36,8 +35,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 @Singleton
@@ -45,7 +43,7 @@ class BulkCalculationMongoRepositoryProvider @Inject()(metrics: ApplicationMetri
                                                        auditConnector: AuditConnector,
                                                        emailConnector : EmailConnector,
                                                        applicationConfig: ApplicationConfiguration,
-                                                       mongo: MongoComponent)
+                                                       mongo: MongoComponent)(implicit ec: ExecutionContext)
   extends Provider[BulkCalculationMongoRepository] {
   override def get(): BulkCalculationMongoRepository = {
     new BulkCalculationMongoRepository(metrics, auditConnector, emailConnector : EmailConnector, applicationConfig, mongo)
@@ -56,7 +54,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
                                                ac: AuditConnector,
                                                override val emailConnector : EmailConnector,
                                                applicationConfiguration: ApplicationConfiguration,
-                                               mongo: MongoComponent)
+                                               mongo: MongoComponent)(implicit ec: ExecutionContext)
   extends PlayMongoRepository[BulkCalculationRequest](
       collectionName = "bulk-calculation",
       mongoComponent = mongo,

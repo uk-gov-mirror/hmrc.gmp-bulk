@@ -17,7 +17,6 @@
 package actors
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor._
 import com.google.inject.Inject
 import connectors.{DesConnector, DesGetHiddenRecordResponse}
@@ -168,4 +167,4 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 class DefaultCalculationRequestActor @Inject()(override val repository : BulkCalculationMongoRepository,
                                                override val desConnector : DesConnector,
                                                override val metrics : ApplicationMetrics
-                                              ) extends CalculationRequestActor with CalculationRequestActorComponent
+                                              )extends CalculationRequestActor with CalculationRequestActorComponent
