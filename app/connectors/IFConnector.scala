@@ -86,7 +86,7 @@ class IFConnector @Inject()(
     val startTime = System.currentTimeMillis()
 
     withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers = ifHeaders)
-      (hc = hc, rds = httpReads, ec = ExecutionContext.global).map { response =>
+      (hc = hc, rds = httpReads, ec = ec).map { response =>
 
       metrics.ifRegisterStatusCode(response.status.toString)
       metrics.ifConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -124,7 +124,7 @@ class IFConnector @Inject()(
 
     logger.debug(s"[getPersonDetails] Contacting DES at $url")
 
-    http.GET[HttpResponse](url, headers = desHeaders)(implicitly[HttpReads[HttpResponse]], hc, ec = ExecutionContext.global) map { response =>
+    http.GET[HttpResponse](url, headers = desHeaders)(implicitly[HttpReads[HttpResponse]], hc, ec = ec) map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {
