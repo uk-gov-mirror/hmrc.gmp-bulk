@@ -16,7 +16,6 @@
 
 package connectors
 
-import java.util.UUID
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import config.ApplicationConfiguration
@@ -28,19 +27,20 @@ import org.mockito.{Matchers, Mockito}
 import org.scalatest._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play._
-import play.api.Environment
-import play.api.test.Helpers._
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpClient
-import utils.WireMockHelper
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.Environment
+import play.api.http.Status.UNPROCESSABLE_ENTITY
 import play.api.test.Helpers
+import play.api.test.Helpers._
+import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import utils.WireMockHelper
 
+import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
-class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMockHelper with BeforeAndAfter with MockitoSugar {
+class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMockHelper with BeforeAndAfter with MockitoSugar {
 
   private val injector = app.injector
   private val mockMetrics = mock[ApplicationMetrics]
@@ -50,7 +50,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMoc
   private val applicationConfig = injector.instanceOf[ApplicationConfiguration]
   private val mockHttp = mock[HttpClient]
   private val NGINX_CLIENT_CLOSED_REQUEST = 499
-  private implicit val ec = Helpers.stubMessagesControllerComponents().executionContext
+  private implicit lazy val ec = Helpers.stubControllerComponents().executionContext
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -68,7 +68,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMoc
     )
   }
 
-  class SUT(httpC:HttpClient = http) extends DesConnector(app.configuration, httpC, mockMetrics, servicesConfig, applicationConfig) {
+  class SUT(httpC:HttpClient = http) extends IFConnector(httpC, servicesConfig, mockMetrics, applicationConfig) {
     override lazy val serviceURL: String = "http://localhost:" + server.port()
     override lazy val citizenDetailsUrl: String = serviceURL
   }
@@ -104,9 +104,9 @@ class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMoc
                 }
             """
 
-  "The Nps Connector" must {
+  "IF Connector" when {
 
-    "calculate" must {
+    "calculate is called" must {
 
       "return a calculation request" in new SUT {
         val url = s"/pensions/individuals/gmp/scon/S/1234567/T/nino/$nino/surname/BIX/firstname/B/calculation/"
@@ -115,7 +115,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMoc
         val result = await(calculate(ValidCalculationRequest("S1234567T", nino, "Bixby", "Bill", None, Some(0), None, Some(1), None, None)))
 
         result.npsLgmpcalc.length must be(1)
-        Mockito.verify(mockMetrics).registerSuccessfulRequest()
+        Mockito.verify(mockMetrics).ifRegisterSuccessfulRequest()
       }
 
       "return not found when scon does not exist" in new SUT {
@@ -141,12 +141,27 @@ class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMoc
         intercept[UpstreamErrorResponse] {
           await(result)
         }
-        Mockito.verify(metrics).registerFailedRequest()
+        Mockito.verify(metrics).ifRegisterFailedRequest()
+      }
+
+      s"return an error when $UNPROCESSABLE_ENTITY is returned" in new SUT {
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(UNPROCESSABLE_ENTITY, "422")))
+
+        val url = s"/pensions/individuals/gmp/scon/S/1401234/Q/nino/$nino/surname/SMI/firstname/B/calculation/"
+        stubServiceGet(url, BAD_REQUEST, "Bad request", ("request_earnings" -> "1"))
+
+        val result = calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
+
+        intercept[UpstreamErrorResponse] {
+          await(result)
+        }
+        Mockito.verify(metrics).ifRegisterFailedRequest()
       }
 
       val errorCodes4xx = List(TOO_MANY_REQUESTS, NGINX_CLIENT_CLOSED_REQUEST)
       for (errorCode <- errorCodes4xx) {
-        s"return a BreakerException exception when $errorCode returned from DES" in new SUT {
+        s"return a BreakerException exception when $errorCode returned from IF" in new SUT {
           val request = ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)
 
           val url = s"""/pensions/individuals/gmp/scon/S/1401234/Q/nino/${request.nino.toUpperCase}/surname/SMI/firstname/B/calculation/"""
@@ -155,7 +170,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMoc
           intercept[BreakerException] {
             await(calculate(request))
           }
-          Mockito.verify(mockMetrics).registerFailedRequest()
+          Mockito.verify(mockMetrics).ifRegisterFailedRequest()
         }
       }
 
@@ -170,20 +185,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMoc
           intercept[UpstreamErrorResponse] {
             await(calculate(request))
           }
-          Mockito.verify(mockMetrics).registerFailedRequest()
+          Mockito.verify(mockMetrics).ifRegisterFailedRequest()
         }
-      }
-
-      "return a success when 422 returned" in new SUT {
-        val url = s"""/pensions/individuals/gmp/scon/S/1401234/Q/nino/$nino/surname/SMI/firstname/B/calculation/"""
-        stubServiceGet(url, UNPROCESSABLE_ENTITY, calcResponseJson, ("request_earnings" -> "1"), ("calctype" -> "0"))
-
-        val result = await(calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None)))
-
-        result.rejection_reason must be(0)
-
-        Mockito.verify(mockMetrics).registerStatusCode(UNPROCESSABLE_ENTITY.toString)
-        Mockito.verify(mockMetrics).desConnectionTime(Matchers.any(), Matchers.any())
       }
     }
 

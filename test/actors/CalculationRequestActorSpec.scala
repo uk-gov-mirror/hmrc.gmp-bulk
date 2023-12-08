@@ -26,11 +26,12 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, WordSpecLike}
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.test.Helpers
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import scala.language.postfixOps
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -43,6 +44,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
   val mockDesConnector = mock[DesConnector]
   val mockRepository = mock[BulkCalculationMongoRepository]
   val mockMetrics = mock[ApplicationMetrics]
+  private implicit lazy val ec: ExecutionContext = Helpers.stubControllerComponents().executionContext
 
   val testTimeout = 10 seconds
 

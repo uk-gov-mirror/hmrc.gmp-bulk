@@ -26,6 +26,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.Json
+import play.api.test.Helpers
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.mongo.lock.MongoLockRepository
@@ -37,6 +38,7 @@ class BulkCompletionServiceSpec extends AnyWordSpecLike with MockitoSugar with G
 
   lazy val bulkCalculationRespository: BulkCalculationMongoRepository =app.injector.instanceOf[BulkCalculationMongoRepository]
   val mongoLockRepository: MongoLockRepository = app.injector.instanceOf[MongoLockRepository]
+  private implicit lazy val ec = Helpers.stubControllerComponents().executionContext
 
   object TestBulkCompletionService extends BulkCompletionService(bulkCalculationRespository, mongoLockRepository ) {
     override lazy val repository = bulkCalculationRespository
