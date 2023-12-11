@@ -37,8 +37,8 @@ class IFConnector @Inject()(
                              applicationConfig: ApplicationConfiguration
                            )(implicit ec: ExecutionContext) extends Logging with UsingCircuitBreaker {
 
-  val serviceKey = servicesConfig.getConfString("if.key", "")
-  val serviceEnvironment = servicesConfig.getConfString("if.environment", "")
+  val serviceKey = servicesConfig.getConfString("ifs.key", "")
+  val serviceEnvironment = servicesConfig.getConfString("ifs.environment", "")
   lazy val citizenDetailsUrl: String = servicesConfig.baseUrl("citizen-details")
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
