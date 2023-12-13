@@ -21,12 +21,13 @@ import config.ApplicationConfiguration
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, ValidCalculationRequest}
 import play.api.Logging
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, LOCKED, NOT_FOUND, OK, TOO_MANY_REQUESTS}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, LOCKED, NOT_FOUND, OK, TOO_MANY_REQUESTS, UNPROCESSABLE_ENTITY}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpClient, HttpReads, HttpResponse, NotFoundException, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.util.concurrent.TimeUnit
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 
@@ -35,7 +36,7 @@ class IFConnector @Inject()(
                              servicesConfig: ServicesConfig,
                              val metrics: ApplicationMetrics,
                              applicationConfig: ApplicationConfiguration
-                           )(implicit ec: ExecutionContext) extends Logging with UsingCircuitBreaker {
+                           ) extends Logging with UsingCircuitBreaker {
 
   val serviceKey = servicesConfig.getConfString("ifs.key", "")
   val serviceEnvironment = servicesConfig.getConfString("ifs.environment", "")
@@ -72,7 +73,7 @@ class IFConnector @Inject()(
     }
   }
 
-  private def ifHeaders = Seq(
+  private def ifsHeaders = Seq(
     "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("nps.originator-id",""),
     "Authorization" -> s"Bearer $serviceKey",
     "Environment" -> serviceEnvironment
@@ -85,8 +86,8 @@ class IFConnector @Inject()(
 
     val startTime = System.currentTimeMillis()
 
-    withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers = ifHeaders)
-      (hc = hc, rds = httpReads, ec = ec).map { response =>
+    withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers = ifsHeaders)
+      (hc = hc, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.ifRegisterStatusCode(response.status.toString)
       metrics.ifConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -124,7 +125,7 @@ class IFConnector @Inject()(
 
     logger.debug(s"[getPersonDetails] Contacting DES at $url")
 
-    http.GET[HttpResponse](url, headers = desHeaders)(implicitly[HttpReads[HttpResponse]], hc, ec = ec) map { response =>
+    http.GET[HttpResponse](url, headers = desHeaders)(implicitly[HttpReads[HttpResponse]], hc, ec = ExecutionContext.global) map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {
