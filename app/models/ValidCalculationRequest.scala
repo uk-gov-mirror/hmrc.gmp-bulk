@@ -54,7 +54,7 @@ case class ValidCalculationRequest(scon: String,
   }
 
   def ifUri: String = {
-    val truncatedSurname = URLEncoder.encode(surname.replace(" ", " ").take(3).toUpperCase, "UTF-8")
+    val truncatedSurname = URLEncoder.encode(surname.replaceAllLiterally(" ", "").take(3).toUpperCase, "UTF-8")
     val initial = URLEncoder.encode(firstForename.take(1).toUpperCase, "UTF-8")
     val (sconPrefix, sconNumber, sconSuffix) =
       (scon.substring(0, 1).toUpperCase, scon.substring(1, 8), scon.substring(8, 9).toUpperCase)
