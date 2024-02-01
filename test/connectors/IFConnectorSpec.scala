@@ -29,7 +29,6 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play._
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Environment
-import play.api.http.Status.UNPROCESSABLE_ENTITY
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -68,7 +67,6 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
 
   class SUT(httpC:HttpClient = http) extends IFConnector(httpC, servicesConfig, mockMetrics, applicationConfig) {
     override lazy val serviceURL: String = "http://localhost:" + server.port()
-    override lazy val citizenDetailsUrl: String = serviceURL
   }
 
   private val nino = RandomNino.generate
@@ -95,16 +93,9 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
               }
            ]
         }"""
-
-  val citizenDetailsJson: String =
-    """{
-                  "etag" : "115"
-                }
-            """
-
   "IF Connector" when {
 
-    "calculate is called" must {
+    "calculate" must {
 
       "return a calculation request" in new SUT {
         val url = s"/pensions/individuals/gmp/scon/S/1234567/T/nino/$nino/surname/BIX/firstname/B/calculation/"
@@ -113,7 +104,7 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
         val result = await(calculate(ValidCalculationRequest("S1234567T", nino, "Bixby", "Bill", None, Some(0), None, Some(1), None, None)))
 
         result.npsLgmpcalc.length must be(1)
-        Mockito.verify(mockMetrics).ifRegisterSuccessfulRequest()
+        Mockito.verify(mockMetrics).registerSuccessfulRequest()
       }
 
       "return not found when scon does not exist" in new SUT {
@@ -139,27 +130,12 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
         intercept[UpstreamErrorResponse] {
           await(result)
         }
-        Mockito.verify(metrics).ifRegisterFailedRequest()
-      }
-
-      s"return an error when $UNPROCESSABLE_ENTITY is returned" in new SUT {
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(HttpResponse(UNPROCESSABLE_ENTITY, "422")))
-
-        val url = s"/pensions/individuals/gmp/scon/S/1401234/Q/nino/$nino/surname/SMI/firstname/B/calculation/"
-        stubServiceGet(url, BAD_REQUEST, "Bad request", ("request_earnings" -> "1"))
-
-        val result = calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, None, None, None, None, None))
-
-        intercept[UpstreamErrorResponse] {
-          await(result)
-        }
-        Mockito.verify(metrics).ifRegisterFailedRequest()
+        Mockito.verify(metrics).registerFailedRequest()
       }
 
       val errorCodes4xx = List(TOO_MANY_REQUESTS, NGINX_CLIENT_CLOSED_REQUEST)
       for (errorCode <- errorCodes4xx) {
-        s"return a BreakerException exception when $errorCode returned from IF" in new SUT {
+        s"return a BreakerException exception when $errorCode returned from DES" in new SUT {
           val request = ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)
 
           val url = s"""/pensions/individuals/gmp/scon/S/1401234/Q/nino/${request.nino.toUpperCase}/surname/SMI/firstname/B/calculation/"""
@@ -168,7 +144,7 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
           intercept[BreakerException] {
             await(calculate(request))
           }
-          Mockito.verify(mockMetrics).ifRegisterFailedRequest()
+          Mockito.verify(mockMetrics).registerFailedRequest()
         }
       }
 
@@ -183,54 +159,20 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
           intercept[UpstreamErrorResponse] {
             await(calculate(request))
           }
-          Mockito.verify(mockMetrics).ifRegisterFailedRequest()
-        }
-      }
-    }
-
-    "Calling getPersonDetails" should {
-
-      val getPersonDetailTestScenarios = List(
-        (OK, citizenDetailsJson, DesGetSuccessResponse),
-        (LOCKED, citizenDetailsJson, DesGetHiddenRecordResponse),
-        (NOT_FOUND, "", DesGetNotFoundResponse),
-        (INTERNAL_SERVER_ERROR, "", DesGetUnexpectedResponse),
-        (SERVICE_UNAVAILABLE, "", DesGetUnexpectedResponse),
-        (TOO_MANY_REQUESTS, "", DesGetUnexpectedResponse),
-        (NGINX_CLIENT_CLOSED_REQUEST, "", DesGetUnexpectedResponse)
-      )
-
-      for ((status, body, expected) <- getPersonDetailTestScenarios) {
-        s"return a ${expected.getClass.toString} when status from DES is $status" in new SUT {
-          val url = s"/citizen-details/$nino/etag"
-          stubServiceGet(url, status, body)
-
-          await(getPersonDetails(nino)) must be(expected)
+          Mockito.verify(mockMetrics).registerFailedRequest()
         }
       }
 
-      s"hit metrics mciLockResult when status from DES is 423" in new SUT {
-        val url = s"/citizen-details/$nino/etag"
-        stubServiceGet(url, LOCKED, citizenDetailsJson)
+      "return a success when 422 returned" in new SUT {
+        val url = s"""/pensions/individuals/gmp/scon/S/1401234/Q/nino/$nino/surname/SMI/firstname/B/calculation/"""
+        stubServiceGet(url, UNPROCESSABLE_ENTITY, calcResponseJson, ("request_earnings" -> "1"), ("calctype" -> "0"))
 
-        await(getPersonDetails(nino))
-        Mockito.verify(mockMetrics).mciLockResult()
-      }
+        val result = await(calculate(ValidCalculationRequest("S1401234Q", nino, "Smith", "Bill", None, Some(0), None, None, None, None)))
 
-      "return a DesErrorResponse if any other issues" ignore new SUT(mockHttp) {
-        val ex = new Exception("Exception")
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())) thenReturn {
-          Future.failed(ex)
-        }
+        result.rejection_reason must be(0)
 
-        await(getPersonDetails(nino)) must be(DesGetErrorResponse(ex))
-      }
-
-      "return a success response if the MCI flag does not appear in the response" in new SUT {
-        val url = s"/citizen-details/$nino/etag"
-        stubServiceGet(url, OK, "{}")
-
-        await(getPersonDetails(nino)) must be(DesGetSuccessResponse)
+        Mockito.verify(mockMetrics).ifRegisterStatusCode(UNPROCESSABLE_ENTITY.toString)
+        Mockito.verify(mockMetrics).ifConnectionTime(Matchers.any(), Matchers.any())
       }
     }
   }
