@@ -40,7 +40,6 @@ class IFConnector @Inject()(
 
   val serviceKey = servicesConfig.getConfString("ifs.key", "")
   val serviceEnvironment = servicesConfig.getConfString("ifs.environment", "")
-  lazy val citizenDetailsUrl: String = servicesConfig.baseUrl("citizen-details")
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -93,57 +92,23 @@ class IFConnector @Inject()(
       metrics.ifConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {
-        case OK =>
-          metrics.ifRegisterSuccessfulRequest()
+        case OK | UNPROCESSABLE_ENTITY =>
+          metrics.registerSuccessfulRequest()
           response.json.as[CalculationResponse]
 
         case errorStatus: Int => {
-          logger.error(s"$logPrefix IF URI $url returned code $errorStatus and response body: ${response.body}")
-          metrics.ifRegisterFailedRequest()
+          logger.error(s"[calculate] DES URI $url returned code $errorStatus and response body: ${response.body}")
+          metrics.registerFailedRequest()
 
           errorStatus match {
             case status if status >= 500 && status < 600 =>
-              throw UpstreamErrorResponse(s"$logPrefix Call to Individual Pension calculation on NPS Service failed with status code ${status}", status, status)
-            case TOO_MANY_REQUESTS | 499 => throw new BreakerException
-            case _ => throw UpstreamErrorResponse(s"$logPrefix An error status $errorStatus was encountered", errorStatus, errorStatus)
+              throw UpstreamErrorResponse(s"Call to Individual Pension calculation on NPS Service failed with status code ${status}", status, status)
+            case TOO_MANY_REQUESTS => throw new BreakerException
+            case 499 => throw new BreakerException
+            case _ => throw UpstreamErrorResponse(s"An error status $errorStatus was encountered", errorStatus, errorStatus)
           }
         }
       }
     })(hc=hc)
-  }
-
-  def getPersonDetails(nino: String): Future[DesGetResponse] = {
-
-    val desHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("des.originator-id",""),
-      "Authorization" -> s"Bearer ${servicesConfig.getConfString("nps.key", "")}",
-      "Environment" -> servicesConfig.getConfString("nps.environment", "")
-    )
-
-    val startTime = System.currentTimeMillis()
-    val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
-
-    logger.debug(s"[getPersonDetails] Contacting DES at $url")
-
-    http.GET[HttpResponse](url, headers = desHeaders)(implicitly[HttpReads[HttpResponse]], hc, ec = ExecutionContext.global) map { response =>
-      metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-
-      response.status match {
-        case LOCKED =>
-          metrics.mciLockResult()
-          DesGetHiddenRecordResponse
-        case NOT_FOUND => DesGetNotFoundResponse
-        case OK => DesGetSuccessResponse
-        case INTERNAL_SERVER_ERROR => DesGetUnexpectedResponse
-        case _ => DesGetUnexpectedResponse
-      }
-
-    } recover {
-      case e: NotFoundException => DesGetNotFoundResponse
-      case e: Exception =>
-        logger.error(s"[getPersonDetails] Exception thrown getting individual record from DES: $e")
-        metrics.mciErrorResult()
-        DesGetErrorResponse(e)
-    }
   }
 }

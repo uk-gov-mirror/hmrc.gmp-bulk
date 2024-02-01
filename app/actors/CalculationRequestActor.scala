@@ -19,21 +19,24 @@ package actors
 import java.util.concurrent.TimeUnit
 import akka.actor._
 import com.google.inject.Inject
-import connectors.{DesConnector, DesGetHiddenRecordResponse}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
 import play.api.http.Status
 import play.api.Logging
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 trait CalculationRequestActorComponent {
   val desConnector: DesConnector
+  val ifConnector: IFConnector
   val repository: BulkCalculationMongoRepository
   val metrics: ApplicationMetrics
+  val servicesConfig: ServicesConfig
 }
 
 class CalculationRequestActor extends Actor with ActorUtils with Logging {
@@ -59,8 +62,11 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
         case x => {
 
           val tryCallingDes = Try {
-            desConnector.calculate(request.validCalculationRequest.get)
-
+            if(servicesConfig.getBoolean("ifs.enabled")) {
+              ifConnector.calculate(request.validCalculationRequest.get)
+            } else {
+              desConnector.calculate(request.validCalculationRequest.get)
+            }
           }
 
           tryCallingDes match {
@@ -166,5 +172,8 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
 class DefaultCalculationRequestActor @Inject()(override val repository : BulkCalculationMongoRepository,
                                                override val desConnector : DesConnector,
-                                               override val metrics : ApplicationMetrics
-                                              )extends CalculationRequestActor with CalculationRequestActorComponent
+                                               override val ifConnector: IFConnector,
+                                               override val metrics : ApplicationMetrics,
+                                               override val servicesConfig: ServicesConfig
+                                              )extends CalculationRequestActor with CalculationRequestActorComponent {
+}
