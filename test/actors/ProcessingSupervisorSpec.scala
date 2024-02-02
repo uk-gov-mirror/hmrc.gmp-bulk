@@ -20,7 +20,7 @@ import actors.Throttler.SetTarget
 import akka.actor.{ActorSystem, Props}
 import akka.testkit._
 import config.ApplicationConfiguration
-import connectors.DesConnector
+import connectors.{DesConnector, IFConnector}
 import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models.{ProcessReadyCalculationRequest, ValidCalculationRequest}
@@ -50,6 +50,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
   val applicationConfig  = mock[ApplicationConfiguration]
   val mongoApi  = mock[MongoLockRepository]
   val desConnector = mock[DesConnector]
+  val ifConnector = mock[IFConnector]
   val metrics = mock[ApplicationMetrics]
   val mockRepository = mock[BulkCalculationMongoRepository]
 
@@ -103,7 +104,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
       val throttlerProbe = TestProbe()
       val calculationActorProbe = TestProbe()
 
-      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig, mockRepository, mongoApi, desConnector, metrics) {
+      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig, mockRepository, mongoApi, desConnector, ifConnector, metrics) {
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
@@ -124,7 +125,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
       val throttlerProbe = TestProbe()
       val calculationActorProbe = TestProbe()
 
-      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig, mockRepository, mongoApi, desConnector, metrics) {
+      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig, mockRepository, mongoApi, desConnector, ifConnector, metrics) {
 
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref

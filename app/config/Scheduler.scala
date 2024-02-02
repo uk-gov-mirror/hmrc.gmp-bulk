@@ -18,7 +18,7 @@ package config
 
 import actors.{ActorUtils, ProcessingSupervisor}
 import akka.actor.{ActorSystem, Props}
-import connectors.DesConnector
+import connectors.{DesConnector, IFConnector}
 
 import javax.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
@@ -42,12 +42,13 @@ class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationL
                           bulkCalculationMongoRepository : BulkCalculationMongoRepository,
                           mongoApi : MongoLockRepository, bulkCompletionService : BulkCompletionService,
                           desConnector : DesConnector,
+                          ifConnector: IFConnector,
                           metrics : ApplicationMetrics
                          )(implicit val ec: ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
 
   lazy val scheduledJobs: Seq[ScheduledJob] = {
     Seq(new ExclusiveScheduledJob {
-      lazy val processingSupervisor = actorSystem.actorOf(Props(classOf[ProcessingSupervisor], applicationConfiguration, bulkCalculationMongoRepository, mongoApi, desConnector, metrics), "processing-supervisor")
+      lazy val processingSupervisor = actorSystem.actorOf(Props(classOf[ProcessingSupervisor], applicationConfiguration, bulkCalculationMongoRepository, mongoApi, desConnector, ifConnector, metrics), "processing-supervisor")
 
       override def name: String = "BulkProcesssingService"
 

@@ -30,6 +30,7 @@ trait ApplicationConfig {
   val unstablePeriodDuration: Int
   val bulkProcessingTps: Int
   val bulkProcessingInterval: Int
+  val ifEnabled: Boolean
 }
 
 class ApplicationConfiguration@Inject()(configuration: Configuration) extends ApplicationConfig {
@@ -40,4 +41,5 @@ class ApplicationConfiguration@Inject()(configuration: Configuration) extends Ap
   override val numberOfCallsToTriggerStateChange = configuration.getOptional[Int](s"circuit-breaker.number-of-calls-to-trigger-state-change").getOrElse(10)
   override val unavailablePeriodDuration: Int = configuration.getOptional[Int](s"circuit-breaker.unavailable-period-duration").getOrElse(300)
   override val unstablePeriodDuration: Int = configuration.getOptional[Int](s"circuit-breaker.unstable-period-duration").getOrElse(60)
+  override val ifEnabled: Boolean = configuration.getOptional[Boolean]("ifs-enabled").getOrElse(false)
 }
