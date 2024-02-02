@@ -19,6 +19,7 @@ package actors
 import java.util.concurrent.TimeUnit
 import akka.actor._
 import com.google.inject.Inject
+import config.ApplicationConfiguration
 import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
@@ -36,7 +37,7 @@ trait CalculationRequestActorComponent {
   val ifConnector: IFConnector
   val repository: BulkCalculationMongoRepository
   val metrics: ApplicationMetrics
-  val servicesConfig: ServicesConfig
+  val applicationConfig: ApplicationConfiguration
 }
 
 class CalculationRequestActor extends Actor with ActorUtils with Logging {
@@ -62,7 +63,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
         case x => {
 
           val tryCallingDes = Try {
-            if(servicesConfig.getBoolean("ifs.enabled")) {
+            if(applicationConfig.ifEnabled) {
               ifConnector.calculate(request.validCalculationRequest.get)
             } else {
               desConnector.calculate(request.validCalculationRequest.get)
@@ -174,6 +175,6 @@ class DefaultCalculationRequestActor @Inject()(override val repository : BulkCal
                                                override val desConnector : DesConnector,
                                                override val ifConnector: IFConnector,
                                                override val metrics : ApplicationMetrics,
-                                               override val servicesConfig: ServicesConfig
+                                               override val applicationConfig: ApplicationConfiguration
                                               )extends CalculationRequestActor with CalculationRequestActorComponent {
 }

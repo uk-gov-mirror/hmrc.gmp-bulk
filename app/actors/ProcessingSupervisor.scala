@@ -20,7 +20,7 @@ import actors.Throttler.{RateInt, SetTarget}
 import akka.actor._
 import com.github.ghik.silencer.silent
 import config.ApplicationConfiguration
-import connectors.DesConnector
+import connectors.{DesConnector, IFConnector}
 import metrics.ApplicationMetrics
 import play.api.Logging
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
@@ -37,6 +37,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
                                      bulkCalculationMongoRepository : BulkCalculationMongoRepository,
                                      val mongoLockRepository: MongoLockRepository,
                                      desConnector : DesConnector,
+                                     ifConnector: IFConnector,
                                      metrics : ApplicationMetrics)
   extends Actor with ActorUtils with TimePeriodLockService with Logging {
 
@@ -46,7 +47,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
 
   // $COVERAGE-OFF$
   lazy val repository: BulkCalculationRepository = bulkCalculationMongoRepository
-  lazy val requestActor: ActorRef = context.actorOf(Props(classOf[DefaultCalculationRequestActor], bulkCalculationMongoRepository, desConnector, metrics ), "calculation-requester")
+  lazy val requestActor: ActorRef = context.actorOf(Props(classOf[DefaultCalculationRequestActor], bulkCalculationMongoRepository, desConnector, ifConnector, metrics, applicationConfig), "calculation-requester")
 
   lazy val throttler: ActorRef = context.actorOf(Props(classOf[TimerBasedThrottler],
     applicationConfig.bulkProcessingTps msgsPer 1.seconds), "throttler")
