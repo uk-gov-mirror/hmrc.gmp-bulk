@@ -17,9 +17,11 @@
 package controllers
 
 import models._
-import java.time.LocalDate
-import java.time.format.DateTimeFormat
+
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import play.api.i18n.Messages
+
 import scala.collection.mutable.ListBuffer
 import com.github.ghik.silencer.silent
 //TODO: FIX COMPILE ERRORS
@@ -265,17 +267,17 @@ class CsvGenerator {
 
     private def convertDate(date: Option[String]): String = {
 
-      val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
+      val inputDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
       date match {
-        case Some(d) => LocalDate.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
+        case Some(d) => LocalDateTime.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
         case _ => ""
       }
     }
 
     private def determineGmpAtDate(request: ProcessReadyCalculationRequest): String = {
 
-      val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
+      val inputDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
       request.validCalculationRequest.map {
 
@@ -292,7 +294,7 @@ class CsvGenerator {
 
                 case Some(3) =>
                   calculationRequest.revaluationDate.map {
-                    d => LocalDate.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
+                    d => LocalDateTime.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
                   }.getOrElse(calculationResponse.dateOfDeath.map {
                     dod => dod.toString(DATE_DEFAULT_FORMAT)
                   }.getOrElse(""))
@@ -350,7 +352,7 @@ class CsvGenerator {
           case Some(true) if Set(2, 3, 4) contains request.calctype.get => ""
           case Some(true) if request.calctype.get == 1 && index == 0 => ""
           case Some(false) =>
-            if (request.calctype.get == 1 && index == 0 && (!period.endDate.isBefore(LocalDate.now) || period.revalued.getOrElse(1) == 1))
+            if (request.calctype.get == 1 && index == 0 && (!period.endDate.isBefore(LocalDateTime.now) || period.revalued.getOrElse(1) == 1))
               ""
             else
               convertRevalRate(Some(period.revaluationRate))
