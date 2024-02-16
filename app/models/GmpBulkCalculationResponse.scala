@@ -16,10 +16,10 @@
 
 package models
 
-import java.time.LocalDateTime
+import java.time.LocalDate
 import play.api.i18n.Messages
 import play.api.libs.json.Json
-//TODO: Revert LocalDateTime to LocalDate if possible
+
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 
 object ContributionsAndEarnings {
@@ -37,8 +37,8 @@ object ContributionsAndEarnings {
   }
 }
 
-case class CalculationPeriod(startDate: Option[LocalDateTime],
-                             endDate: LocalDateTime,
+case class CalculationPeriod(startDate: Option[LocalDate],
+                             endDate: LocalDate,
                              gmpTotal: String,
                              post88GMPTotal: String,
                              revaluationRate: Int,
@@ -70,7 +70,7 @@ object CalculationPeriod {
   implicit val formats = Json.format[CalculationPeriod]
 
   def createFromNpsLgmpcalc(npsLgmpcalc: NpsLgmpcalc): CalculationPeriod = {
-    CalculationPeriod(npsLgmpcalc.scheme_mem_start_date.map(LocalDateTime.parse(_)), LocalDateTime.parse(npsLgmpcalc.scheme_end_date),
+    CalculationPeriod(npsLgmpcalc.scheme_mem_start_date.map(LocalDate.parse(_)), LocalDate.parse(npsLgmpcalc.scheme_end_date),
       f"${npsLgmpcalc.gmp_cod_allrate_tot}%1.2f", f"${npsLgmpcalc.gmp_cod_post_eightyeight_tot}%1.2f", npsLgmpcalc.revaluation_rate, npsLgmpcalc.gmp_error_code,
       Some(npsLgmpcalc.reval_calc_switch_ind),
       npsLgmpcalc.gmp_cod_p90_ts_tot.map(value => f"$value%1.2f"),
@@ -85,9 +85,9 @@ object CalculationPeriod {
 case class GmpBulkCalculationResponse(
                                        calculationPeriods: List[CalculationPeriod],
                                        globalErrorCode: Int,
-                                       spaDate: Option[LocalDateTime],
-                                       payableAgeDate: Option[LocalDateTime],
-                                       dateOfDeath: Option[LocalDateTime],
+                                       spaDate: Option[LocalDate],
+                                       payableAgeDate: Option[LocalDate],
+                                       dateOfDeath: Option[LocalDate],
                                        containsErrors: Boolean = false
                                      ) {
 
@@ -119,9 +119,9 @@ object GmpBulkCalculationResponse {
     GmpBulkCalculationResponse(
       calculationResponse.npsLgmpcalc.map(CalculationPeriod.createFromNpsLgmpcalc(_)),
       calculationResponse.rejection_reason,
-      calculationResponse.spa_date.map(LocalDateTime.parse(_)),
-      calculationResponse.payable_age_date.map(LocalDateTime.parse(_)),
-      calculationResponse.dod_date.map(LocalDateTime.parse(_)),
+      calculationResponse.spa_date.map(LocalDate.parse(_)),
+      calculationResponse.payable_age_date.map(LocalDate.parse(_)),
+      calculationResponse.dod_date.map(LocalDate.parse(_)),
       calculationResponse.hasErrors
 
     )

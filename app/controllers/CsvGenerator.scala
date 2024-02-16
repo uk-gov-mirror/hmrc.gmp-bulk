@@ -18,13 +18,13 @@ package controllers
 
 import models._
 
-import java.time.LocalDateTime
+import java.time.{LocalDate, LocalDateTime}
 import java.time.format.DateTimeFormatter
 import play.api.i18n.Messages
 
 import scala.collection.mutable.ListBuffer
 import com.github.ghik.silencer.silent
-//TODO: FIX COMPILE ERRORS
+
 class CsvGenerator {
 
   val DATE_DEFAULT_FORMAT = "dd/MM/yyyy"
@@ -352,7 +352,7 @@ class CsvGenerator {
           case Some(true) if Set(2, 3, 4) contains request.calctype.get => ""
           case Some(true) if request.calctype.get == 1 && index == 0 => ""
           case Some(false) =>
-            if (request.calctype.get == 1 && index == 0 && (!period.endDate.isBefore(LocalDateTime.now) || period.revalued.getOrElse(1) == 1))
+            if (request.calctype.get == 1 && index == 0 && (!period.endDate.isBefore(LocalDate.now) || period.revalued.getOrElse(1) == 1))
               ""
             else
               convertRevalRate(Some(period.revaluationRate))
