@@ -270,7 +270,7 @@ class CsvGenerator {
       val inputDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
       date match {
-        case Some(d) => LocalDateTime.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
+        case Some(d) => LocalDateTime.parse(d, inputDateFormatter).format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
         case _ => ""
       }
     }
@@ -289,22 +289,22 @@ class CsvGenerator {
               calculationRequest.calctype match {
 
                 case Some(2) => calculationResponse.payableAgeDate.map {
-                  dod => dod.toString(DATE_DEFAULT_FORMAT)
+                  dod => dod.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                 }.getOrElse("")
 
                 case Some(3) =>
                   calculationRequest.revaluationDate.map {
-                    d => LocalDateTime.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
+                    d => LocalDateTime.parse(d, inputDateFormatter).format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                   }.getOrElse(calculationResponse.dateOfDeath.map {
-                    dod => dod.toString(DATE_DEFAULT_FORMAT)
+                    dod => dod.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                   }.getOrElse(""))
 
                 case Some(4) => calculationResponse.spaDate.map {
-                  dod => dod.toString(DATE_DEFAULT_FORMAT)
+                  dod => dod.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                 }.getOrElse("")
 
                 case _ if calculationRequest.revaluationDate.isEmpty => calculationResponse.calculationPeriods.headOption.map {
-                  period => period.endDate.toString(DATE_DEFAULT_FORMAT)
+                  period => period.endDate.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                 }.getOrElse("")
 
                 case _ => convertDate(calculationRequest.revaluationDate)
@@ -318,11 +318,11 @@ class CsvGenerator {
   class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter, messages: Messages) extends RowBuilder {
 
     addCell(calculationPeriod.startDate match {
-      case Some(date) => date.toString(DATE_DEFAULT_FORMAT)
+      case Some(date) => date.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
       case _ => ""
     })
 
-    addCell(calculationPeriod.endDate.toString(DATE_DEFAULT_FORMAT))
+    addCell(calculationPeriod.endDate.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT)))
     addCell(calculationPeriod.gmpTotal)
     addCell(calculationPeriod.post88GMPTotal)
 
@@ -497,9 +497,9 @@ class CsvGenerator {
 
     List(
       (period.startDate match {
-        case Some(d) => d.toString("dd/MM/yyyy")
+        case Some(d) => d.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
         case _ => ""
-      }) + " - " + period.endDate.toString("dd/MM/yyyy"),
+      }) + " - " + period.endDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
       period.contsAndEarnings match {
         case Some(c) =>
           val map = c.foldLeft(Map[Int, String]()) {
