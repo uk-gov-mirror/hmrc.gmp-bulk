@@ -76,7 +76,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
 
           case _ =>
             logger.debug(s"[ProcessingSupervisor][receive] no requests pending")
-            context unbecome;
+            this.context.unbecome()
             throttler ! STOP
         }
       }.map{
