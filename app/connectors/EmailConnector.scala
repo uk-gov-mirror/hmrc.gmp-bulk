@@ -27,7 +27,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-
+//TODO: FIX COMPILE ERRORS
 case class ReceivedUploadTemplate(email: String, uploadReference: String)
 
 case class ProcessedUploadTemplate(email: String, uploadReference: String, uploadDate: LocalDate, userId: String)
