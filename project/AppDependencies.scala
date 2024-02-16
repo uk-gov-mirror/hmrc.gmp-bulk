@@ -41,6 +41,7 @@ object AppDependencies {
 //    "com.vladsch.flexmark"    %  "flexmark-all"                   % "0.35.10"
   ).map(_ % "test")
 
+//  TODO: Jackson version can be updated to 2.16.1
   val jacksonVersion         = "2.13.2"
   val jacksonDatabindVersion = "2.13.2.2"
 
