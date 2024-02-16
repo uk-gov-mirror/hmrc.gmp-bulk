@@ -17,7 +17,7 @@
 package connectors
 
 import com.google.inject.Inject
-import org.joda.time.LocalDate
+import java.time.LocalDate
 import play.api.libs.json.Json
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.http.HeaderCarrier

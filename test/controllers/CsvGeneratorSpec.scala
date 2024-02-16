@@ -18,7 +18,7 @@ package controllers
 
 import helpers.RandomNino
 import models._
-import org.joda.time.{LocalDate, LocalDateTime}
+import java.time.{LocalDate, LocalDateTime}
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite

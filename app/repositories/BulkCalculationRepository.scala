@@ -23,7 +23,7 @@ import connectors.{EmailConnector, ProcessedUploadTemplate}
 import events.BulkEvent
 import metrics.ApplicationMetrics
 import models._
-import org.joda.time.LocalDateTime
+import java.time.LocalDateTime
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.bson.{BsonDocument, ObjectId}
 import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, IndexModel, IndexOptions, Indexes, Sorts, Updates}

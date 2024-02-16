@@ -17,7 +17,7 @@
 package models
 
 
-import org.joda.time.LocalDateTime
+import java.time.LocalDateTime
 import play.api.i18n.Messages
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.{MongoFormats, MongoJavatimeFormats}

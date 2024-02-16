@@ -20,7 +20,7 @@ import connectors.{EmailConnector, ReceivedUploadTemplate}
 import controllers.auth.FakeAuthAction
 import helpers.RandomNino
 import models._
-import org.joda.time.{LocalDate, LocalDateTime}
+import java.time.{LocalDate, LocalDateTime}
 import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatestplus.mockito.MockitoSugar
