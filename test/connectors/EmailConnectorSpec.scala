@@ -18,7 +18,7 @@ package connectors
 
 import org.joda.time.LocalDate
 import org.mockito.ArgumentCaptor
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, _}
@@ -34,7 +34,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
+class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with MustArgumentMatchers with BeforeAndAfter {
 
   lazy val mockHttp = mock[HttpClient]
   val environment = app.injector.instanceOf[Environment]

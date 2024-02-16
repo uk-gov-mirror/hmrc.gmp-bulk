@@ -17,11 +17,11 @@
 package models
 
 import helpers.RandomNino
-import org.scalatest.MustMatchers
+import org.scalatest.MustArgumentMatchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 
-class ValidCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with MustMatchers {
+class ValidCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with MustArgumentMatchers {
 
   private val nino = RandomNino.generate
 

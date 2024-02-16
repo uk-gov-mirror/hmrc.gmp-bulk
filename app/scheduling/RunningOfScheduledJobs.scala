@@ -16,7 +16,7 @@
 
 package scheduling
 
-import akka.actor.{Cancellable, Scheduler}
+import org.apache.pekko.actor.{Cancellable, Scheduler}
 import org.apache.commons.lang3.time.StopWatch
 import play.api.inject.ApplicationLifecycle
 import play.api.{Application, Logging}

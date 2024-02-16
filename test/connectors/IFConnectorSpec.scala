@@ -23,7 +23,7 @@ import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models.ValidCalculationRequest
 import org.mockito.Mockito._
-import org.mockito.{Matchers, Mockito}
+import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatest._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play._
@@ -119,7 +119,7 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
       }
 
       "return an error when 400 returned" in new SUT {
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockHttp.GET[HttpResponse](ArgumentMatchers.any())(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(HttpResponse(BAD_REQUEST, "400")))
 
         val url = s"/pensions/individuals/gmp/scon/S/1401234/Q/nino/$nino/surname/SMI/firstname/B/calculation/"
@@ -172,7 +172,7 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
         result.rejection_reason must be(0)
 
         Mockito.verify(mockMetrics).ifRegisterStatusCode(UNPROCESSABLE_ENTITY.toString)
-        Mockito.verify(mockMetrics).ifConnectionTime(Matchers.any(), Matchers.any())
+        Mockito.verify(mockMetrics).ifConnectionTime(ArgumentMatchers.any(), ArgumentMatchers.any())
       }
     }
   }

@@ -17,14 +17,14 @@
 package actors
 
 import actors.Throttler.SetTarget
-import akka.actor.{ActorSystem, Props}
-import akka.testkit._
+import org.apache.pekko.actor.{ActorSystem, Props}
+import org.apache.pekko.testkit._
 import config.ApplicationConfiguration
 import connectors.{DesConnector, IFConnector}
 import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models.{ProcessReadyCalculationRequest, ValidCalculationRequest}
-import org.mockito.Matchers.{any, anyString}
+import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.scalatestplus.mockito.MockitoSugar

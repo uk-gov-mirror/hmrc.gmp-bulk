@@ -18,7 +18,7 @@ package models
 
 import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
-import org.scalatest.MustMatchers
+import org.scalatest.MustArgumentMatchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 import play.api.i18n.{Messages, MessagesImpl}
@@ -27,7 +27,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.stubMessagesControllerComponents
 import play.api.{Application, Mode}
 
-class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with MustMatchers {
+class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with MustArgumentMatchers {
 
   val cc = stubMessagesControllerComponents()
   implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)

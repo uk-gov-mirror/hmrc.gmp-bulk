@@ -17,7 +17,7 @@
 package config
 
 import actors.{ActorUtils, ProcessingSupervisor}
-import akka.actor.{ActorSystem, Props}
+import org.apache.pekko.actor.{ActorSystem, Props}
 import connectors.{DesConnector, IFConnector}
 
 import javax.inject.{Inject, Singleton}

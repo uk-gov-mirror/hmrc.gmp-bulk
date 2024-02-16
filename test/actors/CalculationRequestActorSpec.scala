@@ -16,14 +16,14 @@
 
 package actors
 
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
+import org.apache.pekko.actor.{ActorSystem, Props}
+import org.apache.pekko.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 import config.ApplicationConfiguration
 import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, IFConnector}
 import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models._
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, WordSpecLike}
 import org.scalatestplus.mockito.MockitoSugar
@@ -63,7 +63,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
     reset(mockMetrics)
     reset(mockApplicationConfig)
 
-    when(mockDesConnector.getPersonDetails(Matchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
+    when(mockDesConnector.getPersonDetails(ArgumentMatchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
   }
 
   override def afterAll: Unit = {
@@ -78,8 +78,8 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       "successfully save" in {
 
         when(mockApplicationConfig.ifEnabled).thenReturn(true)
-        when(mockIFConnector.calculate(Matchers.any())).thenReturn(Future.successful(response))
-        when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
+        when(mockIFConnector.calculate(ArgumentMatchers.any())).thenReturn(Future.successful(response))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockMetrics, mockApplicationConfig))
 
@@ -94,14 +94,14 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       "get failure when fails to send to DES" in {
 
         when(mockApplicationConfig.ifEnabled).thenReturn(true)
-        when(mockIFConnector.calculate(Matchers.any())).thenThrow(new RuntimeException("The calculation failed"))
+        when(mockIFConnector.calculate(ArgumentMatchers.any())).thenThrow(new RuntimeException("The calculation failed"))
 
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockMetrics, mockApplicationConfig))
 
         within(testTimeout) {
 
           actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
-          expectMsgClass(classOf[akka.actor.Status.Failure])
+          expectMsgClass(classOf[org.apache.pekko.actor.Status.Failure])
 
         }
 
@@ -112,8 +112,8 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
         val ex = UpstreamErrorResponse("Call to Individual Pension calculation on NPS Service failed with status code 400", 400, 400)
 
         when(mockApplicationConfig.ifEnabled).thenReturn(true)
-        when(mockIFConnector.calculate(Matchers.any())).thenReturn(Future.failed(ex))
-        when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
+        when(mockIFConnector.calculate(ArgumentMatchers.any())).thenReturn(Future.failed(ex))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockMetrics, mockApplicationConfig))
 
@@ -129,17 +129,17 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       "insert a failed response when a 500 code is returned from DES" in {
         val exObj = UpstreamErrorResponse("Call to Individual Pension calculation on NPS Service failed with status code 500", 500, 500)
 
-        when(mockDesConnector.getPersonDetails(Matchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
+        when(mockDesConnector.getPersonDetails(ArgumentMatchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
         when(mockApplicationConfig.ifEnabled).thenReturn(true)
-        when(mockIFConnector.calculate(Matchers.any())).thenReturn(Future.failed(exObj))
-        when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
+        when(mockIFConnector.calculate(ArgumentMatchers.any())).thenReturn(Future.failed(exObj))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockMetrics, mockApplicationConfig))
 
         within(testTimeout) {
 
           actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
-          expectMsgClass(classOf[akka.actor.Status.Failure])
+          expectMsgClass(classOf[org.apache.pekko.actor.Status.Failure])
 
           //verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 500, None, None, None, containsErrors = true))
         }
@@ -151,8 +151,8 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       "successfully save" in {
 
         when(mockApplicationConfig.ifEnabled).thenReturn(false)
-        when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.successful(response))
-        when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
+        when(mockDesConnector.calculate(ArgumentMatchers.any())).thenReturn(Future.successful(response))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockMetrics, mockApplicationConfig))
 
@@ -167,14 +167,14 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       "get failure when fails to send to DES" in {
 
         when(mockApplicationConfig.ifEnabled).thenReturn(false)
-        when(mockDesConnector.calculate(Matchers.any())).thenThrow(new RuntimeException("The calculation failed"))
+        when(mockDesConnector.calculate(ArgumentMatchers.any())).thenThrow(new RuntimeException("The calculation failed"))
 
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockMetrics, mockApplicationConfig))
 
         within(testTimeout) {
 
           actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
-          expectMsgClass(classOf[akka.actor.Status.Failure])
+          expectMsgClass(classOf[org.apache.pekko.actor.Status.Failure])
 
         }
 
@@ -185,8 +185,8 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
         val ex = UpstreamErrorResponse("Call to Individual Pension calculation on NPS Service failed with status code 400", 400, 400)
 
         when(mockApplicationConfig.ifEnabled).thenReturn(false)
-        when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.failed(ex))
-        when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
+        when(mockDesConnector.calculate(ArgumentMatchers.any())).thenReturn(Future.failed(ex))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockMetrics, mockApplicationConfig))
 
@@ -203,8 +203,8 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       "insert a 423 failed response when a 423 code is returned from DES" in {
 
         val nino = "ST281614D"
-        when(mockDesConnector.getPersonDetails(Matchers.eq(nino))).thenReturn(Future.successful(DesGetHiddenRecordResponse))
-        when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
+        when(mockDesConnector.getPersonDetails(ArgumentMatchers.eq(nino))).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockMetrics, mockApplicationConfig))
 
@@ -214,8 +214,8 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
           expectMsg(true)
 
           verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 423, None, None, None, containsErrors = true))
-          verify(mockDesConnector).getPersonDetails(Matchers.eq(nino))
-          verify(mockDesConnector, times(0)).calculate(Matchers.any[ValidCalculationRequest])
+          verify(mockDesConnector).getPersonDetails(ArgumentMatchers.eq(nino))
+          verify(mockDesConnector, times(0)).calculate(ArgumentMatchers.any[ValidCalculationRequest])
         }
 
       }
@@ -223,17 +223,17 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       "insert a failed response when a 500 code is returned from DES" in {
         val exObj = UpstreamErrorResponse("Call to Individual Pension calculation on NPS Service failed with status code 500", 500, 500)
 
-        when(mockDesConnector.getPersonDetails(Matchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
+        when(mockDesConnector.getPersonDetails(ArgumentMatchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
         when(mockApplicationConfig.ifEnabled).thenReturn(false)
-        when(mockDesConnector.calculate(Matchers.any())).thenReturn(Future.failed(exObj))
-        when(mockRepository.insertResponseByReference(Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
+        when(mockDesConnector.calculate(ArgumentMatchers.any())).thenReturn(Future.failed(exObj))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
 
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockMetrics, mockApplicationConfig))
 
         within(testTimeout) {
 
           actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
-          expectMsgClass(classOf[akka.actor.Status.Failure])
+          expectMsgClass(classOf[org.apache.pekko.actor.Status.Failure])
 
           //verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 500, None, None, None, containsErrors = true))
         }
@@ -248,7 +248,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
       within(testTimeout) {
 
         actorRef ! "purple rain"
-        expectMsgClass(classOf[akka.actor.Status.Failure])
+        expectMsgClass(classOf[org.apache.pekko.actor.Status.Failure])
       }
     }
 

@@ -16,8 +16,8 @@
 
 package controllers.auth
 
-import akka.util.Timeout
-import org.mockito.Matchers.any
+import org.apache.pekko.util.Timeout
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec

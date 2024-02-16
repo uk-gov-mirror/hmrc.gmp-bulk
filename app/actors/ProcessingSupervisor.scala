@@ -17,7 +17,7 @@
 package actors
 
 import actors.Throttler.{RateInt, SetTarget}
-import akka.actor._
+import org.apache.pekko.actor._
 import com.github.ghik.silencer.silent
 import config.ApplicationConfiguration
 import connectors.{DesConnector, IFConnector}

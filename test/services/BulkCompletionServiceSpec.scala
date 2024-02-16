@@ -20,7 +20,7 @@ import java.util.UUID
 import helpers.RandomNino
 import models.BulkCalculationRequest
 import org.mockito.Mockito.when
-import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper}
+import org.scalatest.ArgumentMatchers.should.ArgumentMatchers.{be, convertToAnyShouldWrapper}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
