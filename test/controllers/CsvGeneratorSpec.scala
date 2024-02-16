@@ -38,18 +38,18 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
   final val DEFAULT_DATE_FORMAT = "dd/MM/yyyy"
   
   val nino = RandomNino.generate
-  val date = LocalDate.now().toString(DEFAULT_DATE_FORMAT)
+  val date = LocalDateTime.now.toString(DEFAULT_DATE_FORMAT)
 
   val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
-  val singlePeriodGmpBulkCalculationResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
+  val singlePeriodGmpBulkCalculationResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
 
   val multiplePeriodGmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-    CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
-    CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
-    CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
+    CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None),
+    CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None),
+    CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
 
-  val calculationResponseWithError = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 56010, None, None, None)
-  val calculationResponseWithNpsError = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 56018, None, None, None, None, None)), 0, None, None, None)
+  val calculationResponseWithError = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None)), 56010, None, None, None)
+  val calculationResponseWithNpsError = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 56018, None, None, None, None, None)), 0, None, None, None)
 
   val calculationRequestNoResponse = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, None))
   val calculationRequestsSingle = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(singlePeriodGmpBulkCalculationResponse)))
@@ -74,7 +74,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
   "CsvGenerator" must {
 
     val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
-    val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
+    val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
     val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
 
     val bulkCalculationRequest = ProcessedBulkCalculationRequest("1", "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), true, 1, 0)
@@ -83,7 +83,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       val periodColumns = "gmp.period 1 gmp.period.start_date,gmp.period 1 gmp.period.end_date,gmp.period 1 gmp.period.total,gmp.period 1 gmp.period.post_88,gmp.period 1 gmp.period.post_90_true,gmp.period 1 gmp.period.post_90_opp,gmp.period 1 gmp.period.reval_rate,gmp.period 1 gmp.period.error,gmp.period 1 gmp.period.what,gmp.bulk.csv.globalerror.headers"
 
-      val date = LocalDate.now().toString(DEFAULT_DATE_FORMAT)
+      val date = LocalDateTime.now.toString(DEFAULT_DATE_FORMAT)
 
       val csvRows = s"""gmp.success,S2730000B,$nino,John,Smith,ref1,gmp.calc_type.leaving,,$date,,gmp.generic.no,3.12,1.23,,,$date,$date,3.12,1.23,,,,,,,"""
       val columnHeaders = s"gmp.status,${messages("gmp.bulk.csv.headers")},${messages("gmp.bulk.totals.headers")},$periodColumns"
@@ -101,7 +101,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val validCalculationRequest = ValidCalculationRequest("S2730000B", "BH000007A", "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
       val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "0", "0", 1, 0, None, Some("983.5"), Some("374.45"), None, None)
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "0", "0", 1, 0, None, Some("983.5"), Some("374.45"), None, None)
       ), 0, None, None, None)
 
       val calcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
@@ -199,8 +199,8 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
     "include period data" in {
 
       val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "4.12", "5.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None),
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "4.12", "5.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
 
       val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
       val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
@@ -208,7 +208,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All))
 
-      result must include(LocalDate.now().toString(DEFAULT_DATE_FORMAT))
+      result must include(LocalDateTime.now.toString(DEFAULT_DATE_FORMAT))
       result must include("3.12")
       result must include("4.12")
     }
@@ -216,8 +216,8 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
     "include period data with a dual calc" in {
 
       val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, Some("6.78"), Some("4.56"), None, None),
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "4.12", "5.23", 0, 0, None, Some("1.45"), Some("8.90"), None, None)), 0, None, None, None)
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, Some("6.78"), Some("4.56"), None, None),
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "4.12", "5.23", 0, 0, None, Some("1.45"), Some("8.90"), None, None)), 0, None, None, None)
 
       val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, Some(1), None)
       val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
@@ -225,7 +225,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       val result = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All))
 
-      result must include(LocalDate.now().toString(DEFAULT_DATE_FORMAT))
+      result must include(LocalDateTime.now.toString(DEFAULT_DATE_FORMAT))
       result must include("3.12")
       result must include("4.12")
     }
@@ -233,7 +233,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
     "include period data with no start date" in {
 
       val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-        CalculationPeriod(None, LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
+        CalculationPeriod(None, LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None)), 0, None, None, None)
 
       val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
       val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
@@ -242,15 +242,15 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)) split "\n"
       val cells = lines.drop(2).head split ","
 
-      cells.slice(15, 18) mustBe Seq("", LocalDate.now().toString(DEFAULT_DATE_FORMAT), "3.12")
+      cells.slice(15, 18) mustBe Seq("", LocalDateTime.now.toString(DEFAULT_DATE_FORMAT), "3.12")
 
     }
 
     "report a failed calculation if there is a period error" in {
 
       val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "4.12", "5.23", 0, 2, None, None, None, None, None)), 0, None, None, None)
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None),
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "4.12", "5.23", 0, 2, None, None, None, None, None)), 0, None, None, None)
 
       val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
       val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
@@ -267,8 +267,8 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
       val periodsResponse = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "4.12", "5.23", 0, 56002, None, None, None, None, None)), 0, None, None, None, true)
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None),
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "4.12", "5.23", 0, 56002, None, None, None, None, None)), 0, None, None, None, true)
 
       val calculationRequests = List(
         ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)),
@@ -289,8 +289,8 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
     "only include failed calculations when requested" in {
 
       val partiallyFailedResponse = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "3.12", "1.23", 0, 0, None, None, None, None, None),
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.now(), "4.12", "5.23", 0, 56002, None, None, None, None, None)), 0, None, None, None, true)
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "3.12", "1.23", 0, 0, None, None, None, None, None),
+        CalculationPeriod(Some(LocalDateTime.now), LocalDateTime.now, "4.12", "5.23", 0, 56002, None, None, None, None, None)), 0, None, None, None, true)
 
       val validCalculationRequest = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(0), None, None, None, None)
 
@@ -379,7 +379,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val calcRequest = mock[ProcessReadyCalculationRequest]
 
       val response = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "4.12", "5.23", 1, 0, None, None, None, None, None)),
+        CalculationPeriod(Some(LocalDateTime.now), LocalDate.parse("2016-01-01"), "4.12", "5.23", 1, 0, None, None, None, None, None)),
         0, None, None, None)
 
       val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(3), None, None, None, Some("2016-05-24"), Some(true))
@@ -400,7 +400,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val calcRequest = mock[ProcessReadyCalculationRequest]
 
       val response = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "4.12", "5.23", 1, 0, None, None, None, None, None)),
+        CalculationPeriod(Some(LocalDateTime.now), LocalDate.parse("2016-01-01"), "4.12", "5.23", 1, 0, None, None, None, None, None)),
         0, None, None, None)
 
       val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(4), None, None, None, Some("2016-05-24"), Some(true))
@@ -421,7 +421,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val calcRequest = mock[ProcessReadyCalculationRequest]
 
       val response = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "4.12", "5.23", 1, 0, None, None, None, None, None)),
+        CalculationPeriod(Some(LocalDateTime.now), LocalDate.parse("2016-01-01"), "4.12", "5.23", 1, 0, None, None, None, None, None)),
         0, None, None, None)
 
       val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(2), None, None, None, Some("2016-05-24"), Some(true))
@@ -442,7 +442,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val calcRequest = mock[ProcessReadyCalculationRequest]
 
       val response = GmpBulkCalculationResponse(List(
-        CalculationPeriod(Some(LocalDate.now()), LocalDate.parse("2016-01-01"), "0", "0", 0, 2, None, None, None, None, None)),
+        CalculationPeriod(Some(LocalDateTime.now), LocalDate.parse("2016-01-01"), "0", "0", 0, 2, None, None, None, None, None)),
         0, None, None, None)
 
       val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(3), Some("2018-05-10"), None, None, Some("2016-08-24"), None)
@@ -526,8 +526,8 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
     "show no reval rate for calctype 1 and member still in scheme" in {
       val expectedResult = s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.specific_date,${date},${date},,gmp.generic.no,3.12,1.23,,,07/03/1983,${date},3.12,1.23,,,,,,,"
-      val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(LocalDate.now().toString()), None, Some(0), Some(LocalDate.now().toString()), Some(true))
-      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.now(), "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
+      val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(LocalDateTime.now.toString()), None, Some(0), Some(LocalDateTime.now.toString()), Some(true))
+      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDateTime.now, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))
       val bulkRequest = bulkCalculationRequestSingle.copy(calculationRequests = listCalcRequests)
 
@@ -539,8 +539,8 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
     "show no reval rate for calctype 1 and member not still in scheme but first period still open" in {
       val expectedResult = s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.specific_date,${date},${date},,gmp.generic.no,3.12,1.23,,,07/03/1983,${date},3.12,1.23,,,,,,,"
-      val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(LocalDate.now.toString()), None, Some(0), Some(LocalDate.now().toString()), Some(false))
-      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDate.now, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
+      val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(LocalDateTime.now.toString()), None, Some(0), Some(LocalDateTime.now.toString()), Some(false))
+      val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), LocalDateTime.now, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))
       val bulkRequest = bulkCalculationRequestSingle.copy(calculationRequests = listCalcRequests)
 
@@ -551,9 +551,9 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
     }
 
     "not show reval rate for calctype 1 and member not still in scheme and period closed" in {
-      val yesterdaysDate = LocalDate.now.minusDays(1)
+      val yesterdaysDate = LocalDateTime.now.minusDays(1)
       val expectedResult = s"gmp.success,S2730000B,${nino},John,Smith,ref1,gmp.calc_type.specific_date,${date},${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},,gmp.generic.no,3.12,1.23,,,07/03/1983,${yesterdaysDate.toString(DEFAULT_DATE_FORMAT)},3.12,1.23,,,,,,,"
-      val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(yesterdaysDate.toString()), None, Some(0), Some(LocalDate.now().toString()), Some(false))
+      val validCalcRequest = ValidCalculationRequest("S2730000B", s"${nino}", "Smith", "John", Some("ref1"), Some(1), Some(yesterdaysDate.toString()), None, Some(0), Some(LocalDateTime.now.toString()), Some(false))
       val calcResponse = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.parse("1983-03-07")), yesterdaysDate, "3.12", "1.23", 1, 0, Some(1), Some("0.00"), Some("0.00"), Some(0), None)), 0, None, None, None)
       val listCalcRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalcRequest), None, Some(calcResponse)))
       val bulkRequest = bulkCalculationRequestSingle.copy(calculationRequests = listCalcRequests)
