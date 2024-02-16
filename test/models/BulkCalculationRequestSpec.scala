@@ -16,7 +16,7 @@
 
 package models
 
-import com.kenshoo.play.metrics.PlayModule
+//import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
@@ -37,7 +37,7 @@ class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite {
     "org.apache.logging" -> "ERROR",
     "com.codahale" -> "ERROR")
 
-  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
+  private val bindModules: Seq[GuiceableModule] = Seq()
 
   implicit override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(additionalConfiguration)

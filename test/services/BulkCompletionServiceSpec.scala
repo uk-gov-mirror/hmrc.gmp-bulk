@@ -20,8 +20,9 @@ import java.util.UUID
 import helpers.RandomNino
 import models.BulkCalculationRequest
 import org.mockito.Mockito.when
-import org.scalatest.ArgumentMatchers.should.ArgumentMatchers.{be, convertToAnyShouldWrapper}
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.must.Matchers.be
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -148,6 +149,7 @@ class BulkCompletionServiceSpec extends AnyWordSpecLike with MockitoSugar with G
       await(TestBulkCompletionService.checkForComplete())
 
       val result = await(bulkCalculationRespository.findByReference(uploadRef))
+      result.get.complete
       result.get.complete should be(true)
       result.get.total should be(4)
     }

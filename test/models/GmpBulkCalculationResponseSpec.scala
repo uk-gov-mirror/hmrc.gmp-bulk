@@ -16,7 +16,7 @@
 
 package models
 
-import com.kenshoo.play.metrics.PlayModule
+//import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
 import java.time.LocalDate
 import org.scalatestplus.mockito.MockitoSugar
@@ -38,7 +38,7 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
     "logger.root" -> "ERROR",
     "org.apache.logging" -> "ERROR",
     "com.codahale" -> "ERROR")
-  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
+  private val bindModules: Seq[GuiceableModule] = Seq()
 
   implicit override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(additionalConfiguration)
