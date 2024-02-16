@@ -19,7 +19,7 @@ package models
 import java.time.LocalDateTime
 import play.api.i18n.Messages
 import play.api.libs.json.Json
-
+//TODO: Revert LocalDateTime to LocalDate if possible
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 
 object ContributionsAndEarnings {
