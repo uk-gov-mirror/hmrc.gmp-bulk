@@ -91,7 +91,7 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
       gmpResponse.calculationPeriods.head.gmpTotal must be("1.00")
       gmpResponse.calculationPeriods.head.contsAndEarnings.get.head.contEarnings must be("239.80")
       gmpResponse.calculationPeriods.head.contsAndEarnings.get.tail.head.contEarnings must be("1560")
-      gmpResponse.dateOfDeath must be(Some(LocalDate.of("2016-01-01")))
+      gmpResponse.dateOfDeath must be(Some(LocalDate.parse("2016-01-01")))
     }
 
 
