@@ -17,8 +17,6 @@ object AppDependencies {
     "uk.gov.hmrc"                                %% s"domain$playSuffix"         % "9.0.0",
     "uk.gov.hmrc"                                %% "reactive-circuit-breaker"   % "4.1.0",
     "uk.gov.hmrc"                                %% "tax-year"                   % "4.0.0",
-//    TODO: Can probably remove below dependency
-    "com.typesafe.play"                          %% "play-json-joda"             % "2.9.4",
     "com.github.ghik"                            %  "silencer-lib"               % "1.7.14" % Provided cross CrossVersion.full,
     compilerPlugin("com.github.ghik" %  "silencer-plugin"            % "1.7.14" cross CrossVersion.full)
   )
@@ -41,9 +39,9 @@ object AppDependencies {
 //    "com.vladsch.flexmark"    %  "flexmark-all"                   % "0.35.10"
   ).map(_ % "test")
 
-//  TODO: Jackson version can be updated to 2.16.1
-  val jacksonVersion         = "2.13.2"
-  val jacksonDatabindVersion = "2.13.2.2"
+//  TODO: Below can be reworked slightly
+  val jacksonVersion         = "2.16.1"
+  val jacksonDatabindVersion = "2.16.1"
 
   val jacksonOverrides = Seq(
     "com.fasterxml.jackson.core"     % "jackson-core",

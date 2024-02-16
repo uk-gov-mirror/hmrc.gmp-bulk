@@ -28,7 +28,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import play.api.test.Helpers.stubMessagesControllerComponents
 import play.api.{Application, Mode}
-
+//TODO: FIX TESTS
 class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   val cc = stubMessagesControllerComponents()
