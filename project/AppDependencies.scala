@@ -4,7 +4,6 @@ import sbt._
 object AppDependencies {
 
   val playVersion = "play-28"
-  val akkaVersion = "2.6.20"
   val mongoVersion = "0.74.0"
 
   val compile: Seq[ModuleID] = Seq(
@@ -20,16 +19,16 @@ object AppDependencies {
   )
 
   val test: Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"             %% s"bootstrap-test-$playVersion"   % "7.19.0"             % "test",
-    "com.typesafe.akka"       %% "akka-testkit"                   % akkaVersion         % "test",
-    "com.github.tomakehurst"  %  "wiremock-jre8"                  % "2.35.0"            % "test",
-    "uk.gov.hmrc.mongo"       %% s"hmrc-mongo-test-$playVersion"  % mongoVersion        % "test",
-    "org.mockito"             %  "mockito-all"                    % "1.10.19"           % "test",
-    "org.scalatestplus.play"  %% "scalatestplus-play"             % "5.1.0"             % "test",
-    "org.scalatestplus"       %% "scalatestplus-mockito"          % "1.0.0-M2"          % "test",
-    "com.typesafe.play"       %% "play-test"                      % "2.8.19" % "test",
-    "com.vladsch.flexmark"    %  "flexmark-all"                   % "0.35.10"           % "test"
-  )
+    "uk.gov.hmrc"             %% s"bootstrap-test-$playVersion"   % "7.19.0",
+    "com.typesafe.akka"       %% "akka-testkit"                   % "2.6.20",
+    "com.github.tomakehurst"  %  "wiremock-jre8"                  % "2.35.0",
+    "uk.gov.hmrc.mongo"       %% s"hmrc-mongo-test-$playVersion"  % mongoVersion,
+    "org.mockito"             %  "mockito-all"                    % "1.10.19",
+    "org.scalatestplus.play"  %% "scalatestplus-play"             % "5.1.0",
+    "org.scalatestplus"       %% "scalatestplus-mockito"          % "1.0.0-M2",
+    "com.typesafe.play"       %% "play-test"                      % "2.8.19",
+    "com.vladsch.flexmark"    %  "flexmark-all"                   % "0.35.10"
+  ).map(_ % "test")
 
   val jacksonVersion         = "2.13.2"
   val jacksonDatabindVersion = "2.13.2.2"
@@ -46,8 +45,8 @@ object AppDependencies {
   )
 
   val akkaSerializationJacksonOverrides = Seq(
-    "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor",
-    "com.fasterxml.jackson.module"     % "jackson-module-parameter-names",
+    "com.fasterxml.jackson.dataformat" %  "jackson-dataformat-cbor",
+    "com.fasterxml.jackson.module"     %  "jackson-module-parameter-names",
     "com.fasterxml.jackson.module"     %% "jackson-module-scala",
   ).map(_ % jacksonVersion)
 
