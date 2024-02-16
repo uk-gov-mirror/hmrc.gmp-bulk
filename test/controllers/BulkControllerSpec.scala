@@ -261,7 +261,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       "include the contributions data" in {
 
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45"))))), 0, None, None, None)
 
@@ -287,7 +287,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       "include member detail in contributions data rows" in {
 
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45"))))), 0, None, None, None)
 
@@ -331,10 +331,10 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       "cope with multiple period contributions data" in {
 
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45")))),
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2006, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2006, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "200.12"))))
         ), 0, None, None, None)
@@ -365,7 +365,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
       "return a file name" in {
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45"))))), 0, None, None, None)
 
@@ -386,7 +386,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
       "return a contributions and earnings file name" in {
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45"))))), 0, None, None, None)
 

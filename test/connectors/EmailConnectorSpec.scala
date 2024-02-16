@@ -30,6 +30,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpClient
 
+import java.time.format.DateTimeFormatter
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -161,7 +162,7 @@ class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
         Await.result(new TestEmailConnector().sendProcessedTemplatedEmail(template), 5 seconds)
 
-        requestCaptor.getValue.parameters must contain("uploadDate" -> date.toString("dd MMMM yyyy"))
+        requestCaptor.getValue.parameters must contain("uploadDate" -> date.format(DateTimeFormatter.ofPattern("dd MMMM yyyy")))
       }
 
       "must send the user's user id" in {
