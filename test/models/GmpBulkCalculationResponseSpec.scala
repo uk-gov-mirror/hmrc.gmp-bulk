@@ -28,7 +28,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import play.api.test.Helpers.stubMessagesControllerComponents
 import play.api.{Application, Mode}
-//TODO: FIX TESTS
+
 class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   val cc = stubMessagesControllerComponents()
@@ -65,7 +65,7 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
               "npsLgmpcalc": [
               {
               "scheme_mem_start_date": "1978-04-06",
-              "scheme_end_date": "200-04-05",
+              "scheme_end_date": "2004-04-05",
               "revaluation_rate": 1,
               "gmp_cod_post_eightyeight_tot": 1.2,
               "gmp_cod_allrate_tot": 1,
