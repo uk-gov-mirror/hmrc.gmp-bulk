@@ -34,7 +34,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with MustArgumentMatchers with BeforeAndAfter {
+class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   lazy val mockHttp = mock[HttpClient]
   val environment = app.injector.instanceOf[Environment]

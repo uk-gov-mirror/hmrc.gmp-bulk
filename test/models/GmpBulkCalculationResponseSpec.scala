@@ -20,7 +20,7 @@ import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
 import java.time.LocalDate
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfter, MustArgumentMatchers}
+import org.scalatest.BeforeAndAfter
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 import play.api.i18n.{Messages, MessagesImpl}
@@ -29,7 +29,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.stubMessagesControllerComponents
 import play.api.{Application, Mode}
 
-class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with MustArgumentMatchers with BeforeAndAfter {
+class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   val cc = stubMessagesControllerComponents()
   implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
