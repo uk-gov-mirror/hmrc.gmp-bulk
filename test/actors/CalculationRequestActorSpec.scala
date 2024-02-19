@@ -25,7 +25,8 @@ import metrics.ApplicationMetrics
 import models._
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, WordSpecLike}
+import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.Helpers
 import repositories.BulkCalculationMongoRepository
@@ -44,7 +45,7 @@ class CalculationRequestActorMock(val desConnector: DesConnector,
                                   val applicationConfig: ApplicationConfiguration)
   extends CalculationRequestActor with CalculationRequestActorComponent
 
-class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationActorSystem")) with WordSpecLike with MockitoSugar
+class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationActorSystem")) with AnyWordSpecLike with MockitoSugar
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils with BeforeAndAfter {
 
   val mockDesConnector = mock[DesConnector]
