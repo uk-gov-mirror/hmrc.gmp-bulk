@@ -28,7 +28,7 @@ import play.api.i18n.{Messages, MessagesImpl}
 import play.api.test.Helpers.stubMessagesControllerComponents
 
 import java.time.format.DateTimeFormatter
-//TODO: FIX TESTS
+
 class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
   val cc = stubMessagesControllerComponents()
