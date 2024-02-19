@@ -267,6 +267,7 @@ class CsvGenerator {
 
     private def convertDate(date: Option[String]): String = {
 
+//      TODO: Figure out why throwing exception
       val inputDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
       date match {
