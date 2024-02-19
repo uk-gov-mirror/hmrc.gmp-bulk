@@ -25,6 +25,8 @@ import play.api.i18n.Messages
 import scala.collection.mutable.ListBuffer
 import com.github.ghik.silencer.silent
 
+import java.time.temporal.TemporalAccessor
+
 class CsvGenerator {
 
   val DATE_DEFAULT_FORMAT = "dd/MM/yyyy"
@@ -266,13 +268,14 @@ class CsvGenerator {
     }
 
     private def convertDate(date: Option[String]): String = {
-
-//      TODO: Figure out why throwing exception
-      val inputDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-
-      date match {
-        case Some(d) => LocalDateTime.parse(d, inputDateFormatter).format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
-        case _ => ""
+//      TODO: NEEDS TO WORK BETTER
+      if (date.isEmpty) {
+        ""
+      } else {
+        val year = date.get.substring(0, 4)
+        val month = date.get.substring(5, 7)
+        val day = date.get.substring(8, 10)
+        s"$day/$month/$year"
       }
     }
 
@@ -295,7 +298,14 @@ class CsvGenerator {
 
                 case Some(3) =>
                   calculationRequest.revaluationDate.map {
-                    d => LocalDateTime.parse(d, inputDateFormatter).format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
+                    d => {
+//                      TODO: NEEDS TO WORK BETTER
+//                      LocalDateTime.parse(d, inputDateFormatter).format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
+                      val year = d.substring(0, 4)
+                      val month = d.substring(5, 7)
+                      val day = d.substring(8, 10)
+                      s"$day/$month/$year"
+                    }
                   }.getOrElse(calculationResponse.dateOfDeath.map {
                     dod => dod.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                   }.getOrElse(""))
