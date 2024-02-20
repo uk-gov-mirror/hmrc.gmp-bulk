@@ -30,8 +30,9 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.mockito.MockitoSugar
 import repositories.BulkCalculationMongoRepository
-import uk.gov.hmrc.mongo.lock.{MongoLockRepository, TimePeriodLockService}
+import uk.gov.hmrc.mongo.lock.{Lock, MongoLockRepository, TimePeriodLockService}
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -59,8 +60,8 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
   override def beforeAll:Unit = {
     when(applicationConfig.bulkProcessingBatchSize).thenReturn(1)
     when(mongoApi.refreshExpiry(anyString(), anyString(), any())).thenReturn(Future(true))
-//    TODO: Investigate this
-//    when(mongoApi.takeLock(anyString(),anyString(), any())).thenReturn(Future(true))
+    when(mongoApi.takeLock(anyString(),anyString(), any()))
+      .thenReturn(Future(Some(Lock("id", "me", Instant.now().minusSeconds(100), Instant.now().plusSeconds(100)))))
   }
 
   override def afterAll: Unit = {
