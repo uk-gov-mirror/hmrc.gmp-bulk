@@ -25,6 +25,7 @@ import play.api.i18n.Messages
 import scala.collection.mutable.ListBuffer
 import com.github.ghik.silencer.silent
 
+import java.text.SimpleDateFormat
 import java.time.temporal.TemporalAccessor
 
 class CsvGenerator {
@@ -268,20 +269,15 @@ class CsvGenerator {
     }
 
     private def convertDate(date: Option[String]): String = {
-//      TODO: NEEDS TO WORK BETTER
-      if (date.isEmpty) {
-        ""
-      } else {
-        val year = date.get.substring(0, 4)
-        val month = date.get.substring(5, 7)
-        val day = date.get.substring(8, 10)
-        s"$day/$month/$year"
+      date match {
+        case Some(d) =>
+          val newDate = new SimpleDateFormat("yyyy-MM-dd").parse(d)
+          new SimpleDateFormat(DATE_DEFAULT_FORMAT).format(newDate)
+        case _ => ""
       }
     }
 
     private def determineGmpAtDate(request: ProcessReadyCalculationRequest): String = {
-
-      val inputDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
       request.validCalculationRequest.map {
 
@@ -299,12 +295,8 @@ class CsvGenerator {
                 case Some(3) =>
                   calculationRequest.revaluationDate.map {
                     d => {
-//                      TODO: NEEDS TO WORK BETTER
-//                      LocalDateTime.parse(d, inputDateFormatter).format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
-                      val year = d.substring(0, 4)
-                      val month = d.substring(5, 7)
-                      val day = d.substring(8, 10)
-                      s"$day/$month/$year"
+                      val newDate = new SimpleDateFormat("yyyy-MM-dd").parse(d)
+                      new SimpleDateFormat(DATE_DEFAULT_FORMAT).format(newDate)
                     }
                   }.getOrElse(calculationResponse.dateOfDeath.map {
                     dod => dod.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
