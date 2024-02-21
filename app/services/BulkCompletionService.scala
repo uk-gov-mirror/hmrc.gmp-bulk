@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,13 +21,12 @@ import play.api.Logging
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
 
 
 class BulkCompletionService @Inject() (bulkCalculationMongoRepository : BulkCalculationMongoRepository,
-                                       mongoLockRepository: MongoLockRepository) extends Logging {
+                                       mongoLockRepository: MongoLockRepository)(implicit ec: ExecutionContext) extends Logging {
 
 val lockId = "bulkcompletion"
   val lockService: LockService = LockService(mongoLockRepository, lockId = lockId, ttl = 5.minutes)

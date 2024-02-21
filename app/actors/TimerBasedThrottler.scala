@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package actors
 import scala.concurrent.duration.{ Duration, FiniteDuration }
 import scala.collection.immutable.{ Queue => Q }
-import akka.actor.{ Actor, ActorRef, FSM }
+import org.apache.pekko.actor.{ Actor, ActorRef, FSM }
 import Throttler._
 import TimerBasedThrottler._
 import java.util.concurrent.TimeUnit
@@ -42,7 +42,7 @@ object Throttler {
     *
     * @param numberOfCalls the number of calls that may take place in a period
     * @param duration the length of the period
-    * @see [[akka.contrib.throttle.Throttler]]
+    * @see [[org.apache.pekko.contrib.throttle.Throttler]]
     */
   final case class Rate(val numberOfCalls: Int, val duration: FiniteDuration) {
 
@@ -58,7 +58,7 @@ object Throttler {
     * You may change a throttler's target at any time.
     *
     * Notice that the messages sent by the throttler to the target will have the original sender (and
-    * not the throttler) as the sender. (In Akka terms, the throttler `forward`s the message.)
+    * not the throttler) as the sender. (In org.apache.pekko terms, the throttler `forward`s the message.)
     *
     * @param target if `target` is `None`, the throttler will stop delivering messages and the messages already received
     *  but not yet delivered, as well as any messages received in the future will be queued
@@ -90,7 +90,7 @@ object Throttler {
   /**
     * Helper for some syntactic sugar.
     *
-    * @see [[akka.contrib.throttle.Throttler.Rate]]
+    * @see [[org.apache.pekko.contrib.throttle.Throttler.Rate]]
     */
   implicit class RateInt(val numberOfCalls: Int) extends AnyVal {
     def msgsPer(duration: Int, timeUnit: TimeUnit) = Rate(numberOfCalls, Duration(duration, timeUnit))
@@ -125,15 +125,15 @@ object TimerBasedThrottler {
   *
   * == Throttling ==
   * A <em>throttler</em> is an actor that is defined through a <em>target actor</em> and a <em>rate</em>
-  * (of type [[akka.contrib.throttle.Throttler.Rate]]). You set or change the target and rate at any time through the
-  * [[akka.contrib.throttle.Throttler.SetTarget]] and [[akka.contrib.throttle.Throttler.SetRate]]
+  * (of type [[org.apache.pekko.contrib.throttle.Throttler.Rate]]). You set or change the target and rate at any time through the
+  * [[org.apache.pekko.contrib.throttle.Throttler.SetTarget]] and [[org.apache.pekko.contrib.throttle.Throttler.SetRate]]
   * messages, respectively. When you send the throttler any other message `msg`, it will
   * put the message `msg` into an internal queue and eventually send all queued messages to the target, at
   * a speed that respects the given rate. If no target is currently defined then the messages will be queued
   * and will be delivered as soon as a target gets set.
   *
   * A throttler understands actor messages of type
-  * [[akka.contrib.throttle.Throttler.SetTarget]], [[akka.contrib.throttle.Throttler.SetRate]], in
+  * [[org.apache.pekko.contrib.throttle.Throttler.SetTarget]], [[org.apache.pekko.contrib.throttle.Throttler.SetRate]], in
   * addition to any other messages, which the throttler will consider as messages to be sent to
   * the target.
   *
@@ -196,7 +196,7 @@ object TimerBasedThrottler {
   * as other throttlers may need to do.
   *
   * However, a `TimerBasedThrottler` only provides ''weak guarantees'' on the rate (see also
-  * <a href='http://letitcrash.com/post/28901663062/throttling-messages-in-akka-2'>this blog post</a>):
+  * <a href='http://letitcrash.com/post/28901663062/throttling-messages-in-org.apache.pekko-2'>this blog post</a>):
   *
   *  - Only ''delivery'' times are taken into account: if, for example, the throttler is used to throttle
   *    requests to an external web service then only the start times of the web requests are considered.
@@ -217,7 +217,7 @@ object TimerBasedThrottler {
   *  - The queue of messages to be delivered is not persisted in any way; actor or system failure will
   *    cause the queued messages to be lost.
   *
-  * @see [[akka.contrib.throttle.Throttler]]
+  * @see [[org.apache.pekko.contrib.throttle.Throttler]]
   */
 
 class TimerBasedThrottler(var rate: Rate) extends Actor with FSM[State, Data] {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package actors
 
 import actors.Throttler.{RateInt, SetTarget}
-import akka.actor._
+import org.apache.pekko.actor._
 import com.github.ghik.silencer.silent
 import config.ApplicationConfiguration
 import connectors.{DesConnector, IFConnector}
@@ -76,7 +76,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
 
           case _ =>
             logger.debug(s"[ProcessingSupervisor][receive] no requests pending")
-            context unbecome;
+            this.context.unbecome()
             throttler ! STOP
         }
       }.map{

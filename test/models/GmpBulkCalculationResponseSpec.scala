@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,10 @@
 
 package models
 
-import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
-import org.joda.time.LocalDate
+import java.time.LocalDate
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfter, MustMatchers}
+import org.scalatest.BeforeAndAfter
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 import play.api.i18n.{Messages, MessagesImpl}
@@ -29,7 +28,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.stubMessagesControllerComponents
 import play.api.{Application, Mode}
 
-class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
+class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   val cc = stubMessagesControllerComponents()
   implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
@@ -38,7 +37,7 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
     "logger.root" -> "ERROR",
     "org.apache.logging" -> "ERROR",
     "com.codahale" -> "ERROR")
-  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
+  private val bindModules: Seq[GuiceableModule] = Seq()
 
   implicit override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(additionalConfiguration)
@@ -65,7 +64,7 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
               "npsLgmpcalc": [
               {
               "scheme_mem_start_date": "1978-04-06",
-              "scheme_end_date": "200-04-05",
+              "scheme_end_date": "2004-04-05",
               "revaluation_rate": 1,
               "gmp_cod_post_eightyeight_tot": 1.2,
               "gmp_cod_allrate_tot": 1,
@@ -91,7 +90,7 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
       gmpResponse.calculationPeriods.head.gmpTotal must be("1.00")
       gmpResponse.calculationPeriods.head.contsAndEarnings.get.head.contEarnings must be("239.80")
       gmpResponse.calculationPeriods.head.contsAndEarnings.get.tail.head.contEarnings must be("1560")
-      gmpResponse.dateOfDeath must be(Some(new LocalDate("2016-01-01")))
+      gmpResponse.dateOfDeath must be(Some(LocalDate.parse("2016-01-01")))
     }
 
 
@@ -103,34 +102,34 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
 
       "return false when no cop errorsr" in {
         val response = GmpBulkCalculationResponse(
-          List(CalculationPeriod(Some(new LocalDate(2015, 11, 10)), new LocalDate(2015, 11, 10), "1.11", "2.22", 1, 0, Some(1), None, None, None, None),
-               CalculationPeriod(Some(new LocalDate(2015, 11, 10)), new LocalDate(2015, 11, 10), "1.11", "2.22", 1, 0, Some(1), None, None, None, None)), 0, None, None, None)
+          List(CalculationPeriod(Some(LocalDate.of(2015, 11, 10)), LocalDate.of(2015, 11, 10), "1.11", "2.22", 1, 0, Some(1), None, None, None, None),
+               CalculationPeriod(Some(LocalDate.of(2015, 11, 10)), LocalDate.of(2015, 11, 10), "1.11", "2.22", 1, 0, Some(1), None, None, None, None)), 0, None, None, None)
         response.hasErrors must be(false)
       }
 
       "return true when one cop error" in {
-        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(new LocalDate(2015, 11, 10)), new LocalDate(2015, 11, 10), "1.11", "2.22", 1, 0, Some(1), None, None, None, None),
-               CalculationPeriod(Some(new LocalDate(2015, 11, 10)), new LocalDate(2015, 11, 10), "1.11", "2.22", 1, 6666, None, None, None, None, None)), 0, None, None, None)
+        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.of(2015, 11, 10)), LocalDate.of(2015, 11, 10), "1.11", "2.22", 1, 0, Some(1), None, None, None, None),
+               CalculationPeriod(Some(LocalDate.of(2015, 11, 10)), LocalDate.of(2015, 11, 10), "1.11", "2.22", 1, 6666, None, None, None, None, None)), 0, None, None, None)
         response.hasErrors must be(true)
       }
 
       "return true when multi cop error" in {
-        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(new LocalDate(2015, 11, 10)), new LocalDate(2015, 11, 10), "0.00", "0.00", 0, 56023, None, None, None, None, None),
-               CalculationPeriod(Some(new LocalDate(2010, 11, 10)), new LocalDate(2011, 11, 10), "0.00", "0.00", 0, 56007, None, None, None, None, None)), 0, None, None, None)
+        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.of(2015, 11, 10)), LocalDate.of(2015, 11, 10), "0.00", "0.00", 0, 56023, None, None, None, None, None),
+               CalculationPeriod(Some(LocalDate.of(2010, 11, 10)), LocalDate.of(2011, 11, 10), "0.00", "0.00", 0, 56007, None, None, None, None, None)), 0, None, None, None)
         response.hasErrors must be(true)
       }
     }
 
     "errorCodes" must {
       "return an empty list when no error codes" in {
-        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(new LocalDate(2012, 1, 1)), new LocalDate(2015, 1, 1), "1.11", "2.22", 1, 0, Some(1), None, None, None, None)), 0, None, None, None)
+        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.of(2012, 1, 1)), LocalDate.of(2015, 1, 1), "1.11", "2.22", 1, 0, Some(1), None, None, None, None)), 0, None, None, None)
         response.errorCodes.size must be(0)
         response.calculationPeriods.head.getPeriodErrorMessageReason must be(None)
         response.calculationPeriods.head.getPeriodErrorMessageWhat must be(None)
       }
 
       "return a list of error codes with period error code" in {
-        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(new LocalDate(2015, 11, 10)),new LocalDate(2015, 11, 10), "0.00", "0.00", 0, 63151, None, None, None, None, None)), 0, None, None, None)
+        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.of(2015, 11, 10)),LocalDate.of(2015, 11, 10), "0.00", "0.00", 0, 63151, None, None, None, None, None)), 0, None, None, None)
         response.errorCodes.size must be(1)
         response.errorCodes.head must be(63151)
         response.calculationPeriods.head.getPeriodErrorMessageReason must be(Some(Messages("63151.reason")))
@@ -138,17 +137,17 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
       }
 
       "return a list of error codes with period error codes" in {
-        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(new LocalDate(2015, 11, 10)),new LocalDate(2015, 11, 10), "0.00", "0.00", 0, 56023, None, None, None, None, None),
-               CalculationPeriod(Some(new LocalDate(2010, 11, 10)),new LocalDate(2011, 11, 10), "0.00", "0.00", 0, 56007, None, None, None, None, None),
-               CalculationPeriod(Some(new LocalDate(2010, 11, 10)),new LocalDate(2011, 11, 10), "0.00", "0.00", 0, 0, None, None, None, None, None)), 0, None, None, None)
+        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.of(2015, 11, 10)),LocalDate.of(2015, 11, 10), "0.00", "0.00", 0, 56023, None, None, None, None, None),
+               CalculationPeriod(Some(LocalDate.of(2010, 11, 10)),LocalDate.of(2011, 11, 10), "0.00", "0.00", 0, 56007, None, None, None, None, None),
+               CalculationPeriod(Some(LocalDate.of(2010, 11, 10)),LocalDate.of(2011, 11, 10), "0.00", "0.00", 0, 0, None, None, None, None, None)), 0, None, None, None)
         response.errorCodes.size must be(2)
         response.errorCodes must be(List(56023, 56007))
       }
 
       "return a list of error codes with period error codes and global error code" in {
-        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(new LocalDate(2015, 11, 10)),new LocalDate(2015, 11, 10), "0.00", "0.00", 0, 56023, None, None, None, None, None),
-               CalculationPeriod(Some(new LocalDate(2010, 11, 10)),new LocalDate(2011, 11, 10), "0.00", "0.00", 0, 56007, None, None, None, None, None),
-               CalculationPeriod(Some(new LocalDate(2010, 11, 10)),new LocalDate(2011, 11, 10), "0.00", "0.00", 0, 0, None, None, None, None, None)), 48160, None, None, None)
+        val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.of(2015, 11, 10)),LocalDate.of(2015, 11, 10), "0.00", "0.00", 0, 56023, None, None, None, None, None),
+               CalculationPeriod(Some(LocalDate.of(2010, 11, 10)),LocalDate.of(2011, 11, 10), "0.00", "0.00", 0, 56007, None, None, None, None, None),
+               CalculationPeriod(Some(LocalDate.of(2010, 11, 10)),LocalDate.of(2011, 11, 10), "0.00", "0.00", 0, 0, None, None, None, None, None)), 48160, None, None, None)
         response.errorCodes.size must be(3)
         response.errorCodes must be(List(56023, 56007, 48160))
       }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,22 @@
 package actors
 
 import actors.Throttler.SetTarget
-import akka.actor.{ActorSystem, Props}
-import akka.testkit._
+import org.apache.pekko.actor.{ActorSystem, Props}
+import org.apache.pekko.testkit._
 import config.ApplicationConfiguration
 import connectors.{DesConnector, IFConnector}
 import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models.{ProcessReadyCalculationRequest, ValidCalculationRequest}
-import org.mockito.Matchers.{any, anyString}
+import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
+import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.mockito.MockitoSugar
 import repositories.BulkCalculationMongoRepository
-import uk.gov.hmrc.mongo.lock.{MongoLockRepository, TimePeriodLockService}
+import uk.gov.hmrc.mongo.lock.{Lock, MongoLockRepository, TimePeriodLockService}
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -38,7 +40,7 @@ import scala.language.postfixOps
 
 
 
-class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with WordSpecLike with MockitoSugar
+class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem")) with AnyWordSpecLike with MockitoSugar
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils {
 
   def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
@@ -58,7 +60,8 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
   override def beforeAll:Unit = {
     when(applicationConfig.bulkProcessingBatchSize).thenReturn(1)
     when(mongoApi.refreshExpiry(anyString(), anyString(), any())).thenReturn(Future(true))
-    when(mongoApi.takeLock(anyString(),anyString(), any())).thenReturn(Future(true))
+    when(mongoApi.takeLock(anyString(),anyString(), any()))
+      .thenReturn(Future(Some(Lock("id", "me", Instant.now().minusSeconds(100), Instant.now().plusSeconds(100)))))
   }
 
   override def afterAll: Unit = {

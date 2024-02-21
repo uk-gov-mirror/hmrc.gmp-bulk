@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,16 @@
 package controllers
 
 import models._
-import org.joda.time.LocalDate
-import org.joda.time.format.DateTimeFormat
+
+import java.time.{LocalDate, LocalDateTime}
+import java.time.format.DateTimeFormatter
 import play.api.i18n.Messages
+
 import scala.collection.mutable.ListBuffer
 import com.github.ghik.silencer.silent
+
+import java.text.SimpleDateFormat
+import java.time.temporal.TemporalAccessor
 
 class CsvGenerator {
 
@@ -264,18 +269,15 @@ class CsvGenerator {
     }
 
     private def convertDate(date: Option[String]): String = {
-
-      val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
-
       date match {
-        case Some(d) => LocalDate.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
+        case Some(d) =>
+          val newDate = new SimpleDateFormat("yyyy-MM-dd").parse(d)
+          new SimpleDateFormat(DATE_DEFAULT_FORMAT).format(newDate)
         case _ => ""
       }
     }
 
     private def determineGmpAtDate(request: ProcessReadyCalculationRequest): String = {
-
-      val inputDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
 
       request.validCalculationRequest.map {
 
@@ -287,22 +289,25 @@ class CsvGenerator {
               calculationRequest.calctype match {
 
                 case Some(2) => calculationResponse.payableAgeDate.map {
-                  dod => dod.toString(DATE_DEFAULT_FORMAT)
+                  dod => dod.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                 }.getOrElse("")
 
                 case Some(3) =>
                   calculationRequest.revaluationDate.map {
-                    d => LocalDate.parse(d, inputDateFormatter).toString(DATE_DEFAULT_FORMAT)
+                    d => {
+                      val newDate = new SimpleDateFormat("yyyy-MM-dd").parse(d)
+                      new SimpleDateFormat(DATE_DEFAULT_FORMAT).format(newDate)
+                    }
                   }.getOrElse(calculationResponse.dateOfDeath.map {
-                    dod => dod.toString(DATE_DEFAULT_FORMAT)
+                    dod => dod.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                   }.getOrElse(""))
 
                 case Some(4) => calculationResponse.spaDate.map {
-                  dod => dod.toString(DATE_DEFAULT_FORMAT)
+                  dod => dod.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                 }.getOrElse("")
 
                 case _ if calculationRequest.revaluationDate.isEmpty => calculationResponse.calculationPeriods.headOption.map {
-                  period => period.endDate.toString(DATE_DEFAULT_FORMAT)
+                  period => period.endDate.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
                 }.getOrElse("")
 
                 case _ => convertDate(calculationRequest.revaluationDate)
@@ -316,11 +321,11 @@ class CsvGenerator {
   class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter, messages: Messages) extends RowBuilder {
 
     addCell(calculationPeriod.startDate match {
-      case Some(date) => date.toString(DATE_DEFAULT_FORMAT)
+      case Some(date) => date.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
       case _ => ""
     })
 
-    addCell(calculationPeriod.endDate.toString(DATE_DEFAULT_FORMAT))
+    addCell(calculationPeriod.endDate.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT)))
     addCell(calculationPeriod.gmpTotal)
     addCell(calculationPeriod.post88GMPTotal)
 
@@ -495,9 +500,9 @@ class CsvGenerator {
 
     List(
       (period.startDate match {
-        case Some(d) => d.toString("dd/MM/yyyy")
+        case Some(d) => d.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
         case _ => ""
-      }) + " - " + period.endDate.toString("dd/MM/yyyy"),
+      }) + " - " + period.endDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
       period.contsAndEarnings match {
         case Some(c) =>
           val map = c.foldLeft(Map[Int, String]()) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,9 @@
 
 package models
 
-import org.joda.time.LocalDate
+import java.time.LocalDate
 import play.api.i18n.Messages
 import play.api.libs.json.Json
-import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
 
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 
@@ -69,12 +67,10 @@ case class CalculationPeriod(startDate: Option[LocalDate],
 }
 
 object CalculationPeriod {
-  import play.api.libs.json.JodaWrites._
-  import play.api.libs.json.JodaReads._
   implicit val formats = Json.format[CalculationPeriod]
 
   def createFromNpsLgmpcalc(npsLgmpcalc: NpsLgmpcalc): CalculationPeriod = {
-    CalculationPeriod(npsLgmpcalc.scheme_mem_start_date.map(new LocalDate(_)), new LocalDate(npsLgmpcalc.scheme_end_date),
+    CalculationPeriod(npsLgmpcalc.scheme_mem_start_date.map(LocalDate.parse(_)), LocalDate.parse(npsLgmpcalc.scheme_end_date),
       f"${npsLgmpcalc.gmp_cod_allrate_tot}%1.2f", f"${npsLgmpcalc.gmp_cod_post_eightyeight_tot}%1.2f", npsLgmpcalc.revaluation_rate, npsLgmpcalc.gmp_error_code,
       Some(npsLgmpcalc.reval_calc_switch_ind),
       npsLgmpcalc.gmp_cod_p90_ts_tot.map(value => f"$value%1.2f"),
@@ -116,8 +112,6 @@ case class GmpBulkCalculationResponse(
 }
 
 object GmpBulkCalculationResponse {
-  import play.api.libs.json.JodaWrites._
-  import play.api.libs.json.JodaReads._
   implicit val formats = Json.format[GmpBulkCalculationResponse]
 
   def createFromCalculationResponse(calculationResponse: CalculationResponse):
@@ -125,9 +119,9 @@ object GmpBulkCalculationResponse {
     GmpBulkCalculationResponse(
       calculationResponse.npsLgmpcalc.map(CalculationPeriod.createFromNpsLgmpcalc(_)),
       calculationResponse.rejection_reason,
-      calculationResponse.spa_date.map(new LocalDate(_)),
-      calculationResponse.payable_age_date.map(new LocalDate(_)),
-      calculationResponse.dod_date.map(new LocalDate(_)),
+      calculationResponse.spa_date.map(LocalDate.parse(_)),
+      calculationResponse.payable_age_date.map(LocalDate.parse(_)),
+      calculationResponse.dod_date.map(LocalDate.parse(_)),
       calculationResponse.hasErrors
 
     )

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import connectors.{EmailConnector, ProcessedUploadTemplate}
 import events.BulkEvent
 import metrics.ApplicationMetrics
 import models._
-import org.joda.time.LocalDateTime
+import java.time.LocalDateTime
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.bson.{BsonDocument, ObjectId}
 import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, IndexModel, IndexOptions, Indexes, Sorts, Updates}
@@ -32,12 +32,10 @@ import play.api.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.play.json.{Codecs, CollectionFactory, PlayMongoRepository}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
-
+import scala.concurrent.Future
 
 @Singleton
 class BulkCalculationMongoRepositoryProvider @Inject()(metrics: ApplicationMetrics,
@@ -390,7 +388,6 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
   }
 
   private def updateBulkCalculationByUploadRef(request: ProcessedBulkCalculationRequest): Future[ProcessedBulkCalculationRequest] = {
-    implicit val dateTimeFormat = MongoJodaFormats.localDateTimeFormat
     val totalRequests: Int = request.calculationRequests.size
     val failedRequests = request.failedRequestCount
     val selector = Filters.eq("uploadReference", request.uploadReference)
@@ -410,7 +407,6 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
 
   private def updateCalculationByBulkId(request: ProcessedBulkCalculationRequest): Future[UpdateResult] = {
     val childSelector = Filters.eq("bulkId", request._id)
-    implicit val dateTimeFormat = MongoJodaFormats.localDateTimeFormat
     val childModifier = Updates.set("createdAt", Codecs.toBson(LocalDateTime.now()))
     processedBulkCalsReqCollection
       .updateMany(childSelector, childModifier)

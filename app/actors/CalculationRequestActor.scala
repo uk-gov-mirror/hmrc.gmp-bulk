@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package actors
 
 import java.util.concurrent.TimeUnit
-import akka.actor._
+import org.apache.pekko.actor._
 import com.google.inject.Inject
 import config.ApplicationConfiguration
 import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
@@ -105,7 +105,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                 case e =>
                   // $COVERAGE-OFF$
                   logger.error(s"[CalculationRequestActor] Inserting Failure response failed with error :$e")
-                  origSender ! akka.actor.Status.Failure(e)
+                  origSender ! org.apache.pekko.actor.Status.Failure(e)
                 // $COVERAGE-ON$
               }
             }
@@ -123,7 +123,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                   repository.insertResponseByReference(request.bulkId, request.lineId,
                     GmpBulkCalculationResponse(List(), responseCode, None, None, None, containsErrors = true)).map { result =>
 
-                    origSender ! akka.actor.Status.Failure(f)
+                    origSender ! org.apache.pekko.actor.Status.Failure(f)
                   }
                 }
 
@@ -131,7 +131,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                   // $COVERAGE-OFF$
                   logger.error(s"[CalculationRequestActor] Calling DES failed with error: ${ f.getMessage }")
                   // $COVERAGE-ON$
-                  origSender ! akka.actor.Status.Failure(f)
+                  origSender ! org.apache.pekko.actor.Status.Failure(f)
 
                 }
               }
@@ -164,7 +164,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
       logger.debug(s"[CalculationRequestActor] Invalid Message : { message : $e}")
       logger.debug("sender: " + sender.getClass)
       // $COVERAGE-ON$
-      sender ! akka.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
+      sender ! org.apache.pekko.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
     }
 
   }

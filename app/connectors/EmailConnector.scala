@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package connectors
 
 import com.google.inject.Inject
-import org.joda.time.LocalDate
+
+import java.time.LocalDate
 import play.api.libs.json.Json
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -25,8 +26,9 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpClient
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 
+import java.time.format.DateTimeFormatter
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 case class ReceivedUploadTemplate(email: String, uploadReference: String)
 
@@ -53,7 +55,11 @@ class EmailConnector @Inject()(http: HttpClient,
   def sendProcessedTemplatedEmail(template: ProcessedUploadTemplate)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
     val request = SendTemplatedEmailRequest(List(template.email), "gmp_bulk_upload_processed",
-      Map("fileUploadReference" -> template.uploadReference, "uploadDate" -> template.uploadDate.toString("dd MMMM yyyy"), "userId" -> (("*" * 5) + template.userId.takeRight(3))))
+      Map(
+        "fileUploadReference" -> template.uploadReference,
+        "uploadDate" -> template.uploadDate.format(DateTimeFormatter.ofPattern("dd MMMM yyyy")),
+        "userId" -> (("*" * 5) + template.userId.takeRight(3)))
+    )
 
     sendEmail(request)
   }

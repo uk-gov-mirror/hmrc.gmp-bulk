@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,16 @@
 
 package metrics
 
-import java.util.concurrent.TimeUnit
+import com.codahale.metrics.MetricRegistry
 
+import java.util.concurrent.TimeUnit
 import com.google.inject.Inject
-import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
+
 import scala.concurrent.duration
 import scala.util.Try
 
-class ApplicationMetrics @Inject()(metrics: Metrics) extends Logging {
-  lazy val registry = metrics.defaultRegistry
+class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
 
   private val timer = (name: String) => Try{registry.timer(name)}
   private val counter = (name: String) => Try{registry.counter(name)}

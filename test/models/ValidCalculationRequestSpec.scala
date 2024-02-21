@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@
 package models
 
 import helpers.RandomNino
-import org.scalatest.MustMatchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 
-class ValidCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with MustMatchers {
+class ValidCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private val nino = RandomNino.generate
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,7 @@
 
 package models
 
-import com.kenshoo.play.metrics.PlayModule
 import helpers.RandomNino
-import org.scalatest.MustMatchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 import play.api.i18n.{Messages, MessagesImpl}
@@ -27,7 +25,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.stubMessagesControllerComponents
 import play.api.{Application, Mode}
 
-class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with MustMatchers {
+class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   val cc = stubMessagesControllerComponents()
   implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
@@ -38,7 +36,7 @@ class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite with 
     "org.apache.logging" -> "ERROR",
     "com.codahale" -> "ERROR")
 
-  private val bindModules: Seq[GuiceableModule] = Seq(new PlayModule)
+  private val bindModules: Seq[GuiceableModule] = Seq()
 
   implicit override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(additionalConfiguration)

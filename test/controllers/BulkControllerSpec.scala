@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ import connectors.{EmailConnector, ReceivedUploadTemplate}
 import controllers.auth.FakeAuthAction
 import helpers.RandomNino
 import models._
-import org.joda.time.{LocalDate, LocalDateTime}
+import java.time.{LocalDate, LocalDateTime}
 import org.mockito.Mockito._
-import org.mockito.{ArgumentCaptor, Matchers}
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
@@ -110,14 +110,14 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       "sending correct data" must {
 
         "return an accepted status code" in {
-          when(mockRepo.insertBulkDocument(Matchers.any())).thenReturn(Future.successful(true))
+          when(mockRepo.insertBulkDocument(ArgumentMatchers.any())).thenReturn(Future.successful(true))
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(json))
           val result = TestBulkController.post("USER_ID").apply(fakeRequest)
           status(result) must be(OK)
         }
 
         "return conflict when inserting a duplicate" in {
-          when(mockRepo.insertBulkDocument(Matchers.any())).thenReturn(Future.successful(false))
+          when(mockRepo.insertBulkDocument(ArgumentMatchers.any())).thenReturn(Future.successful(false))
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(json))
           val result = TestBulkController.post("USER_ID").apply(fakeRequest)
           status(result) must be(CONFLICT)
@@ -127,7 +127,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
           "return an internal server error" in {
 
-            when(mockRepo.insertBulkDocument(Matchers.any())).thenReturn(Future.failed(new RuntimeException("Exception")))
+            when(mockRepo.insertBulkDocument(ArgumentMatchers.any())).thenReturn(Future.failed(new RuntimeException("Exception")))
 
             val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(json))
             val result = TestBulkController.post("USER_ID").apply(fakeRequest)
@@ -140,10 +140,10 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
         "send a file received notification email to the user" in {
           val c = ArgumentCaptor.forClass(classOf[ReceivedUploadTemplate])
-          when(mockEmailConnector.sendReceivedTemplatedEmail(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))
+          when(mockEmailConnector.sendReceivedTemplatedEmail(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(true))
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(json))
           TestBulkController.post("USER_ID")(fakeRequest)
-          verify(mockEmailConnector).sendReceivedTemplatedEmail(c.capture())(Matchers.any())
+          verify(mockEmailConnector).sendReceivedTemplatedEmail(c.capture())(ArgumentMatchers.any())
           c.getValue.email must be("test@test.com")
           c.getValue.uploadReference must be("REF1234")
         }
@@ -171,7 +171,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
     "getPreviousRequests" must {
 
       "retrieve list of previous bulk calculation requests" in {
-        when(mockRepo.findByUserId(Matchers.any())).thenReturn(Future.successful(Option(List(BulkPreviousRequest("uploadRef", "ref", LocalDateTime.now, LocalDateTime.now)))))
+        when(mockRepo.findByUserId(ArgumentMatchers.any())).thenReturn(Future.successful(Option(List(BulkPreviousRequest("uploadRef", "ref", LocalDateTime.now, LocalDateTime.now)))))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = AnyContentAsEmpty)
         val result = TestBulkController.getPreviousRequests("USER_ID").apply(fakeRequest)
         status(result) must be(OK)
@@ -183,7 +183,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       }
 
       "retrieve empty list of previous bulk calculation requests" in {
-        when(mockRepo.findByUserId(Matchers.any())).thenReturn(Future.successful(Option(Nil)))
+        when(mockRepo.findByUserId(ArgumentMatchers.any())).thenReturn(Future.successful(Option(Nil)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = AnyContentAsEmpty)
         val result = TestBulkController.getPreviousRequests("USER_ID").apply(fakeRequest)
         status(result) must be(OK)
@@ -202,7 +202,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
       "return not found with an invalid file reference" in {
 
-        when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(None))
+        when(mockRepo.findByReference(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(None))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getCalculationsAsCsv("userId", "USER_ID", CsvFilter.All)(fakeRequest)
 
@@ -218,7 +218,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
         val calculationRequests = List(ProcessReadyCalculationRequest(id, 1, Some(validCalculationRequest.copy(calctype = Some(1))), None, Some(gmpBulkCalculationResponse)))
         val bulkCalculationRequest = ProcessedBulkCalculationRequest(id, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), true, 1, 0)
 
-        when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
+        when(mockRepo.findByReference(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
 
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getCalculationsAsCsv("wrongId", "USER_ID", CsvFilter.All)(fakeRequest)
@@ -232,7 +232,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
       "retrieve a results summary" in {
 
-        when(mockRepo.findSummaryByReference(Matchers.any())).thenReturn(Future.successful(Some(BulkResultsSummary("my ref", Some(10), Some(1), "USER_ID"))))
+        when(mockRepo.findSummaryByReference(ArgumentMatchers.any())).thenReturn(Future.successful(Some(BulkResultsSummary("my ref", Some(10), Some(1), "USER_ID"))))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = AnyContentAsEmpty)
         val result = TestBulkController.getResultsSummary("USER_ID", "thing-ref")(fakeRequest)
         (contentAsJson(result).\("reference")).as[JsString].value must be("my ref")
@@ -241,7 +241,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
       "return 404 when not found" in {
 
-        when(mockRepo.findSummaryByReference(Matchers.any())).thenReturn(Future.successful(None))
+        when(mockRepo.findSummaryByReference(ArgumentMatchers.any())).thenReturn(Future.successful(None))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = AnyContentAsEmpty)
         val result = TestBulkController.getResultsSummary("USER_ID", "thing-ref")(fakeRequest)
         status(result) must be(NOT_FOUND)
@@ -249,7 +249,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       }
 
       "return 403 unauthorized when userid doesn't match" in {
-        when(mockRepo.findSummaryByReference(Matchers.any())).thenReturn(Future.successful(Some(BulkResultsSummary("my ref", Some(10), Some(1), "USER_ID"))))
+        when(mockRepo.findSummaryByReference(ArgumentMatchers.any())).thenReturn(Future.successful(Some(BulkResultsSummary("my ref", Some(10), Some(1), "USER_ID"))))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = AnyContentAsEmpty)
         val result = TestBulkController.getResultsSummary("WRONG_USER_ID", "thing-ref")(fakeRequest)
         status(result) must be(FORBIDDEN)
@@ -261,7 +261,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       "include the contributions data" in {
 
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45"))))), 0, None, None, None)
 
@@ -271,7 +271,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
         val calculationRequests = List(ProcessReadyCalculationRequest(id, 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
         val bulkCalculationRequest = ProcessedBulkCalculationRequest(id, "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), true, 1, 0)
 
-        when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
+        when(mockRepo.findByReference(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getContributionsAndEarningsAsCsv("userId", "reference")(fakeRequest)
 
@@ -287,7 +287,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       "include member detail in contributions data rows" in {
 
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45"))))), 0, None, None, None)
 
@@ -296,7 +296,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
         val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
         val bulkCalculationRequest = ProcessedBulkCalculationRequest("1", "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), true, 1, 0)
 
-        when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
+        when(mockRepo.findByReference(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getContributionsAndEarningsAsCsv("userId", "reference")(fakeRequest)
 
@@ -310,7 +310,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       }
 
       "return Forbidden if no user is found" in {
-        when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(
+        when(mockRepo.findByReference(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(
           Future.successful(Some(ProcessedBulkCalculationRequest("1", "Ref", "email", "ref2",
             List.empty[ProcessReadyCalculationRequest], "USER-ID", LocalDateTime.now, true, 1, 0))))
 
@@ -322,7 +322,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
       "return 404 when not found" in {
 
-        when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(None))
+        when(mockRepo.findByReference(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(None))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = AnyContentAsEmpty)
         val result = TestBulkController.getContributionsAndEarningsAsCsv("USER_ID", "thing-ref")(fakeRequest)
         status(result) must be(NOT_FOUND)
@@ -331,10 +331,10 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
       "cope with multiple period contributions data" in {
 
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45")))),
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2006, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2006, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "200.12"))))
         ), 0, None, None, None)
@@ -344,7 +344,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
         val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
         val bulkCalculationRequest = ProcessedBulkCalculationRequest("1", "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), true, 1, 0)
 
-        when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
+        when(mockRepo.findByReference(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getContributionsAndEarningsAsCsv("userId", "reference")(fakeRequest)
 
@@ -365,7 +365,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
       "return a file name" in {
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45"))))), 0, None, None, None)
 
@@ -374,7 +374,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
         val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
         val bulkCalculationRequest = ProcessedBulkCalculationRequest("1", "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), true, 1, 0)
 
-        when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
+        when(mockRepo.findByReference(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getCalculationsAsCsv("userId", "reference", CsvFilter.Successful)(fakeRequest)
 
@@ -386,7 +386,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
       "return a contributions and earnings file name" in {
         val gmpBulkCalculationResponse = GmpBulkCalculationResponse(List(
-          CalculationPeriod(Some(new LocalDate(2001, 1, 1)), new LocalDate(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
+          CalculationPeriod(Some(LocalDate.of(2001, 1, 1)), LocalDate.of(2005, 1, 1), "3.12", "1.23", 0, 0, None, None, None, None,
             Some(List(ContributionsAndEarnings(1994, "123.45"),
               ContributionsAndEarnings(1995, "123.45"))))), 0, None, None, None)
 
@@ -395,7 +395,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
         val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
         val bulkCalculationRequest = ProcessedBulkCalculationRequest("1", "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now(), true, 1, 0)
 
-        when(mockRepo.findByReference(Matchers.any(), Matchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
+        when(mockRepo.findByReference(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(Some(bulkCalculationRequest)))
         val fakeRequest = FakeRequest(method = "GET", uri = "", headers = FakeHeaders(), body = AnyContentAsEmpty)
         val result = TestBulkController.getContributionsAndEarningsAsCsv("userId", "reference")(fakeRequest)
 

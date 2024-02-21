@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package connectors
 
-import org.joda.time.LocalDate
+import java.time.LocalDate
 import org.mockito.ArgumentCaptor
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, _}
@@ -30,11 +30,12 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpClient
 
+import java.time.format.DateTimeFormatter
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with MustMatchers with BeforeAndAfter {
+class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   lazy val mockHttp = mock[HttpClient]
   val environment = app.injector.instanceOf[Environment]
@@ -161,7 +162,7 @@ class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
 
         Await.result(new TestEmailConnector().sendProcessedTemplatedEmail(template), 5 seconds)
 
-        requestCaptor.getValue.parameters must contain("uploadDate" -> date.toString("dd MMMM yyyy"))
+        requestCaptor.getValue.parameters must contain("uploadDate" -> date.format(DateTimeFormatter.ofPattern("dd MMMM yyyy")))
       }
 
       "must send the user's user id" in {
