@@ -12,7 +12,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"                          %% s"hmrc-mongo$playSuffix"        % hmrcMongoVersion,
     "uk.gov.hmrc"                                %% s"bootstrap-backend$playSuffix" % bootstrapVersion,
     "uk.gov.hmrc"                                %% s"domain$playSuffix"            % "9.0.0",
-    "uk.gov.hmrc"                                %% "reactive-circuit-breaker"      % "4.1.0",
+    "uk.gov.hmrc"                                %% "reactive-circuit-breaker"      % "5.0.0",
     "uk.gov.hmrc"                                %% "tax-year"                      % "4.0.0",
     "com.github.ghik"                            %  "silencer-lib"                  % "1.7.14" % Provided cross CrossVersion.full,
     compilerPlugin("com.github.ghik" %  "silencer-plugin"               % "1.7.14" cross CrossVersion.full)
