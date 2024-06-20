@@ -16,10 +16,11 @@
 
 package config
 
-import com.google.inject.{AbstractModule, Provides, Singleton}
+import com.google.inject.AbstractModule
 import play.api.{Configuration, Environment}
 import repositories.{BulkCalculationMongoRepository, BulkCalculationMongoRepositoryProvider}
-import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
+import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
+import uk.gov.hmrc.http.HttpClient
 
 class Module(environment: Environment, configuration: Configuration) extends AbstractModule {
 

@@ -16,12 +16,10 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
-case class BulkResultsSummary(reference: String, total: Option[Int], failed: Option[Int], userId: String) {
-
-}
+case class BulkResultsSummary(reference: String, total: Option[Int], failed: Option[Int], userId: String)
 
 object BulkResultsSummary {
-  implicit val formats = Json.format[BulkResultsSummary]
+  implicit val formats: OFormat[BulkResultsSummary] = Json.format[BulkResultsSummary]
 }

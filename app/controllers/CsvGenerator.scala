@@ -46,7 +46,7 @@ class CsvGenerator {
 
   sealed trait Row {
 
-    val cells: Traversable[Cell]
+    val cells: Iterable[Cell]
 
     @silent
     def toCsvString(cellCount: Int)(implicit csvFilter: CsvFilter) = {
@@ -56,7 +56,7 @@ class CsvGenerator {
     }
   }
 
-  case class ResponseRow(cells: Traversable[Cell], error: Option[Cell] = None, whatToDo: Option[Cell] = None) extends Row {
+  case class ResponseRow(cells: Iterable[Cell], error: Option[Cell] = None, whatToDo: Option[Cell] = None) extends Row {
 
     override def toCsvString(cellCount: Int)(implicit csvFilter: CsvFilter): String = {
 
@@ -72,7 +72,7 @@ class CsvGenerator {
     }
   }
 
-  case class HeaderRow(cells: Traversable[Cell]) extends Row
+  case class HeaderRow(cells: Iterable[Cell]) extends Row
 
   class RowBuilder {
 
@@ -94,7 +94,7 @@ class CsvGenerator {
       this
     }
 
-    def addCell(cells: Traversable[String]): RowBuilder = {
+    def addCell(cells: Iterable[String]): RowBuilder = {
       cells foreach addCell
       this
     }
@@ -105,7 +105,7 @@ class CsvGenerator {
       this
     }
 
-    def addFilteredCells(f: PartialFunction[CsvFilter, Traversable[String]])(implicit filter: CsvFilter) = {
+    def addFilteredCells(f: PartialFunction[CsvFilter, Iterable[String]])(implicit filter: CsvFilter) = {
       if (f.isDefinedAt(filter))
         f(filter) foreach addCell
       this
@@ -116,7 +116,7 @@ class CsvGenerator {
       this
     }
 
-    def addRows(rows: Traversable[Row]) = {
+    def addRows(rows: Iterable[Row]) = {
       rows map addCells
       this
     }
@@ -343,8 +343,8 @@ class CsvGenerator {
     })
 
     if (filter != CsvFilter.Successful) {
-      addCell(calculationPeriod.getPeriodErrorMessageReason.getOrElse(""))
-      addCell(calculationPeriod.getPeriodErrorMessageWhat.getOrElse(""))
+      addCell(calculationPeriod.getPeriodErrorMessageReason().getOrElse(""))
+      addCell(calculationPeriod.getPeriodErrorMessageWhat().getOrElse(""))
     }
 
     private def calculatePeriodRevalRate(period: CalculationPeriod, index: Int, request: ValidCalculationRequest): String = {

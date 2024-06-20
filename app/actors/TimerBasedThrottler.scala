@@ -231,17 +231,17 @@ class TimerBasedThrottler(var rate: Rate) extends Actor with FSM[State, Data] {
     // Set the rate
     case Event(SetRate(newRate), d) =>
       this.rate = normalizedRate(newRate)
-      stay.using(d.copy(callsLeftInThisPeriod = rate.numberOfCalls))
+      stay().using(d.copy(callsLeftInThisPeriod = rate.numberOfCalls))
 
     // Set the target
     case Event(SetTarget(t @ Some(_)), d) if !d.queue.isEmpty =>
       goto(Active).using(deliverMessages(d.copy(target = t)))
     case Event(SetTarget(t), d) =>
-      stay.using(d.copy(target = t))
+      stay().using(d.copy(target = t))
 
     // Queuing
     case Event(msg, d @ Data(None, _, queue)) =>
-      stay.using(d.copy(queue = queue.enqueue(Message(msg, context.sender()))))
+      stay().using(d.copy(queue = queue.enqueue(Message(msg, context.sender()))))
     case Event(msg, d @ Data(Some(_), _, Seq())) =>
       goto(Active).using(deliverMessages(d.copy(queue = Q(Message(msg, context.sender())))))
     // Note: The case Event(msg, t @ Data(Some(_), _, _, Seq(_*))) should never happen here.
@@ -254,16 +254,16 @@ class TimerBasedThrottler(var rate: Rate) extends Actor with FSM[State, Data] {
       // Note: this should be improved (see "Known issues" in class comments)
       stopTimer()
       startTimer(rate)
-      stay.using(d.copy(callsLeftInThisPeriod = rate.numberOfCalls))
+      stay().using(d.copy(callsLeftInThisPeriod = rate.numberOfCalls))
 
     // Set the target (when the new target is None)
     case Event(SetTarget(None), d) =>
       // Note: We do not yet switch to state `Inactive` because we need the timer to tick once more before
-      stay.using(d.copy(target = None))
+      stay().using(d.copy(target = None))
 
     // Set the target (when the new target is not None)
     case Event(SetTarget(t @ Some(_)), d) =>
-      stay.using(d.copy(target = t))
+      stay().using(d.copy(target = t))
 
     // Tick after a `SetTarget(None)`: take the additional permits and go to `Idle`
     case Event(Tick, d @ Data(None, _, _)) =>
@@ -275,15 +275,15 @@ class TimerBasedThrottler(var rate: Rate) extends Actor with FSM[State, Data] {
 
     // Period ends and we get more occasions to send messages
     case Event(Tick, d @ Data(_, _, _)) =>
-      stay.using(deliverMessages(d.copy(callsLeftInThisPeriod = rate.numberOfCalls)))
+      stay().using(deliverMessages(d.copy(callsLeftInThisPeriod = rate.numberOfCalls)))
 
     // Queue a message (when we cannot send messages in the current period anymore)
     case Event(msg, d @ Data(_, 0, queue)) =>
-      stay.using(d.copy(queue = queue.enqueue(Message(msg, context.sender()))))
+      stay().using(d.copy(queue = queue.enqueue(Message(msg, context.sender()))))
 
     // Queue a message (when we can send some more messages in the current period)
     case Event(msg, d @ Data(_, _, queue)) =>
-      stay.using(deliverMessages(d.copy(queue = queue.enqueue(Message(msg, context.sender())))))
+      stay().using(deliverMessages(d.copy(queue = queue.enqueue(Message(msg, context.sender())))))
   }
 
   onTransition {
@@ -293,6 +293,7 @@ class TimerBasedThrottler(var rate: Rate) extends Actor with FSM[State, Data] {
 
   initialize()
 
+//  TODO: FIX COMPILE WARNING BELOW
   private def startTimer(rate: Rate) = setTimer("morePermits", Tick, rate.duration, true)
   private def stopTimer() = cancelTimer("morePermits")
 

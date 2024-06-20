@@ -19,7 +19,7 @@ package connectors
 import com.google.inject.Inject
 
 import java.time.LocalDate
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -37,7 +37,7 @@ case class ProcessedUploadTemplate(email: String, uploadReference: String, uploa
 case class SendTemplatedEmailRequest(to: List[String], templateId: String, parameters: Map[String, String])
 
 object SendTemplatedEmailRequest {
-  implicit val format = Json.format[SendTemplatedEmailRequest]
+  implicit val format: OFormat[SendTemplatedEmailRequest] = Json.format[SendTemplatedEmailRequest]
 }
 
 class EmailConnector @Inject()(http: HttpClient,
