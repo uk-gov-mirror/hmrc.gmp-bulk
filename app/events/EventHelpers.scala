@@ -20,9 +20,8 @@ object EventHelpers {
 
   def createMultiEntry(values: List[Any]):String = {
 
-//    TODO: FIX COMPILE WARNING BELOW
-    val groupedValues = values.groupBy(identity).mapValues(_.size).map {
-      case (k, v) => k + ":" + v
+    val groupedValues = values.groupBy(identity).view.mapValues(_.size).map {
+      case (k, v) => k.toString + ":" + v.toString
     }
 
     groupedValues.mkString(";")
