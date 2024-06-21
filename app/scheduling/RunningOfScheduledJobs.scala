@@ -40,7 +40,6 @@ trait RunningOfScheduledJobs extends Logging {
   private[scheduling] var cancellables: Seq[Cancellable] = Seq.empty
 
   cancellables = scheduledJobs.map { job =>
-//    TODO: FIX COMPILE WARNING BELOW
     scheduler.schedule(job.initialDelay, job.interval) {
       val stopWatch = new StopWatch
       stopWatch.start()

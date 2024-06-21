@@ -293,7 +293,6 @@ class TimerBasedThrottler(var rate: Rate) extends Actor with FSM[State, Data] {
 
   initialize()
 
-//  TODO: FIX COMPILE WARNING BELOW
   private def startTimer(rate: Rate) = setTimer("morePermits", Tick, rate.duration, true)
   private def stopTimer() = cancelTimer("morePermits")
 
