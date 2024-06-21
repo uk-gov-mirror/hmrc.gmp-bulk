@@ -53,7 +53,6 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
   val mockRepository = mock[BulkCalculationMongoRepository]
   val mockMetrics = mock[ApplicationMetrics]
   val mockApplicationConfig = mock[ApplicationConfiguration]
-  private implicit lazy val ec: ExecutionContext = Helpers.stubControllerComponents().executionContext
 
   val testTimeout = 10 seconds
 
@@ -67,7 +66,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
     when(mockDesConnector.getPersonDetails(ArgumentMatchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
   }
 
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     shutdown()
   }
 

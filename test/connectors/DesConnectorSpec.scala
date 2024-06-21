@@ -38,19 +38,17 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.test.Helpers
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class DesConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMockHelper with BeforeAndAfter with MockitoSugar {
 
   private val injector = app.injector
   private val mockMetrics = mock[ApplicationMetrics]
-  private val environment = injector.instanceOf[Environment]
   private val http = injector.instanceOf[HttpClient]
   private val servicesConfig = injector.instanceOf[ServicesConfig]
   private val applicationConfig = injector.instanceOf[ApplicationConfiguration]
   private val mockHttp = mock[HttpClient]
   private val NGINX_CLIENT_CLOSED_REQUEST = 499
-  private implicit val ec = Helpers.stubMessagesControllerComponents().executionContext
 
   override def beforeEach(): Unit = {
     super.beforeEach()

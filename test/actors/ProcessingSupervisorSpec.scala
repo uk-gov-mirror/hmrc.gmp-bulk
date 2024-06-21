@@ -57,14 +57,14 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
   val mockRepository = mock[BulkCalculationMongoRepository]
 
 
-  override def beforeAll:Unit = {
+  override def beforeAll(): Unit = {
     when(applicationConfig.bulkProcessingBatchSize).thenReturn(1)
     when(mongoApi.refreshExpiry(anyString(), anyString(), any())).thenReturn(Future(true))
     when(mongoApi.takeLock(anyString(),anyString(), any()))
       .thenReturn(Future(Some(Lock("id", "me", Instant.now().minusSeconds(100), Instant.now().plusSeconds(100)))))
   }
 
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     shutdown()
   }
 

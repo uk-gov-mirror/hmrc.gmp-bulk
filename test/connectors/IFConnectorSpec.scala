@@ -42,7 +42,6 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
 
   private val injector = app.injector
   private val mockMetrics = mock[ApplicationMetrics]
-  private val environment = injector.instanceOf[Environment]
   private val http = injector.instanceOf[HttpClient]
   private val servicesConfig = injector.instanceOf[ServicesConfig]
   private val applicationConfig = injector.instanceOf[ApplicationConfiguration]

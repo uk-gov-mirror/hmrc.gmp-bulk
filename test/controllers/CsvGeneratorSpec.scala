@@ -32,7 +32,7 @@ import java.time.format.DateTimeFormatter
 class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
   val cc = stubMessagesControllerComponents()
-  implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
+  implicit val messages: MessagesImpl = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
   object TestCsvGenerator extends CsvGenerator
 
   final val CSV_HEADER_ROWS = 2

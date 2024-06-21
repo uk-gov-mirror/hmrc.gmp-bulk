@@ -28,7 +28,7 @@ import play.api.{Application, Mode}
 class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   val cc = stubMessagesControllerComponents()
-  implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
+  implicit val messages: MessagesImpl = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
 
   def additionalConfiguration: Map[String, String] = Map("logger.application" -> "ERROR",
     "logger.play" -> "ERROR",
@@ -268,8 +268,8 @@ class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val request = jsonCalculationRequestWithMatchingResponse.as[ProcessReadyCalculationRequest]
       request.hasErrors must be(true)
-      request.getGlobalErrorMessageReason must be(Some(Messages("63151.reason")))
-      request.getGlobalErrorMessageWhat must be(Some(Messages("63151.what")))
+      request.getGlobalErrorMessageReason() must be(Some(Messages("63151.reason")))
+      request.getGlobalErrorMessageWhat() must be(Some(Messages("63151.what")))
     }
 
     "return true if validationErrors defined" in {
@@ -283,8 +283,8 @@ class BulkCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite {
       val request = jsonCalculationRequestWithMatchingResponseWithNoError.as[ProcessReadyCalculationRequest]
 
       request.hasErrors must be(false)
-      request.getGlobalErrorMessageReason must be(None)
-      request.getGlobalErrorMessageWhat must be(None)
+      request.getGlobalErrorMessageReason() must be(None)
+      request.getGlobalErrorMessageWhat() must be(None)
     }
   }
 
