@@ -31,7 +31,9 @@ trait ExclusiveScheduledJob extends ScheduledJob {
         case Success(f) => f andThen { case _ => mutex.release() }
         case Failure(e) => Future.successful(mutex.release()).flatMap(_ => Future.failed(e))
       }
-    } else Future.successful(Result("Skipping execution: job running"))
+    } else {
+      Future.successful(Result("Skipping execution: job running"))
+    }
 
   def isRunning: Future[Boolean] = Future.successful(mutex.availablePermits() == 0)
 

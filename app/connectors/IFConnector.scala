@@ -21,9 +21,9 @@ import config.ApplicationConfiguration
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, ValidCalculationRequest}
 import play.api.Logging
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, LOCKED, NOT_FOUND, OK, TOO_MANY_REQUESTS, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.{OK, TOO_MANY_REQUESTS, UNPROCESSABLE_ENTITY}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
-import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpClient, HttpReads, HttpResponse, NotFoundException, UpstreamErrorResponse}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.util.concurrent.TimeUnit

@@ -42,8 +42,7 @@ class BulkEvent(userId: String,
     ))
 
 object BulkEvent {
-    def apply(request: ProcessedBulkCalculationRequest
-             )(implicit hc: HeaderCarrier) = {
+    def apply(request: ProcessedBulkCalculationRequest)(implicit hc: HeaderCarrier) = {
         val totalRequests = request.calculationRequests.size
         val failedRequests = request.failedRequestCount
 
@@ -66,4 +65,4 @@ object BulkEvent {
               .flatMap(_.validCalculationRequest.map(_.calctype.get)))
     }
 
-    }
+}

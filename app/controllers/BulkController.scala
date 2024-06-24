@@ -84,7 +84,9 @@ class BulkController @Inject()(authAction: AuthAction,
         case Some(result) => userId match {
           case result.userId => {
             val textToBeReturned: String = csvGenerator.generateCsv(result, Some(csvFilter))
-            Ok(textToBeReturned).as("text/csv").withHeaders(("Content-Disposition", "attachment; filename=\"" + result.reference + "_" + csvFilter.getFileTypeName + ".csv\""))
+            Ok(textToBeReturned)
+              .as("text/csv")
+              .withHeaders(("Content-Disposition", "attachment; filename=\"" + result.reference + "_" + csvFilter.getFileTypeName + ".csv\""))
           }
           case _ => Forbidden
         }
@@ -99,7 +101,9 @@ class BulkController @Inject()(authAction: AuthAction,
         case Some(result) => userId match {
           case result.userId => {
             val textToBeReturned: String = csvGenerator.generateContributionsCsv(result)
-            Ok(textToBeReturned).as("text/csv").withHeaders(("Content-Disposition", "attachment; filename=\"" + result.reference + "_contributions_and_earnings.csv\""))
+            Ok(textToBeReturned)
+              .as("text/csv")
+              .withHeaders(("Content-Disposition", "attachment; filename=\"" + result.reference + "_contributions_and_earnings.csv\""))
           }
           case _ => Forbidden
         }

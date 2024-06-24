@@ -100,14 +100,16 @@ class CsvGenerator {
     }
 
     def addFilteredCell(f: PartialFunction[CsvFilter, String])(implicit filter: CsvFilter) = {
-      if (f.isDefinedAt(filter))
+      if (f.isDefinedAt(filter)) {
         addCell(TextCell(f(filter)))
+      }
       this
     }
 
     def addFilteredCells(f: PartialFunction[CsvFilter, Iterable[String]])(implicit filter: CsvFilter) = {
-      if (f.isDefinedAt(filter))
+      if (f.isDefinedAt(filter)) {
         f(filter) foreach addCell
+      }
       this
     }
 
@@ -318,7 +320,8 @@ class CsvGenerator {
     }
   }
 
-  class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)(implicit filter: CsvFilter, messages: Messages) extends RowBuilder {
+  class PeriodRowBuilder(calculationPeriod: CalculationPeriod, index: Int, request: ValidCalculationRequest)
+                        (implicit filter: CsvFilter, messages: Messages) extends RowBuilder {
 
     addCell(calculationPeriod.startDate match {
       case Some(date) => date.format(DateTimeFormatter.ofPattern(DATE_DEFAULT_FORMAT))
@@ -348,17 +351,18 @@ class CsvGenerator {
     }
 
     private def calculatePeriodRevalRate(period: CalculationPeriod, index: Int, request: ValidCalculationRequest): String = {
-      if (period.revaluationRate == 0)
+      if (period.revaluationRate == 0) {
         ""
-      else {
+      } else {
         request.memberIsInScheme match {
           case Some(true) if Set(2, 3, 4) contains request.calctype.get => ""
           case Some(true) if request.calctype.get == 1 && index == 0 => ""
           case Some(false) =>
-            if (request.calctype.get == 1 && index == 0 && (!period.endDate.isBefore(LocalDate.now) || period.revalued.getOrElse(1) == 1))
+            if (request.calctype.get == 1 && index == 0 && (!period.endDate.isBefore(LocalDate.now) || period.revalued.getOrElse(1) == 1)) {
               ""
-            else
+            } else {
               convertRevalRate(Some(period.revaluationRate))
+            }
           case _ => convertRevalRate(Some(period.revaluationRate))
         }
       }
@@ -507,10 +511,11 @@ class CsvGenerator {
         case Some(c) =>
           val map = c.foldLeft(Map[Int, String]()) {
             (m, earnings) => {
-              if(m.contains(earnings.taxYear))
+              if (m.contains(earnings.taxYear)) {
                 m + (earnings.taxYear -> (m(earnings.taxYear) + " & " + earnings.contEarnings))
-              else
+              } else {
                 m + (earnings.taxYear -> earnings.contEarnings)
+              }
             }
           }
 
@@ -518,7 +523,7 @@ class CsvGenerator {
             map.getOrElse(_, "")
           }.mkString(",")
         case _ => "," * 20
-      } 
+      }
     ).mkString(",")
 
   }

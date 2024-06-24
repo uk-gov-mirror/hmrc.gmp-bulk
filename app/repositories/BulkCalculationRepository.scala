@@ -59,7 +59,12 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
       mongoComponent = mongo,
       domainFormat = BulkCalculationRequest.formats,
       indexes = Seq(
-        IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("bulkCalculationRequestExpiry").expireAfter(2592000, TimeUnit.SECONDS).sparse(true).background(true)),
+        IndexModel(Indexes.ascending("createdAt"), IndexOptions()
+          .name("bulkCalculationRequestExpiry")
+          .expireAfter(2592000, TimeUnit.SECONDS)
+          .sparse(true)
+          .background(true)
+        ),
         IndexModel(Indexes.ascending("bulkId"), IndexOptions().name("bulkId").background(true)),
         IndexModel(Indexes.ascending("uploadReference"), IndexOptions().name("UploadReference").sparse(true).unique(true)),
         IndexModel(Indexes.ascending("bulkId", "lineId"), IndexOptions().name("BulkAndLine")),
@@ -73,11 +78,14 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
     ) with BulkCalculationRepository with Logging {
 
   override val auditConnector: AuditConnector = ac
-  val bulkCalcReqCollection: MongoCollection[BulkCalculationRequest] = CollectionFactory.collection(mongo.database, collectionName, BulkCalculationRequest.formats)
-  val processedBulkCalsReqCollection: MongoCollection[ProcessedBulkCalculationRequest] = CollectionFactory.collection(mongo.database, collectionName, ProcessedBulkCalculationRequest.formats)
-  val processReadyCalsReqCollection: MongoCollection[ProcessReadyCalculationRequest] = CollectionFactory.collection(mongo.database, collectionName, ProcessReadyCalculationRequest.formats)
-  val bulkPreviousReqCollection: MongoCollection[BulkPreviousRequest] = CollectionFactory.collection(mongo.database, collectionName, BulkPreviousRequest.formats)
-
+  val bulkCalcReqCollection: MongoCollection[BulkCalculationRequest] =
+    CollectionFactory.collection(mongo.database, collectionName, BulkCalculationRequest.formats)
+  val processedBulkCalsReqCollection: MongoCollection[ProcessedBulkCalculationRequest] =
+    CollectionFactory.collection(mongo.database, collectionName, ProcessedBulkCalculationRequest.formats)
+  val processReadyCalsReqCollection: MongoCollection[ProcessReadyCalculationRequest] =
+    CollectionFactory.collection(mongo.database, collectionName, ProcessReadyCalculationRequest.formats)
+  val bulkPreviousReqCollection: MongoCollection[BulkPreviousRequest] =
+    CollectionFactory.collection(mongo.database, collectionName, BulkPreviousRequest.formats)
 
   // $COVERAGE-OFF$
   {
