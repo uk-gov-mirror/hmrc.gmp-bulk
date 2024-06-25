@@ -48,7 +48,15 @@ class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationL
 
   lazy val scheduledJobs: Seq[ScheduledJob] = {
     Seq(new ExclusiveScheduledJob {
-      lazy val processingSupervisor = actorSystem.actorOf(Props(classOf[ProcessingSupervisor], applicationConfiguration, bulkCalculationMongoRepository, mongoApi, desConnector, ifConnector, metrics), "processing-supervisor")
+      lazy val processingSupervisor = actorSystem.actorOf(Props(
+        classOf[ProcessingSupervisor],
+        applicationConfiguration,
+        bulkCalculationMongoRepository,
+        mongoApi,
+        desConnector,
+        ifConnector,
+        metrics
+      ), "processing-supervisor")
 
       override def name: String = "BulkProcesssingService"
 

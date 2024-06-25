@@ -47,7 +47,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
   override def receive: Receive = {
     case request: ProcessReadyCalculationRequest => {
 
-      val origSender = sender
+      val origSender = sender()
       val startTime = System.currentTimeMillis()
 
       desConnector.getPersonDetails(request.validCalculationRequest.get.nino) map {
@@ -153,28 +153,26 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
     case STOP => {
       // $COVERAGE-OFF$
       logger.debug(s"[CalculationRequestActor] stop message")
-      logger.debug("sender: " + sender.getClass)
+      logger.debug("sender: " + sender().getClass)
       // $COVERAGE-ON$
-      sender ! STOP
+      sender() ! STOP
     }
 
 
     case e => {
       // $COVERAGE-OFF$
       logger.debug(s"[CalculationRequestActor] Invalid Message : { message : $e}")
-      logger.debug("sender: " + sender.getClass)
+      logger.debug("sender: " + sender().getClass)
       // $COVERAGE-ON$
-      sender ! org.apache.pekko.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
+      sender() ! org.apache.pekko.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
     }
-
   }
 }
-
 
 class DefaultCalculationRequestActor @Inject()(override val repository : BulkCalculationMongoRepository,
                                                override val desConnector : DesConnector,
                                                override val ifConnector: IFConnector,
                                                override val metrics : ApplicationMetrics,
                                                override val applicationConfig: ApplicationConfiguration
-                                              )extends CalculationRequestActor with CalculationRequestActorComponent {
+                                              ) extends CalculationRequestActor with CalculationRequestActorComponent {
 }

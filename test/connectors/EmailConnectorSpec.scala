@@ -40,11 +40,10 @@ class EmailConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
   lazy val mockHttp = mock[HttpClient]
   val environment = app.injector.instanceOf[Environment]
   lazy val servicesConfig = app.injector.instanceOf[ServicesConfig]
-  private implicit lazy val ec = Helpers.stubControllerComponents().executionContext
 
   class TestEmailConnector extends EmailConnector(mockHttp, app.configuration, servicesConfig)
 
-  implicit lazy val hc = HeaderCarrier()
+  implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
   before {
     reset(mockHttp)

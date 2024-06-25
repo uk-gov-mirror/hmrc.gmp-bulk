@@ -17,8 +17,7 @@
 package models
 
 import java.net.URLEncoder
-
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class ValidCalculationRequest(scon: String,
                                    nino: String,
@@ -45,7 +44,7 @@ case class ValidCalculationRequest(scon: String,
 
   //TODO align scon formatting to api spec. ([s])([1-9]{1,7}[A-Z])
   def desUri: String = {
-    val truncatedSurname = URLEncoder.encode(surname.replaceAllLiterally(" ", "").take(3).toUpperCase, "UTF-8")
+    val truncatedSurname = URLEncoder.encode(surname.replace(" ", "").take(3).toUpperCase, "UTF-8")
     val initial = URLEncoder.encode(firstForename.take(1).toUpperCase, "UTF-8")
     val (sconPrefix, sconNumber, sconSuffix) =
       (scon.substring(0, 1).toUpperCase, scon.substring(1, 8), scon.substring(8, 9).toUpperCase)
@@ -54,7 +53,7 @@ case class ValidCalculationRequest(scon: String,
   }
 
   def ifUri: String = {
-    val truncatedSurname = URLEncoder.encode(surname.replaceAllLiterally(" ", "").take(3).toUpperCase, "UTF-8")
+    val truncatedSurname = URLEncoder.encode(surname.replace(" ", "").take(3).toUpperCase, "UTF-8")
     val initial = URLEncoder.encode(firstForename.take(1).toUpperCase, "UTF-8")
     val (sconPrefix, sconNumber, sconSuffix) =
       (scon.substring(0, 1).toUpperCase, scon.substring(1, 8), scon.substring(8, 9).toUpperCase)
@@ -64,5 +63,5 @@ case class ValidCalculationRequest(scon: String,
 }
 
 object ValidCalculationRequest {
-  implicit val formats = Json.format[ValidCalculationRequest]
+  implicit val formats: OFormat[ValidCalculationRequest] = Json.format[ValidCalculationRequest]
 }

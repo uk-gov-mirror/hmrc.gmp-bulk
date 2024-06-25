@@ -20,6 +20,7 @@ import connectors.{EmailConnector, ReceivedUploadTemplate}
 import controllers.auth.FakeAuthAction
 import helpers.RandomNino
 import models._
+
 import java.time.{LocalDate, LocalDateTime}
 import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
@@ -34,12 +35,12 @@ import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.auth.core.AuthConnector
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
   val cc = stubMessagesControllerComponents()
-  implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
+  implicit val messages: MessagesImpl = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
   val mockRepo = mock[BulkCalculationRepository]
   val mockEmailConnector = mock[EmailConnector]
   val createdAt = Some(LocalDateTime.now)
@@ -47,7 +48,6 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
   val authConnector = mock[AuthConnector]
   val fakeAuthAction = FakeAuthAction(authConnector)
   lazy val mockRepository = mock[BulkCalculationMongoRepository]
-  private implicit lazy val ec = Helpers.stubControllerComponents().executionContext
 
   object TestBulkController extends BulkController(fakeAuthAction, mockEmailConnector, csvGenerator, stubMessagesControllerComponents(), mockRepository) {
     override lazy val repository = mockRepo

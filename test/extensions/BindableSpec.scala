@@ -28,7 +28,7 @@ class BindableSpec extends PlaySpec {
 
       val bindable = CsvFilterBindable.bind("filter", "successful")
 
-      bindable.right.get.filterType must be("SUCCESSFUL")
+      bindable.toOption.get.filterType must be("SUCCESSFUL")
     }
 
     "return the filter string when unbound" in {

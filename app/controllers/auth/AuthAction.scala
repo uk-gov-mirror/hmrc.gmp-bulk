@@ -23,13 +23,14 @@ import play.api.mvc._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
-import scala.concurrent.Future
+
+import scala.concurrent.{ExecutionContext, Future}
 
 class AuthAction @Inject()(override val authConnector: AuthConnector,
                            controllerComponents: ControllerComponents)
   extends ActionBuilder[Request, AnyContent] with AuthorisedFunctions {
 
-  implicit val executionContext = controllerComponents.executionContext
+  implicit val executionContext: ExecutionContext = controllerComponents.executionContext
   val parser: BodyParser[AnyContent] = controllerComponents.parsers.defaultBodyParser
 
   override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
@@ -37,7 +38,7 @@ class AuthAction @Inject()(override val authConnector: AuthConnector,
 
     authorised(ConfidenceLevel.L50) {
       block(request)
-    }recover {
+    } recover {
       case ex: NoActiveSession =>
         Status(UNAUTHORIZED)
     }

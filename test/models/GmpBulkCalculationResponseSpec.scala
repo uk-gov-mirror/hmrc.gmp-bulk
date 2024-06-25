@@ -31,7 +31,7 @@ import play.api.{Application, Mode}
 class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   val cc = stubMessagesControllerComponents()
-  implicit val messages = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
+  implicit val messages: MessagesImpl = MessagesImpl(cc.langs.availables.head, cc.messagesApi)
   def additionalConfiguration: Map[String, String] = Map( "logger.application" -> "ERROR",
     "logger.play" -> "ERROR",
     "logger.root" -> "ERROR",
@@ -124,16 +124,16 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
       "return an empty list when no error codes" in {
         val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.of(2012, 1, 1)), LocalDate.of(2015, 1, 1), "1.11", "2.22", 1, 0, Some(1), None, None, None, None)), 0, None, None, None)
         response.errorCodes.size must be(0)
-        response.calculationPeriods.head.getPeriodErrorMessageReason must be(None)
-        response.calculationPeriods.head.getPeriodErrorMessageWhat must be(None)
+        response.calculationPeriods.head.getPeriodErrorMessageReason() must be(None)
+        response.calculationPeriods.head.getPeriodErrorMessageWhat() must be(None)
       }
 
       "return a list of error codes with period error code" in {
         val response = GmpBulkCalculationResponse(List(CalculationPeriod(Some(LocalDate.of(2015, 11, 10)),LocalDate.of(2015, 11, 10), "0.00", "0.00", 0, 63151, None, None, None, None, None)), 0, None, None, None)
         response.errorCodes.size must be(1)
         response.errorCodes.head must be(63151)
-        response.calculationPeriods.head.getPeriodErrorMessageReason must be(Some(Messages("63151.reason")))
-        response.calculationPeriods.head.getPeriodErrorMessageWhat must be(Some(Messages("63151.what")))
+        response.calculationPeriods.head.getPeriodErrorMessageReason() must be(Some(Messages("63151.reason")))
+        response.calculationPeriods.head.getPeriodErrorMessageWhat() must be(Some(Messages("63151.what")))
       }
 
       "return a list of error codes with period error codes" in {

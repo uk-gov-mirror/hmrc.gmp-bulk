@@ -18,12 +18,12 @@ package models
 
 import java.time.LocalDate
 import play.api.i18n.Messages
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 
 object ContributionsAndEarnings {
-  implicit val formats = Json.format[ContributionsAndEarnings]
+  implicit val formats: OFormat[ContributionsAndEarnings] = Json.format[ContributionsAndEarnings]
 
   def createFromNpsLcntearn(earnings: NpsLcntearn): ContributionsAndEarnings = {
     ContributionsAndEarnings(earnings.rattd_tax_year, earnings.rattd_tax_year match {
@@ -51,23 +51,25 @@ case class CalculationPeriod(startDate: Option[LocalDate],
                             ) {
 
   def getPeriodErrorMessageReason()(implicit messages: Messages): Option[String] = {
-    errorCode > 0 match {
-      case true => Some(Messages(s"${errorCode}.reason"))
-      case _ => None
+    if (errorCode > 0) {
+      Some(Messages(s"${errorCode}.reason"))
+    } else {
+      None
     }
   }
 
   def getPeriodErrorMessageWhat()(implicit messages: Messages): Option[String] = {
-    errorCode > 0 match {
-      case true => Some(Messages(s"${errorCode}.what"))
-      case _ => None
+    if (errorCode > 0) {
+      Some(Messages(s"${errorCode}.what"))
+    } else {
+      None
     }
   }
 
 }
 
 object CalculationPeriod {
-  implicit val formats = Json.format[CalculationPeriod]
+  implicit val formats: OFormat[CalculationPeriod] = Json.format[CalculationPeriod]
 
   def createFromNpsLgmpcalc(npsLgmpcalc: NpsLgmpcalc): CalculationPeriod = {
     CalculationPeriod(npsLgmpcalc.scheme_mem_start_date.map(LocalDate.parse(_)), LocalDate.parse(npsLgmpcalc.scheme_end_date),
@@ -96,28 +98,29 @@ case class GmpBulkCalculationResponse(
   } > 0
 
   def errorCodes: List[Int] = {
-    hasErrors match {
-      case false => List[Int]()
-      case true =>
-        var errors = calculationPeriods
-          .filter(_.errorCode > 0)
-          .map(_.errorCode)
-        if (globalErrorCode > 0)
-          errors = errors :+ globalErrorCode
+    if (hasErrors) {
+      var errors = calculationPeriods
+        .filter(_.errorCode > 0)
+        .map(_.errorCode)
+      if (globalErrorCode > 0) {
+        errors = errors :+ globalErrorCode
+      }
 
-        errors
+      errors
+    } else {
+      List[Int]()
     }
   }
 
 }
 
 object GmpBulkCalculationResponse {
-  implicit val formats = Json.format[GmpBulkCalculationResponse]
+  implicit val formats: OFormat[GmpBulkCalculationResponse] = Json.format[GmpBulkCalculationResponse]
 
   def createFromCalculationResponse(calculationResponse: CalculationResponse):
   GmpBulkCalculationResponse = {
     GmpBulkCalculationResponse(
-      calculationResponse.npsLgmpcalc.map(CalculationPeriod.createFromNpsLgmpcalc(_)),
+      calculationResponse.npsLgmpcalc.map(CalculationPeriod.createFromNpsLgmpcalc),
       calculationResponse.rejection_reason,
       calculationResponse.spa_date.map(LocalDate.parse(_)),
       calculationResponse.payable_age_date.map(LocalDate.parse(_)),
