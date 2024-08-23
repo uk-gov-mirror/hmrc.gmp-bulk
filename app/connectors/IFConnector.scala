@@ -85,7 +85,7 @@ class IFConnector @Inject()(
     val startTime = System.currentTimeMillis()
 
     withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers = ifsHeaders)
-      (hc = hc, rds = httpReads, ec = ExecutionContext.global).map { response =>
+      (hc = hc, rds = httpReads, ec = ec).map { response =>
 
       metrics.ifRegisterStatusCode(response.status.toString)
       metrics.ifConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)

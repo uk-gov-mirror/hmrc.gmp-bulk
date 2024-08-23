@@ -72,7 +72,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
 
     withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers= npsHeaders)
-      (hc = hc, rds = httpReads, ec = ExecutionContext.global).map { response =>
+      (hc = hc, rds = httpReads, ec = ec).map { response =>
 
       metrics.registerStatusCode(response.status.toString)
       metrics.desConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -134,7 +134,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     logger.debug(s"[getPersonDetails] Contacting DES at $url")
 
-    http.GET[HttpResponse](url, headers = desHeaders)(implicitly[HttpReads[HttpResponse]], hc, ec = ExecutionContext.global) map { response =>
+    http.GET[HttpResponse](url, headers = desHeaders)(implicitly[HttpReads[HttpResponse]], hc, ec = ec) map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {
