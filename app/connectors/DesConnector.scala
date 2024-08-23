@@ -16,7 +16,6 @@
 
 package connectors
 
-import java.util.concurrent.TimeUnit
 import com.google.inject.Inject
 import config.ApplicationConfiguration
 import metrics.ApplicationMetrics
@@ -24,11 +23,10 @@ import models.{CalculationResponse, ValidCalculationRequest}
 import play.api.http.Status._
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpClient
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait DesGetResponse
@@ -44,7 +42,8 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
                              http: HttpClient,
                              val metrics: ApplicationMetrics,
                              servicesConfig: ServicesConfig,
-                             applicationConfig: ApplicationConfiguration) extends UsingCircuitBreaker {
+                             applicationConfig: ApplicationConfiguration)
+                            (implicit ec: ExecutionContext) extends UsingCircuitBreaker {
 
   val logger: Logger = Logger(this.getClass)
 

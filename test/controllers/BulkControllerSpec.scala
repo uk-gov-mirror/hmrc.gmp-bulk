@@ -48,6 +48,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
   val authConnector = mock[AuthConnector]
   val fakeAuthAction = FakeAuthAction(authConnector)
   lazy val mockRepository = mock[BulkCalculationMongoRepository]
+  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   object TestBulkController extends BulkController(fakeAuthAction, mockEmailConnector, csvGenerator, stubMessagesControllerComponents(), mockRepository) {
     override lazy val repository = mockRepo
