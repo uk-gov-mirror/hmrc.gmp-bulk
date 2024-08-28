@@ -35,7 +35,7 @@ import utils.WireMockHelper
 
 import java.util.UUID
 import scala.jdk.CollectionConverters._
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMockHelper with BeforeAndAfter with MockitoSugar {
 
@@ -46,6 +46,7 @@ class IFConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with WireMock
   private val applicationConfig = injector.instanceOf[ApplicationConfiguration]
   private val mockHttp = mock[HttpClient]
   private val NGINX_CLIENT_CLOSED_REQUEST = 499
+  implicit val ec: ExecutionContext = injector.instanceOf[ExecutionContext]
 
   override def beforeEach(): Unit = {
     super.beforeEach()

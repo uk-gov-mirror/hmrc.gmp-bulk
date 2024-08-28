@@ -17,18 +17,15 @@
 package connectors
 
 import com.google.inject.Inject
-
-import java.time.LocalDate
 import play.api.libs.json.{Json, OFormat}
 import play.api.{Configuration, Logging}
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpClient
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 case class ReceivedUploadTemplate(email: String, uploadReference: String)
 
@@ -42,7 +39,8 @@ object SendTemplatedEmailRequest {
 
 class EmailConnector @Inject()(http: HttpClient,
                                val runModeConfiguration: Configuration,
-                               servicesConfig: ServicesConfig) extends Logging {
+                               servicesConfig: ServicesConfig)
+                              (implicit ec: ExecutionContext) extends Logging {
 
   def sendReceivedTemplatedEmail(template: ReceivedUploadTemplate)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
