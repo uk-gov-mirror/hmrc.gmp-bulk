@@ -27,6 +27,7 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.util.concurrent.TimeUnit
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 
@@ -34,8 +35,8 @@ class IFConnector @Inject()(
                              http: HttpClient,
                              servicesConfig: ServicesConfig,
                              val metrics: ApplicationMetrics,
-                             applicationConfig: ApplicationConfiguration)
-                           (implicit ec: ExecutionContext) extends Logging with UsingCircuitBreaker {
+                             applicationConfig: ApplicationConfiguration
+                           ) extends Logging with UsingCircuitBreaker {
 
   val serviceKey = servicesConfig.getConfString("ifs.key", "")
   val serviceEnvironment = servicesConfig.getConfString("ifs.environment", "")
@@ -85,7 +86,7 @@ class IFConnector @Inject()(
     val startTime = System.currentTimeMillis()
 
     withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers = ifsHeaders)
-      (hc = hc, rds = httpReads, ec = ec).map { response =>
+      (hc = hc, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.ifRegisterStatusCode(response.status.toString)
       metrics.ifConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)

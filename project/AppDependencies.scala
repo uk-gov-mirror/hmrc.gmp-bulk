@@ -4,7 +4,7 @@ import sbt._
 object AppDependencies {
 
   private val playSuffix = "-play-30"
-  private val bootstrapVersion = "9.3.0"
+  private val bootstrapVersion = "8.6.0"
   private val hmrcMongoVersion = "2.2.0"
 
   val compile: Seq[ModuleID] = Seq(
@@ -23,7 +23,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-test$playSuffix" % hmrcMongoVersion,
     "org.scalatestplus.play" %% "scalatestplus-play"          % "7.0.1",
     "org.mockito"            %% "mockito-scala-scalatest"     % "1.17.37",
-    "org.apache.pekko"       %% "pekko-testkit"               % "1.0.3"
+    "org.apache.pekko"       %% "pekko-testkit"               % "1.0.2"
   ).map(_ % "test")
 
   val jacksonVersion         = "2.17.2"

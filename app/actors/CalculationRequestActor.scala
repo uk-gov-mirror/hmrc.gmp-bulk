@@ -16,19 +16,20 @@
 
 package actors
 
+import java.util.concurrent.TimeUnit
+import org.apache.pekko.actor._
 import com.google.inject.Inject
 import config.ApplicationConfiguration
 import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
-import org.apache.pekko.actor._
-import play.api.Logging
 import play.api.http.Status
+import play.api.Logging
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import java.util.concurrent.TimeUnit
-import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 trait CalculationRequestActorComponent {
@@ -37,7 +38,6 @@ trait CalculationRequestActorComponent {
   val repository: BulkCalculationMongoRepository
   val metrics: ApplicationMetrics
   val applicationConfig: ApplicationConfiguration
-  implicit val ec: ExecutionContext
 }
 
 class CalculationRequestActor extends Actor with ActorUtils with Logging {
@@ -174,5 +174,5 @@ class DefaultCalculationRequestActor @Inject()(override val repository : BulkCal
                                                override val ifConnector: IFConnector,
                                                override val metrics : ApplicationMetrics,
                                                override val applicationConfig: ApplicationConfiguration
-                                              )(implicit val ec: ExecutionContext) extends CalculationRequestActor with CalculationRequestActorComponent {
+                                              ) extends CalculationRequestActor with CalculationRequestActorComponent {
 }
