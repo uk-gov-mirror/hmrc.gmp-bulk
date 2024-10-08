@@ -22,17 +22,19 @@ import metrics.ApplicationMetrics
 import models.{CalculationResponse, ValidCalculationRequest}
 import play.api.Logging
 import play.api.http.Status.{OK, TOO_MANY_REQUESTS, UNPROCESSABLE_ENTITY}
+import play.api.libs.json.Json
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 
 class IFConnector @Inject()(
-                             http: HttpClient,
+                             http: HttpClientV2,
                              servicesConfig: ServicesConfig,
                              val metrics: ApplicationMetrics,
                              applicationConfig: ApplicationConfiguration
@@ -79,14 +81,18 @@ class IFConnector @Inject()(
   )
 
   def calculate(request: ValidCalculationRequest): Future[CalculationResponse]= {
-    val url = calcURI + request.ifUri
+    val queryParams = request.queryParams
+    val queryString = queryParams.map { case (key, value) => s"$key=$value" }.mkString("&")
+    val url = s"$calcURI${request.ifUri}?$queryString"
     val logPrefix = "[IFConnector][calculate]"
     logger.info(s"$logPrefix contacting IF at $url")
 
     val startTime = System.currentTimeMillis()
 
-    withCircuitBreaker(http.GET[HttpResponse](url, request.queryParams, headers = ifsHeaders)
-      (hc = hc, rds = httpReads, ec = ExecutionContext.global).map { response =>
+    http.get(url"$url")
+      .withBody(Json.toJson(ifsHeaders))
+      .execute[HttpResponse]
+      .map { response =>
 
       metrics.ifRegisterStatusCode(response.status.toString)
       metrics.ifConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -109,6 +115,6 @@ class IFConnector @Inject()(
           }
         }
       }
-    })(hc=hc)
+    }
   }
 }
