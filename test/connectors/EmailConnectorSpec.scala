@@ -56,6 +56,7 @@ class EmailConnectorSpec extends HttpClientV2Helper with GuiceOneAppPerSuite wit
       "must return a true result" in {
         val template = ReceivedUploadTemplate("joe@bloggs.com", "upload-ref")
         val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
+        when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
         when(requestBuilder.withBody(requestCaptor.capture())(any(), any(), any())).thenReturn(requestBuilder)
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(202, "")))
         val result = Await.result(new TestEmailConnector().sendReceivedTemplatedEmail(template), 5 seconds)
@@ -65,6 +66,7 @@ class EmailConnectorSpec extends HttpClientV2Helper with GuiceOneAppPerSuite wit
       "must send the user's email address" in {
         val template = ReceivedUploadTemplate("joe@bloggs.com", "upload-ref")
         val requestCaptor: ArgumentCaptor[SendTemplatedEmailRequest] = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
+        when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
         when(requestBuilder.withBody(requestCaptor.capture())(any(), any(), any())).thenReturn(requestBuilder)
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(202, "")))
 

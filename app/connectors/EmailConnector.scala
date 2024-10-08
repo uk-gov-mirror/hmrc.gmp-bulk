@@ -73,7 +73,7 @@ class EmailConnector @Inject()(http: HttpClientV2,
     val contentTypeHeader = Seq(("Content-Type", "application/json"))
 
     http.post(url"$url")
-      .withBody(Json.toJson(contentTypeHeader))
+      .setHeader(contentTypeHeader.head._1 -> contentTypeHeader.head._2)
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .map { response =>
