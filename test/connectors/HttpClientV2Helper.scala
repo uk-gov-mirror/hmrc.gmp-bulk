@@ -23,7 +23,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
 
 import java.net.URL
@@ -35,19 +35,23 @@ trait HttpClientV2Helper extends PlaySpec with MockitoSugar with ScalaFutures {
 
   val mockHttp: HttpClientV2 = mock[HttpClientV2]
   val requestBuilder: RequestBuilder = mock[RequestBuilder]
+  val requestCaptor = ArgumentCaptor.forClass(classOf[SendTemplatedEmailRequest])
+  val jsonCaptor: ArgumentCaptor[JsValue] = ArgumentCaptor.forClass(classOf[JsValue])
 
   when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   when(mockHttp.post(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   when(mockHttp.delete(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   when(mockHttp.put(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   when(requestBuilder.transform(any())).thenReturn(requestBuilder)
+  when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
   when(requestBuilder.withBody(any[JsValue])(any(), any(), any())).thenReturn(requestBuilder)
+  when(requestBuilder.withBody(requestCaptor.capture())(any(), any(), any())).thenReturn(requestBuilder)
+  when(requestBuilder.withBody(jsonCaptor.capture())(any(), any(), any())).thenReturn(requestBuilder)
+
+
 
   def requestBuilderExecute[A](result: Future[A]): Unit = {
     when(requestBuilder.execute[A](any[HttpReads[A]], any[ExecutionContext]))
       .thenReturn(result)
   }
 }
-
-
-//def requestBuilderExecute[A] = requestBuilder.execute[A](any[HttpReads[A]], any[ExecutionContext])
