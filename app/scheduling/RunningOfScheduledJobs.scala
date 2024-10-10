@@ -40,10 +40,11 @@ trait RunningOfScheduledJobs extends Logging {
   private[scheduling] var cancellables: Seq[Cancellable] = Seq.empty
 
   cancellables = scheduledJobs.map { job =>
-    scheduler.schedule(job.initialDelay, job.interval) {
-      val stopWatch = new StopWatch
-      stopWatch.start()
-      logger.info(s"Executing job ${job.name}")
+    scheduler.scheduleWithFixedDelay(job.initialDelay, job.interval)(new Runnable {
+      def run(): Unit = {
+        val stopWatch = new StopWatch
+        stopWatch.start()
+        logger.info(s"Executing job ${job.name}")
 
       job.execute.onComplete {
         case Success(job.Result(message)) =>
@@ -54,6 +55,7 @@ trait RunningOfScheduledJobs extends Logging {
           logger.error(s"Exception running job ${job.name} after $stopWatch", throwable)
       }
     }
+  })
   }
 
   applicationLifecycle.addStopHook { () =>

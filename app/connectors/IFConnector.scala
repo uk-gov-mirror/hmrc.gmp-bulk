@@ -22,7 +22,6 @@ import metrics.ApplicationMetrics
 import models.{CalculationResponse, ValidCalculationRequest}
 import play.api.Logging
 import play.api.http.Status.{OK, TOO_MANY_REQUESTS, UNPROCESSABLE_ENTITY}
-import play.api.libs.json.Json
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -90,7 +89,7 @@ class IFConnector @Inject()(
     val startTime = System.currentTimeMillis()
 
     http.get(url"$url")
-      .withBody(Json.toJson(ifsHeaders))
+      .setHeader(ifsHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
 

@@ -22,7 +22,6 @@ import config.ApplicationConfiguration
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, ValidCalculationRequest}
 import play.api.http.Status._
-import play.api.libs.json.Json
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http._
@@ -80,7 +79,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
     withCircuitBreaker(http.get(url"$url")
-      .withBody(Json.toJson(npsHeaders))
+      .setHeader(npsHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
         metrics.registerStatusCode(response.status.toString)
@@ -144,7 +143,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     logger.debug(s"[getPersonDetails] Contacting DES at $url")
 
     http.get(url"$url")
-      .withBody(Json.toJson(desHeaders))
+      .setHeader(desHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
         metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
