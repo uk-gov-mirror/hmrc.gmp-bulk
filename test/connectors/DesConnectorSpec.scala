@@ -31,6 +31,9 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.WireMockHelper
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.http.client.HttpClientV2
+
+import java.net.{URL, URLEncoder}
+import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
 import scala.concurrent.Future
 
@@ -41,7 +44,6 @@ class DesConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wi
   private val http = injector.instanceOf[HttpClientV2]
   private val servicesConfig = injector.instanceOf[ServicesConfig]
   private val applicationConfig = injector.instanceOf[ApplicationConfiguration]
- // private val mockHttp = mock[HttpClientV2]
   private val NGINX_CLIENT_CLOSED_REQUEST = 499
 
   override def beforeEach(): Unit = {
@@ -105,6 +107,18 @@ class DesConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wi
         stubServiceGet(url, OK, calcResponseJson, ("request_earnings" -> "1"), ("calctype" -> "0"))
 
         val result = await(calculate(ValidCalculationRequest("S1234567T", nino, "Bixby", "Bill", None, Some(0), None, Some(1), None, None)))
+
+        result.npsLgmpcalc.length must be(1)
+        Mockito.verify(mockMetrics).registerSuccessfulRequest()
+      }
+
+      "return a encoded characters in URLs correctly" in new SUT {
+        val encodedSurname = URLEncoder.encode("O'N", StandardCharsets.UTF_8.toString)
+        val url = s"/pensions/individuals/gmp/scon/S/1234567/T/nino/$nino/surname/$encodedSurname/firstname/B/calculation/"
+        stubServiceGet(url, OK, calcResponseJson, ("request_earnings" -> "1"), ("calctype" -> "0"))
+
+        val request = ValidCalculationRequest("S1234567T", nino, "O'Neill", "Bill", None, Some(0), None, Some(1), None, None)
+        val result = await(calculate(request))
 
         result.npsLgmpcalc.length must be(1)
         Mockito.verify(mockMetrics).registerSuccessfulRequest()

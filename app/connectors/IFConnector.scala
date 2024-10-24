@@ -27,6 +27,7 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.net.URL
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -88,7 +89,7 @@ class IFConnector @Inject()(
 
     val startTime = System.currentTimeMillis()
 
-    http.get(url"$url")
+    http.get(new URL(url))
       .setHeader(ifsHeaders:_*)
       .execute[HttpResponse]
       .map { response =>

@@ -31,6 +31,8 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.WireMockHelper
 
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 import scala.concurrent.Future
@@ -101,6 +103,19 @@ class IFConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wit
         result.npsLgmpcalc.length must be(1)
         Mockito.verify(mockMetrics).registerSuccessfulRequest()
       }
+
+      "return a encoded characters in URLs correctly" in new SUT {
+        val encodedSurname = URLEncoder.encode("O'N", StandardCharsets.UTF_8.toString)
+        val url = s"/pensions/individuals/gmp/scon/S/1234567/T/nino/$nino/surname/$encodedSurname/firstname/B/calculation/"
+        stubServiceGet(url, OK, calcResponseJson, ("request_earnings" -> "1"), ("calctype" -> "0"))
+
+        val request = ValidCalculationRequest("S1234567T", nino, "O'Neill", "Bill", None, Some(0), None, Some(1), None, None)
+        val result = await(calculate(request))
+
+        result.npsLgmpcalc.length must be(1)
+        Mockito.verify(mockMetrics).registerSuccessfulRequest()
+      }
+
 
       "return not found when scon does not exist" in new SUT {
         val request = ValidCalculationRequest("S1234567T", nino, "Bixby", "Bill", None, Some(0), None, Some(1), None, None)
