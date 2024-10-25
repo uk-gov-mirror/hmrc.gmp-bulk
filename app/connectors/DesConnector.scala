@@ -28,6 +28,7 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 
+import java.net.URL
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -78,7 +79,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     logger.info(s"[calculate] contacting DES at $url")
 
     val startTime = System.currentTimeMillis()
-    withCircuitBreaker(http.get(url"$url")
+    withCircuitBreaker(http.get(new URL(url))
       .setHeader(npsHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
