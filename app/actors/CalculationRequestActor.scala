@@ -86,6 +86,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                 }
               }.recover {
 
+//                TODO: Add tests for FORBIDDEN similar to BAD_REQUEST
                 case e: UpstreamErrorResponse if List(BAD_REQUEST, FORBIDDEN).contains(e.reportAs) => {
 
                   // $COVERAGE-OFF$
