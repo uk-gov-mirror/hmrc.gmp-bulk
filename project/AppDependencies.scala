@@ -4,8 +4,8 @@ import sbt._
 object AppDependencies {
 
   private val playSuffix = "-play-30"
-  private val bootstrapVersion = "9.6.0"
-  private val hmrcMongoVersion = "2.4.0"
+  private val bootstrapVersion = "9.12.0"
+  private val hmrcMongoVersion = "2.6.0"
 
   val compile: Seq[ModuleID] = Seq(
     ws,
