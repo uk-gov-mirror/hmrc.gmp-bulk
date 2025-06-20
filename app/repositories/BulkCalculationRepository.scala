@@ -373,6 +373,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
   private def findIncompleteBulk(): Future[List[ProcessedBulkCalculationRequest]] = processedBulkCalsReqCollection.find(Filters.and(
     Filters.eq("isParent", true),
     Filters.eq("complete", false)))
+    .limit(applicationConfiguration.bulkProcessingBatchSize)
     .sort(Sorts.ascending("_id"))
     .collect()
     .toFuture().map(_.toList)
