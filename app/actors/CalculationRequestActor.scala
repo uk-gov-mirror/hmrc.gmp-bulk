@@ -23,10 +23,11 @@ import config.ApplicationConfiguration
 import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
+import play.api.http.Status
 import play.api.Logging
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR}
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -86,8 +87,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                 }
               }.recover {
 
-//                TODO: Add tests for FORBIDDEN similar to BAD_REQUEST
-                case e: UpstreamErrorResponse if List(BAD_REQUEST, FORBIDDEN).contains(e.reportAs) => {
+                case e: UpstreamErrorResponse if e.reportAs == Status.BAD_REQUEST => {
 
                   // $COVERAGE-OFF$
                   logger.error(s"[CalculationRequestActor] Inserting Failure response failed with error: $e")
@@ -114,7 +114,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
               f match {
 
-                case UpstreamErrorResponse(message, responseCode, _, _) if responseCode == INTERNAL_SERVER_ERROR => {
+                case UpstreamErrorResponse(message, responseCode, _, _) if responseCode == 500 => {
                   // $COVERAGE-OFF$
                   logger.error(s"[CalculationRequestActor] Error : ${message} Exception: $f")
                   // $COVERAGE-ON$
