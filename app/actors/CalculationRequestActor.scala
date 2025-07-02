@@ -28,7 +28,6 @@ import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR}
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 trait CalculationRequestActorComponent {
@@ -45,7 +44,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
   override def receive: Receive = {
     case request: ProcessReadyCalculationRequest => {
-
+      import context.dispatcher
       val origSender = sender()
       val startTime = System.currentTimeMillis()
 
