@@ -69,6 +69,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
     "return correct feature toggle values" in {
       appConfig.isHipEnabled mustBe true
+      appConfig.isIfsEnabled mustBe false
     }
   }
 }
