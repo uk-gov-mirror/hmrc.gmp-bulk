@@ -19,7 +19,7 @@ package actors
 import java.util.concurrent.TimeUnit
 import org.apache.pekko.actor._
 import com.google.inject.Inject
-import config.ApplicationConfiguration
+import config.{AppConfig, ApplicationConfiguration}
 import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
@@ -37,6 +37,7 @@ trait CalculationRequestActorComponent {
   val repository: BulkCalculationMongoRepository
   val metrics: ApplicationMetrics
   val applicationConfig: ApplicationConfiguration
+  val appConfig: AppConfig
 }
 
 class CalculationRequestActor extends Actor with ActorUtils with Logging {
@@ -62,7 +63,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
         case x => {
 
           val tryCallingDes = Try {
-            if(applicationConfig.ifEnabled) {
+            if(appConfig.isIfsEnabled) {
               ifConnector.calculate(request.validCalculationRequest.get)
             } else {
               desConnector.calculate(request.validCalculationRequest.get)
@@ -173,6 +174,7 @@ class DefaultCalculationRequestActor @Inject()(override val repository : BulkCal
                                                override val desConnector : DesConnector,
                                                override val ifConnector: IFConnector,
                                                override val metrics : ApplicationMetrics,
-                                               override val applicationConfig: ApplicationConfiguration
+                                               override val applicationConfig: ApplicationConfiguration,
+                                               override val appConfig: AppConfig
                                               ) extends CalculationRequestActor with CalculationRequestActorComponent {
 }
