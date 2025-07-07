@@ -353,9 +353,11 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
   def getProcessedBulkCalRequestList(startTime: Long) = for {
     incompleteBulk <- findIncompleteBulk()
     _ = logTimer(startTime)
+    _ = logger.info(s"[BulkCalculationRepository][getProcessedBulkCalRequestList]: findIncompleteBulk returned ${incompleteBulk.size} records")
     processedBulkCalcReqOpt <- Future.sequence(incompleteBulk.map { req =>
       for {
         countedDocs <- countChildDocWithValidRequest(req._id)
+        _ = logger.info(s"[BulkCalculationRepository][getProcessedBulkCalRequestList]: countChildDocWithValidRequest returned ${countedDocs} for id ${req._id}")
         processedBulkCalcOpt <- if (countedDocs == 0) updateCalculationRequestsForProcessedBulkReq(req) else Future.successful(None)
       } yield (processedBulkCalcOpt)
     })
@@ -365,6 +367,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
     val childrenStartTime = System.currentTimeMillis()
     for {
       processedChildren <- findProcessedChildren(req._id)
+      _ = logger.info(s"[BulkCalculationRepository][updateCalculationRequestsForProcessedBulkReq]: findProcessedChildren returned ${processedChildren.size} for id ${req._id}")
       _ = metrics.findAndCompleteChildrenTimer(System.currentTimeMillis() - childrenStartTime, TimeUnit.MILLISECONDS)
     } yield Some(req.copy(calculationRequests = processedChildren))
 
