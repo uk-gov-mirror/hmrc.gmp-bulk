@@ -79,7 +79,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                     result => {
                       // $COVERAGE-OFF$
                       metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-                      logger.debug(s"[CalculationRequestActor] InsertResponse : $result")
+                      logger.info(s"[CalculationRequestActor] InsertResponse : $result")
                       // $COVERAGE-ON$
                       origSender ! result
                     }
@@ -152,8 +152,8 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
     case STOP => {
       // $COVERAGE-OFF$
-      logger.debug(s"[CalculationRequestActor] stop message")
-      logger.debug("sender: " + sender().getClass)
+      logger.info(s"[CalculationRequestActor] stop message")
+      logger.info("sender: " + sender().getClass)
       // $COVERAGE-ON$
       sender() ! STOP
     }
@@ -161,8 +161,8 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
     case e => {
       // $COVERAGE-OFF$
-      logger.debug(s"[CalculationRequestActor] Invalid Message : { message : $e}")
-      logger.debug("sender: " + sender().getClass)
+      logger.info(s"[CalculationRequestActor] Invalid Message : { message : $e}")
+      logger.info("sender: " + sender().getClass)
       // $COVERAGE-ON$
       sender() ! org.apache.pekko.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
     }

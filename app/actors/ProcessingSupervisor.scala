@@ -66,23 +66,23 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
   override def receive: Receive = {
 
     case STOP =>
-      logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
+      logger.info("[ProcessingSupervisor] received while not processing: STOP received")
     case START =>
       withRenewedLock {
         context become receiveWhenProcessRunning
-        logger.debug("Starting Processing")
+        logger.info("Starting Processing")
 
         repository.findRequestsToProcess().map {
 
           case Some(requests) if requests.nonEmpty =>
-            logger.debug(s"[ProcessingSupervisor][receive] took ${requests.size} request/s")
+            logger.info(s"[ProcessingSupervisor][receive] took ${requests.size} request/s")
             for (request <- requests.take(applicationConfig.bulkProcessingBatchSize)) {
               throttler ! request
             }
             throttler ! STOP
 
           case _ =>
-            logger.debug(s"[ProcessingSupervisor][receive] no requests pending")
+            logger.info(s"[ProcessingSupervisor][receive] no requests pending")
             this.context.unbecome()
             throttler ! STOP
         }
@@ -96,12 +96,12 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
 
   def receiveWhenProcessRunning : Receive = {
     // $COVERAGE-OFF$
-    case START => logger.debug("[ProcessingSupervisor][received while processing] START ignored")
+    case START => logger.info("[ProcessingSupervisor][received while processing] START ignored")
     // $COVERAGE-ON$
 
     case STOP =>
       import scala.language.postfixOps
-      logger.debug("[ProcessingSupervisor][received while processing] STOP received")
+      logger.info("[ProcessingSupervisor][received while processing] STOP received")
       context unbecome
   }
 

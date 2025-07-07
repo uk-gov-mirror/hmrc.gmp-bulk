@@ -126,7 +126,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
     val startTime = System.currentTimeMillis()
     updateResponse(bulkId, lineId, calculationResponse).map {
       lastError => logTimer(startTime)
-        logger.debug(s"[BulkCalculationRepository][insertResponseByReference] bulkResponse: $calculationResponse, result : $lastError ")
+        logger.info(s"[BulkCalculationRepository][insertResponseByReference] bulkResponse: $calculationResponse, result : $lastError ")
         true
     } recover {
       // $COVERAGE-OFF$
@@ -154,7 +154,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
       case Some(br) => logTimer(startTime)
         findByCsvFilterAndRequest(br, csvFilter)
       case _ => logTimer(startTime)
-        logger.debug(s"[BulkCalculationRepository][findByReference] uploadReference: $uploadReference, result: No ProcessedBulkCalculationRequest found  ")
+        logger.info(s"[BulkCalculationRepository][findByReference] uploadReference: $uploadReference, result: No ProcessedBulkCalculationRequest found  ")
         Future.successful(None)
     }
   }
@@ -172,7 +172,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
       .collect()
       .toFuture()
       .map { calcRequests =>
-        logger.debug(s"[BulkCalculationRepository][findByCsvFilterAndRequest], request: $br ")
+        logger.info(s"[BulkCalculationRepository][findByCsvFilterAndRequest], request: $br ")
         Some(br.copy(calculationRequests = calcRequests.toList))
       }.recover { case e =>
       logger.error(s"[BulkCalculationRepository][findByCsvFilterAndRequest] error: ${e.getMessage}")
@@ -217,7 +217,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
 
     result.map { brs =>
       logTimer(startTime)
-      logger.debug(s"[BulkCalculationRepository][findSummaryByReference] uploadReference : $uploadReference, result: $brs")
+      logger.info(s"[BulkCalculationRepository][findSummaryByReference] uploadReference : $uploadReference, result: $brs")
       brs.headOption
     }.recover { case e =>
       logTimer(startTime)
@@ -242,7 +242,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
 
     result.map { bulkRequest =>
       logTimer(startTime)
-      logger.debug(s"[BulkCalculationRepository][findByUserId] userId : $userId, result: ${bulkRequest.size}")
+      logger.info(s"[BulkCalculationRepository][findByUserId] userId : $userId, result: ${bulkRequest.size}")
       Some(bulkRequest)
     }.recover {
       case e => logTimer(startTime)
@@ -272,7 +272,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
         logTimer(startTime)
         res
       }
-      logger.debug(s"[BulkCalculationRepository][findRequestsToProcess] SUCCESS")
+      logger.info(s"[BulkCalculationRepository][findRequestsToProcess] SUCCESS")
       sequenced
     }
       .recover {
@@ -301,12 +301,12 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
 
     val startTime = System.currentTimeMillis()
     implicit val hc = HeaderCarrier()
-    logger.debug("[BulkCalculationRepository][findAndComplete]: starting ")
+    logger.info("[BulkCalculationRepository][findAndComplete]: starting ")
     val result: Future[Boolean] = for {
       processedBulkCalReqList <- getProcessedBulkCalRequestList(startTime)
       booleanList <-  Future.sequence(processedBulkCalReqList.map { request =>
         val req: ProcessedBulkCalculationRequest = request.getOrElse(sys.error("Processed Bulk calculation Request missing"))
-        logger.debug(s"Got request $request")
+        logger.info(s"Got request $request")
         updateRequestAndSendEmailAndEvent(req)
       })
       boolean = booleanList.foldLeft(true)(_ && _)
@@ -435,7 +435,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
 
     findDuplicateUploadReference(bulkCalculationRequest.uploadReference).flatMap {
       case true =>
-        logger.debug(s"[BulkCalculationRepository][insertBulkDocument] Duplicate request found (${bulkCalculationRequest.uploadReference})")
+        logger.info(s"[BulkCalculationRepository][insertBulkDocument] Duplicate request found (${bulkCalculationRequest.uploadReference})")
         Future.successful(false)
       case false =>
         insertProcessedBulkCal(bulkCalculationRequest)
@@ -443,7 +443,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
             insertManyResultOpt.fold(false) { insertManyResult =>
               logTimer(startTime)
               if (insertManyResult.wasAcknowledged()) {
-                logger.debug(s"[BulkCalculationRepository][insertBulkDocument] $insertManyResult")
+                logger.info(s"[BulkCalculationRepository][insertBulkDocument] $insertManyResult")
                 true
               } else {
                 logger.error("Error inserting document")
@@ -506,7 +506,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
     bulkCalcReqCollection.find(Filters.equal("uploadReference", uploadReference))
       .toFuture().map(_.toList)
       .map { result =>
-        logger.debug(s"[BulkCalculationRepository][findDuplicateUploadReference] uploadReference : $uploadReference, result: ${result.nonEmpty}")
+        logger.info(s"[BulkCalculationRepository][findDuplicateUploadReference] uploadReference : $uploadReference, result: ${result.nonEmpty}")
         result.nonEmpty
       }.recover {
       case e =>  logger.error(s"[BulkCalculationRepository][findDuplicateUploadReference] ${e.getMessage} ($uploadReference)", e)

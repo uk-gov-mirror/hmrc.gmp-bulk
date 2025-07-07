@@ -141,7 +141,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
 
-    logger.debug(s"[getPersonDetails] Contacting DES at $url")
+    logger.info(s"[getPersonDetails] Contacting DES at $url")
 
     http.get(url"$url")
       .setHeader(desHeaders:_*)
