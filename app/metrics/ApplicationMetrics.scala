@@ -54,6 +54,7 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
     ("hip-connector-requests-failed", counter),
     ("hip-connector-httpstatus-200", counter),
     ("hip-connector-httpstatus-400", counter),
+    ("hip-connector-httpstatus-404", counter),
     ("hip-connector-httpstatus-422", counter),
     ("hip-connector-httpstatus-500", counter),
     ("hip-connector-httpstatus-504", counter),
