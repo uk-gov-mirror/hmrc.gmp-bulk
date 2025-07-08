@@ -307,7 +307,8 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
       _ = logger.info(s"[BulkCalculationRepository][findAndComplete]: getProcessedBulkCalRequestList returned ${processedBulkCalReqList.size} records")
       booleanList <-  Future.sequence(processedBulkCalReqList.map { request =>
         val req: ProcessedBulkCalculationRequest = request.getOrElse(sys.error("Processed Bulk calculation Request missing"))
-        logger.info(s"Got request $request")
+        logger.debug(s"Got request $request")
+        logger.info("[BulkCalculationRepository][findAndComplete]: calling updateRequestAndSendEmailAndEvent with request")
         updateRequestAndSendEmailAndEvent(req)
       })
       boolean = booleanList.foldLeft(true)(_ && _)
