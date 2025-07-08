@@ -304,6 +304,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
     logger.info("[BulkCalculationRepository][findAndComplete]: starting ")
     val result: Future[Boolean] = for {
       processedBulkCalReqList <- getProcessedBulkCalRequestList(startTime)
+      _ = logger.info(s"[BulkCalculationRepository][findAndComplete]: getProcessedBulkCalRequestList returned ${processedBulkCalReqList.size} records")
       booleanList <-  Future.sequence(processedBulkCalReqList.map { request =>
         val req: ProcessedBulkCalculationRequest = request.getOrElse(sys.error("Processed Bulk calculation Request missing"))
         logger.info(s"Got request $request")
@@ -361,7 +362,10 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
         processedBulkCalcOpt <- if (countedDocs == 0) updateCalculationRequestsForProcessedBulkReq(req) else Future.successful(None)
       } yield (processedBulkCalcOpt)
     })
-  } yield processedBulkCalcReqOpt.filter(_.isDefined)
+  } yield {
+    logger.info(s"[BulkCalculationRepository][getProcessedBulkCalRequestList]: updateCalculationRequestsForProcessedBulkReq returned ${processedBulkCalcReqOpt.size} records")
+    processedBulkCalcReqOpt.filter(_.isDefined)
+  }
 
   private def updateCalculationRequestsForProcessedBulkReq(req: ProcessedBulkCalculationRequest ) = {
     val childrenStartTime = System.currentTimeMillis()
