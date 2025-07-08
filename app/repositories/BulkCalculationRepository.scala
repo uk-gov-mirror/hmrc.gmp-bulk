@@ -236,6 +236,8 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
       .find(Filters.and(
         Filters.eq("userId", userId),
         Filters.eq("complete", true)))
+//      TODO: Will remove or change depending on success of this in restarting processing
+      .limit(10)
       .collect()
       .toFuture().map(_.toList)
 
