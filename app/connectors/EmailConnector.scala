@@ -76,7 +76,7 @@ class EmailConnector @Inject()(http: HttpClientV2,
       .execute[HttpResponse]
       .map { response =>
         response.status match {
-          case 202 => logger.info(s"[EmailConnector] Email sent: ${response.body}"); true
+          case 202 => logger.debug(s"[EmailConnector] Email sent: ${response.body}"); true
           case _ => logger.error(s"[EmailConnector] Email not sent: ${response.body}"); false
         }
       }
