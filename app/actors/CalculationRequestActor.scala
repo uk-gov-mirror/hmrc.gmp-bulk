@@ -22,9 +22,9 @@ import com.google.inject.Inject
 import config.{AppConfig, ApplicationConfiguration}
 import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import metrics.ApplicationMetrics
-import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
+import models.{CalculationResponse, GmpBulkCalculationResponse, HipCalculationRequest, HipCalculationResponse, ProcessReadyCalculationRequest}
 import play.api.Logging
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR}
+import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, SERVICE_UNAVAILABLE}
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -34,6 +34,7 @@ import scala.util.{Failure, Success, Try}
 trait CalculationRequestActorComponent {
   val desConnector: DesConnector
   val ifConnector: IFConnector
+  val hipConnector: DesConnector
   val repository: BulkCalculationMongoRepository
   val metrics: ApplicationMetrics
   val applicationConfig: ApplicationConfiguration
@@ -65,6 +66,9 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
           val tryCallingDes = Try {
             if(appConfig.isIfsEnabled) {
               ifConnector.calculate(request.validCalculationRequest.get)
+            } else if (appConfig.isHipEnabled) {
+              val hipRequest = HipCalculationRequest.from(request.validCalculationRequest.get)
+              hipConnector.calculate(hipRequest)
             } else {
               desConnector.calculate(request.validCalculationRequest.get)
             }
@@ -85,10 +89,23 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                     }
                   }
                 }
+
+                case hipResponse: HipCalculationResponse => {
+                  repository.insertResponseByReference(request.bulkId, request.lineId, GmpBulkCalculationResponse.createFromHipCalculationResponse(hipResponse)).map {
+
+                    result => {
+                      // $COVERAGE-OFF$
+                      metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+                      logger.debug(s"[CalculationRequestActor] InsertResponse : $result")
+                      // $COVERAGE-ON$
+                      origSender ! result
+                    }
+                  }
+                }
               }.recover {
 
 //                TODO: Add tests for FORBIDDEN similar to BAD_REQUEST
-                case e: UpstreamErrorResponse if List(BAD_REQUEST, FORBIDDEN).contains(e.reportAs) => {
+                case e: UpstreamErrorResponse if List(BAD_REQUEST, FORBIDDEN /*, NOT_FOUND , SERVICE_UNAVAILABLE*/).contains(e.reportAs) => { //commenting the extra error code added for now. can be enabled as part of testing.
 
                   // $COVERAGE-OFF$
                   logger.error(s"[CalculationRequestActor] Inserting Failure response failed with error: $e")
@@ -173,8 +190,9 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 class DefaultCalculationRequestActor @Inject()(override val repository : BulkCalculationMongoRepository,
                                                override val desConnector : DesConnector,
                                                override val ifConnector: IFConnector,
+                                               override val hipConnector: DesConnector,
                                                override val metrics : ApplicationMetrics,
                                                override val applicationConfig: ApplicationConfiguration,
-                                               override val appConfig: AppConfig
+                                               override val appConfig: AppConfig,
                                               ) extends CalculationRequestActor with CalculationRequestActorComponent {
 }

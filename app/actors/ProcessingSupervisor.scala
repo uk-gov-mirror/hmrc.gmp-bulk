@@ -38,6 +38,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
                                      val mongoLockRepository: MongoLockRepository,
                                      desConnector : DesConnector,
                                      ifConnector: IFConnector,
+                                     hipConnector: DesConnector,
                                      metrics : ApplicationMetrics)
   extends Actor with ActorUtils with TimePeriodLockService with Logging {
 
@@ -52,6 +53,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
     bulkCalculationMongoRepository,
     desConnector,
     ifConnector,
+    hipConnector,
     metrics,
     applicationConfig
   ), "calculation-requester")

@@ -42,6 +42,7 @@ class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationL
                           bulkCalculationMongoRepository : BulkCalculationMongoRepository,
                           mongoApi : MongoLockRepository, bulkCompletionService : BulkCompletionService,
                           desConnector : DesConnector,
+                          hipConnector: DesConnector,
                           ifConnector: IFConnector,
                           metrics : ApplicationMetrics
                          )(implicit val ec: ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
@@ -55,6 +56,7 @@ class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationL
         mongoApi,
         desConnector,
         ifConnector,
+        hipConnector,
         metrics
       ), "processing-supervisor")
 
