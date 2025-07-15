@@ -218,7 +218,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
 
     result.map { brs =>
       logTimer(startTime)
-      logger.info(s"[BulkCalculationRepository][findSummaryByReference] uploadReference : $uploadReference, result: $brs")
+      logger.debug(s"[BulkCalculationRepository][findSummaryByReference] uploadReference : $uploadReference, result: $brs")
       brs.headOption
     }.recover { case e =>
       logTimer(startTime)
