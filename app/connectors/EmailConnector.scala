@@ -48,6 +48,7 @@ class EmailConnector @Inject()(http: HttpClientV2,
 
     val request = SendTemplatedEmailRequest(List(template.email), "gmp_bulk_upload_received", Map("fileUploadReference" -> template.uploadReference))
 
+    logger.info(s"[EmailConnector] Sending gmp_bulk_upload_received email")
     sendEmail(request)
 
   }
@@ -61,6 +62,7 @@ class EmailConnector @Inject()(http: HttpClientV2,
         "userId" -> (("*" * 5) + template.userId.takeRight(3)))
     )
 
+    logger.info(s"[EmailConnector] Sending gmp_bulk_upload_processed email")
     sendEmail(request)
   }
 
@@ -68,7 +70,7 @@ class EmailConnector @Inject()(http: HttpClientV2,
 
     val url = s"${servicesConfig.baseUrl("email")}/hmrc/email"
 
-    logger.info(s"[EmailConnector] Sending email to ${request.to.mkString(", ")}")
+    logger.debug(s"[EmailConnector] Sending email to ${request.to.mkString(", ")}")
 
     http.post(url"$url")
       .setHeader(Seq(("Content-Type", "application/json")):_*)

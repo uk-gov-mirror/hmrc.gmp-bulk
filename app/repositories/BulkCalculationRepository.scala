@@ -126,7 +126,8 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
     val startTime = System.currentTimeMillis()
     updateResponse(bulkId, lineId, calculationResponse).map {
       lastError => logTimer(startTime)
-        logger.info(s"[BulkCalculationRepository][insertResponseByReference] bulkResponse: $calculationResponse, result : $lastError ")
+        logger.debug(s"[BulkCalculationRepository][insertResponseByReference] bulkResponse: $calculationResponse, result : $lastError ")
+        logger.info(s"[BulkCalculationRepository][insertResponseByReference] insert complete")
         true
     } recover {
       // $COVERAGE-OFF$
