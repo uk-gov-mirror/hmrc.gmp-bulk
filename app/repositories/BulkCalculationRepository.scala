@@ -173,7 +173,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
       .collect()
       .toFuture()
       .map { calcRequests =>
-        logger.info(s"[BulkCalculationRepository][findByCsvFilterAndRequest], request: $br ")
+        logger.debug(s"[BulkCalculationRepository][findByCsvFilterAndRequest], request: $br ")
         Some(br.copy(calculationRequests = calcRequests.toList))
       }.recover { case e =>
       logger.error(s"[BulkCalculationRepository][findByCsvFilterAndRequest] error: ${e.getMessage}")
