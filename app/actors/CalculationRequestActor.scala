@@ -79,7 +79,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                     result => {
                       // $COVERAGE-OFF$
                       metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-                      logger.info(s"[CalculationRequestActor] InsertResponse : $result")
+                      logger.debug(s"[CalculationRequestActor] InsertResponse : $result")
                       // $COVERAGE-ON$
                       origSender ! result
                     }
