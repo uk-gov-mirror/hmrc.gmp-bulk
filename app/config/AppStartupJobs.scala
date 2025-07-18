@@ -19,10 +19,9 @@ package config
 import models.{ProcessReadyCalculationRequest, ProcessedBulkCalculationRequest}
 import org.apache.pekko.actor.ActorSystem
 import org.mongodb.scala.MongoCollection
-import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.{Filters, Projections}
 import play.api.{Configuration, Logging}
-import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.CollectionFactory
+import repositories.BulkCalculationMongoRepository
 
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -41,19 +40,19 @@ class Startup @Inject()(
 }
 
 class AppStartupJobsImpl @Inject()(val config: Configuration,
-                                    val mongo: MongoComponent
+                                   val bulkCalcRepo: BulkCalculationMongoRepository,
                                   )(implicit val ec: ExecutionContext) extends AppStartupJobs
 
 trait AppStartupJobs extends Logging {
 
   implicit val ec: ExecutionContext
-  val mongo: MongoComponent
+  val bulkCalcRepo: BulkCalculationMongoRepository
 
   val processReadyCalsReqCollection: MongoCollection[ProcessReadyCalculationRequest] =
-    CollectionFactory.collection(mongo.database, "bulk-calculation", ProcessReadyCalculationRequest.formats)
+    bulkCalcRepo.processReadyCalsReqCollection
 
   val processedBulkCalsReqCollection: MongoCollection[ProcessedBulkCalculationRequest] =
-    CollectionFactory.collection(mongo.database, "bulk-calculation", ProcessedBulkCalculationRequest.formats)
+    bulkCalcRepo.processedBulkCalsReqCollection
 
   private def logParentsMissingCreatedAtAndChildren(): Future[Unit] = {
     val filter = Filters.and(
@@ -61,10 +60,10 @@ trait AppStartupJobs extends Logging {
       Filters.exists("createdAt", false)
     )
 
-    processedBulkCalsReqCollection.find(filter).toFuture().flatMap { parents =>
+    processedBulkCalsReqCollection.find(filter).projection(Projections.include("_id")).toFuture().flatMap { parents =>
       logger.info(s"[runEverythingOnStartUp] Found ${parents.size} parent documents missing createdAt")
 
-      val childCountFutures = parents.map { parent =>
+      val childCountFutures : Seq[Future[(String, Long)]] = parents.map { parent =>
         val parentId = parent._id
 
         val childFilter = Filters.and(
@@ -73,13 +72,21 @@ trait AppStartupJobs extends Logging {
         )
 
         processReadyCalsReqCollection.countDocuments(childFilter).toFuture().map { childCount =>
-          logger.info(
-            s"[runEverythingOnStartUp] Parent uploadReference=$parentId has $childCount children."
-          )
+          parentId -> childCount
         }
       }
 
-      Future.sequence(childCountFutures).map(_ => ())
+      Future.sequence(childCountFutures).map { results =>
+        val summaryLines = results.map { case (parentId, childCount) =>
+          s"- $parentId -> $childCount children"
+        }.mkString("\n")
+
+        logger.info(
+          s"""[runEverythingOnStartUp] Parent → Child count summary:
+             |$summaryLines
+             |""".stripMargin
+        )
+      }
     }.recover {
       case ex =>
         logger.error("[runEverythingOnStartUp] Failed to fetch parents missing createdAt", ex)
@@ -100,24 +107,20 @@ trait AppStartupJobs extends Logging {
       Filters.eq("complete", false)
     )
 
-    val childCount = logCount(
-      collection = processReadyCalsReqCollection,
-      filter = missingCreatedAtFilter,
-      description = "child documents missing createdAt"
-    )(ExecutionContext.global)
-
-    val parentCount = logCount(
-      collection = processedBulkCalsReqCollection,
-      filter = incompleteParentsFilter,
-      description = "incomplete parent documents (complete = false)"
-    )(ExecutionContext.global)
-
-    val parentMissingCreatedAtAndChildren = logParentsMissingCreatedAtAndChildren()
-
     for {
-      _ <- childCount
-      _ <- parentCount
-      _ <- parentMissingCreatedAtAndChildren
+      _ <- logCount(
+        collection = processReadyCalsReqCollection,
+        filter = missingCreatedAtFilter,
+        description = "child documents missing createdAt"
+      )(ExecutionContext.global)
+
+      _ <- logCount(
+        collection = processedBulkCalsReqCollection,
+        filter = incompleteParentsFilter,
+        description = "incomplete parent documents (complete = false)"
+      )(ExecutionContext.global)
+
+      _ <- logParentsMissingCreatedAtAndChildren()
     } yield {
       logger.info("[runEverythingOnStartUp] Startup checks complete.")
     }
