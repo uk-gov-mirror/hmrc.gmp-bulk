@@ -55,9 +55,40 @@ trait AppStartupJobs extends Logging {
   val processedBulkCalsReqCollection: MongoCollection[ProcessedBulkCalculationRequest] =
     CollectionFactory.collection(mongo.database, "bulk-calculation", ProcessedBulkCalculationRequest.formats)
 
+  private def logParentsMissingCreatedAtAndChildren(): Future[Unit] = {
+    val filter = Filters.and(
+      Filters.eq("isParent", true),
+      Filters.exists("createdAt", false)
+    )
+
+    processedBulkCalsReqCollection.find(filter).toFuture().flatMap { parents =>
+      logger.info(s"[runEverythingOnStartUp] Found ${parents.size} parent documents missing createdAt")
+
+      val childCountFutures = parents.map { parent =>
+        val parentId = parent._id
+
+        val childFilter = Filters.and(
+          Filters.eq("isChild", true),
+          Filters.eq("bulkId", parentId)
+        )
+
+        processReadyCalsReqCollection.countDocuments(childFilter).toFuture().map { childCount =>
+          logger.info(
+            s"[runEverythingOnStartUp] Parent uploadReference=$parentId has $childCount children."
+          )
+        }
+      }
+
+      Future.sequence(childCountFutures).map(_ => ())
+    }.recover {
+      case ex =>
+        logger.error("[runEverythingOnStartUp] Failed to fetch parents missing createdAt", ex)
+    }
+  }
+
+
   def runEverythingOnStartUp(): Future[Unit] = {
     logger.info("[runEverythingOnStartUp] Running Startup Jobs...")
-
 
     val missingCreatedAtFilter = Filters.and(
       Filters.eq("isChild", true),
@@ -81,9 +112,12 @@ trait AppStartupJobs extends Logging {
       description = "incomplete parent documents (complete = false)"
     )(ExecutionContext.global)
 
+    val parentMissingCreatedAtAndChildren = logParentsMissingCreatedAtAndChildren()
+
     for {
       _ <- childCount
       _ <- parentCount
+      _ <- parentMissingCreatedAtAndChildren
     } yield {
       logger.info("[runEverythingOnStartUp] Startup checks complete.")
     }
