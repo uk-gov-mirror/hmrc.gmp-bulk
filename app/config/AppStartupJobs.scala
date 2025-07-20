@@ -90,7 +90,7 @@ trait AppStartupJobs extends Logging {
     case ex => logger.error("[runEverythingOnStartUp] Failed to fetch parents missing createdAt", ex)
   }
 
-  def runEverythingOnStartUp(): Future[Unit] = {
+  def runEverythingOnStartUp(): Future[Option[Unit]] = {
     logger.info("[runEverythingOnStartUp] Running Startup Jobs...")
     lockService.withLock {
       val missingCreatedAtFilter = Filters.and(
@@ -120,11 +120,6 @@ trait AppStartupJobs extends Logging {
       } yield {
         logger.info("[runEverythingOnStartUp] Startup checks complete.")
       }
-    }.map {
-      case Some(_) =>
-        logger.info("[runEverythingOnStartUp] Lock acquired and startup job finished.")
-      case None =>
-        logger.info("[runEverythingOnStartUp] Another instance already running startup jobs, skipping.")
     }
   }
 
