@@ -114,18 +114,14 @@ trait AppStartupJobs extends Logging {
         )(ec)
 
         _ <- logCount(
-          collection = processedBulkCalsReqCollection,
-          filter = incompleteParentsFilter,
-          description = "incomplete parent documents (complete = false)"
-        )(ec)
+            collection = processedBulkCalsReqCollection,
+            filter = incompleteParentsFilter,
+            description = "incomplete parent documents (complete = false)"
+          )(ec)
 
-        _ <-
-          if (applicationConfig.logParentsChildrenEnabled) {
-            logParentsMissingCreatedAtAndChildren()
-          } else {
-            Future.successful(())
-          }
-
+        _ <- if (applicationConfig.logParentsChildrenEnabled)
+          logParentsMissingCreatedAtAndChildren()
+         else Future.successful(())
       } yield {
         logger.info("[runEverythingOnStartUp] Startup checks complete.")
       }
