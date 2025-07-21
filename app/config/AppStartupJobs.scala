@@ -34,7 +34,7 @@ class AppStartupJobsImpl @Inject()(val config: Configuration,
                                    val bulkCalcRepo: BulkCalculationMongoRepository,
                                    val mongoLockRepository: MongoLockRepository,
                                    val applicationConfig: ApplicationConfiguration,
-                                   actorSystem: ActorSystem,
+                                   actorSystem: ActorSystem
                                   )(implicit val ec: ExecutionContext) extends  AppStartupJobs {
   actorSystem.scheduler.scheduleOnce(FiniteDuration(1, TimeUnit.MINUTES)) {
     runEverythingOnStartUp()
