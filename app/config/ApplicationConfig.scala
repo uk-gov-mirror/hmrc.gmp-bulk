@@ -31,6 +31,7 @@ trait ApplicationConfig {
   val bulkProcessingTps: Int
   val bulkProcessingInterval: Int
   val ifEnabled: Boolean
+  val logParentsChildrenEnabled: Boolean
 }
 
 class ApplicationConfiguration@Inject()(configuration: Configuration) extends ApplicationConfig {
@@ -42,4 +43,5 @@ class ApplicationConfiguration@Inject()(configuration: Configuration) extends Ap
   override val unavailablePeriodDuration: Int = configuration.getOptional[Int](s"circuit-breaker.unavailable-period-duration").getOrElse(300)
   override val unstablePeriodDuration: Int = configuration.getOptional[Int](s"circuit-breaker.unstable-period-duration").getOrElse(60)
   override val ifEnabled: Boolean = configuration.getOptional[Boolean]("ifs-enabled").getOrElse(false)
+  override val logParentsChildrenEnabled: Boolean = configuration.getOptional[Boolean]("log-parents-children-enabled").getOrElse(false)
 }
