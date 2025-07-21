@@ -19,7 +19,7 @@ package config
 import models.{ProcessReadyCalculationRequest, ProcessedBulkCalculationRequest}
 import org.apache.pekko.actor.ActorSystem
 import org.mongodb.scala.MongoCollection
-import org.mongodb.scala.model.{Filters, Projections}
+import org.mongodb.scala.model.{Filters, Projections, Sorts}
 import play.api.{Configuration, Logging}
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
@@ -28,12 +28,18 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
+import org.mongodb.scala.bson.BsonDocument
+import uk.gov.hmrc.mongo.MongoComponent
+
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 
 class AppStartupJobsImpl @Inject()(val config: Configuration,
                                    val bulkCalcRepo: BulkCalculationMongoRepository,
                                    val mongoLockRepository: MongoLockRepository,
                                    val applicationConfig: ApplicationConfiguration,
+                                   val mongo: MongoComponent,
                                    actorSystem: ActorSystem
                                   )(implicit val ec: ExecutionContext) extends  AppStartupJobs {
   actorSystem.scheduler.scheduleOnce(FiniteDuration(1, TimeUnit.MINUTES)) {
@@ -46,6 +52,7 @@ trait AppStartupJobs extends Logging {
   implicit val ec: ExecutionContext
   val bulkCalcRepo: BulkCalculationMongoRepository
   val mongoLockRepository: MongoLockRepository
+  val mongo: MongoComponent
 
   val applicationConfig: ApplicationConfiguration
 
@@ -93,6 +100,23 @@ trait AppStartupJobs extends Logging {
     case ex => logger.error("[runEverythingOnStartUp] Failed to fetch parents missing createdAt", ex)
   }
 
+  def logOldestCreatedAt(): Future[Unit] = {
+    mongo.database.getCollection[BsonDocument]("bulk-calculation")
+      .find(Filters.exists("createdAt", true))
+      .limit(1)
+      .projection(Projections.include("createdAt"))
+      .toFuture()
+      .map(_.headOption)
+      .map {
+        case Some(document) =>
+          val createdAtStr = document.getString("createdAt").getValue
+          val createdAt = LocalDateTime.parse(createdAtStr, DateTimeFormatter.ISO_DATE_TIME)
+          logger.info(s"[runEverythingOnStartUp] Oldest createdAt = $createdAt")
+        case None =>
+          logger.info("[runEverythingOnStartUp] No documents with createdAt found")
+      }
+  }
+
   def runEverythingOnStartUp(): Future[Option[Unit]] = {
     logger.info("[runEverythingOnStartUp] Running Startup Jobs...")
     lockService.withLock {
@@ -128,6 +152,7 @@ trait AppStartupJobs extends Logging {
           )(ec)
 
         _ <- parentsMissingCreatedAtAndChildren()
+        _ <- logOldestCreatedAt()
       } yield {
         logger.info("[runEverythingOnStartUp] Startup checks complete.")
       }
