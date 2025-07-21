@@ -106,6 +106,14 @@ trait AppStartupJobs extends Logging {
         Filters.eq("complete", false)
       )
 
+      def logParentsMissingCreatedAtAndChildren(): Future[Unit] = {
+        if (applicationConfig.logParentsChildrenEnabled) {
+          logParentsMissingCreatedAtAndChildren()
+        } else {
+          Future.successful(())
+        }
+      }
+
       for {
         _ <- logCount(
           collection = processReadyCalsReqCollection,
@@ -119,13 +127,7 @@ trait AppStartupJobs extends Logging {
             description = "incomplete parent documents (complete = false)"
           )(ec)
 
-        _ <- {
-          if (applicationConfig.logParentsChildrenEnabled) {
-            logParentsMissingCreatedAtAndChildren()
-          } else {
-            Future.successful(())
-          }
-        }
+        _ <- logParentsMissingCreatedAtAndChildren()
       } yield {
         logger.info("[runEverythingOnStartUp] Startup checks complete.")
       }
