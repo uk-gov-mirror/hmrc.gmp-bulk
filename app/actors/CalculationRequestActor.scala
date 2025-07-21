@@ -16,19 +16,18 @@
 
 package actors
 
-import java.util.concurrent.TimeUnit
-import org.apache.pekko.actor._
 import com.google.inject.Inject
 import config.ApplicationConfiguration
 import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
-import play.api.http.Status
+import org.apache.pekko.actor._
 import play.api.Logging
+import play.api.http.Status
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
