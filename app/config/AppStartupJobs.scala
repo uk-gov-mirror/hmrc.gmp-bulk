@@ -34,7 +34,7 @@ class AppStartupJobsImpl @Inject()(val config: Configuration,
                                    val bulkCalcRepo: BulkCalculationMongoRepository,
                                    val mongoLockRepository: MongoLockRepository,
                                    val applicationConfig: ApplicationConfiguration,
-                                   actorSystem: ActorSystem,
+                                     actorSystem: ActorSystem,
                                   )(implicit val ec: ExecutionContext) extends  AppStartupJobs {
   actorSystem.scheduler.scheduleOnce(FiniteDuration(1, TimeUnit.MINUTES)) {
     runEverythingOnStartUp()
@@ -93,7 +93,6 @@ trait AppStartupJobs extends Logging {
     case ex => logger.error("[runEverythingOnStartUp] Failed to fetch parents missing createdAt", ex)
   }
 
-
   def runEverythingOnStartUp(): Future[Option[Unit]] = {
     logger.info("[runEverythingOnStartUp] Running Startup Jobs...")
     lockService.withLock {
@@ -107,15 +106,6 @@ trait AppStartupJobs extends Logging {
         Filters.eq("complete", false)
       )
 
-      val inCompleteParentCount: Future[Unit] =
-        if (applicationConfig.logIncompleteParentsEnabled) {
-          logCount(
-            collection = processedBulkCalsReqCollection,
-            filter = incompleteParentsFilter,
-            description = "incomplete parent documents (complete = false)"
-          )(ec)
-        } else { Future.successful(()) }
-
       for {
         _ <- logCount(
           collection = processReadyCalsReqCollection,
@@ -123,9 +113,15 @@ trait AppStartupJobs extends Logging {
           description = "child documents missing createdAt"
         )(ec)
 
-        _ <- inCompleteParentCount
+        _ <-  logCount(
+            collection = processedBulkCalsReqCollection,
+            filter = incompleteParentsFilter,
+            description = "incomplete parent documents (complete = false)"
+          )(ec)
 
-        _ <- logParentsMissingCreatedAtAndChildren()
+        _ <- if (applicationConfig.logParentsChildrenEnabled) {
+          logParentsMissingCreatedAtAndChildren()
+        } else {Future.successful(())}
       } yield {
         logger.info("[runEverythingOnStartUp] Startup checks complete.")
       }
