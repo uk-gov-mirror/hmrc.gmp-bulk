@@ -119,9 +119,13 @@ trait AppStartupJobs extends Logging {
             description = "incomplete parent documents (complete = false)"
           )(ec)
 
-        _ <- if (applicationConfig.logParentsChildrenEnabled)
-          logParentsMissingCreatedAtAndChildren()
-         else Future.successful(())
+        _ <- {
+          if (applicationConfig.logParentsChildrenEnabled) {
+            logParentsMissingCreatedAtAndChildren()
+          } else {
+            Future.successful(())
+          }
+        }
       } yield {
         logger.info("[runEverythingOnStartUp] Startup checks complete.")
       }
