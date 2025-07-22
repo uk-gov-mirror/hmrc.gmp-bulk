@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit
 import org.apache.pekko.actor._
 import com.google.inject.Inject
 import config.{AppConfig, ApplicationConfiguration}
-import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, HipConnector, IFConnector}
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, HipCalculationRequest, HipCalculationResponse, ProcessReadyCalculationRequest}
 import play.api.Logging
@@ -34,7 +34,7 @@ import scala.util.{Failure, Success, Try}
 trait CalculationRequestActorComponent {
   val desConnector: DesConnector
   val ifConnector: IFConnector
-  val hipConnector: DesConnector
+  val hipConnector: HipConnector
   val repository: BulkCalculationMongoRepository
   val metrics: ApplicationMetrics
   val applicationConfig: ApplicationConfiguration
@@ -190,7 +190,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 class DefaultCalculationRequestActor @Inject()(override val repository : BulkCalculationMongoRepository,
                                                override val desConnector : DesConnector,
                                                override val ifConnector: IFConnector,
-                                               override val hipConnector: DesConnector,
+                                               override val hipConnector: HipConnector,
                                                override val metrics : ApplicationMetrics,
                                                override val applicationConfig: ApplicationConfiguration,
                                                override val appConfig: AppConfig,
