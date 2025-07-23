@@ -48,7 +48,7 @@ class HipConnector @Inject()(http: HttpClientV2,
       .setHeader(buildHeadersV1(hc): _*)
       .withBody(Json.toJson(request)).execute[HttpResponse].map { response =>
         metrics.registerStatusCode(response.status.toString)
-        metrics.desConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+        metrics.hipConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
         response.json.validate[HipCalculationResponse] match {
           case JsSuccess(value, _) =>
             response.status match {
