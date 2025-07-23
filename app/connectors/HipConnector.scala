@@ -41,7 +41,7 @@ class HipConnector @Inject()(http: HttpClientV2,
   val calcURI = s"$hipBaseUrl/pension/gmp/calculation"
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  def calculate(request: HipCalculationRequest)(implicit hc: HeaderCarrier): Future[HipCalculationResponse] = {
+  def calculate(request: HipCalculationRequest): Future[HipCalculationResponse] = {
     logger.info(s"[calculate] contacting HIP at $calcURI")
     val startTime = System.currentTimeMillis()
     withCircuitBreaker(http.post(url"$calcURI")

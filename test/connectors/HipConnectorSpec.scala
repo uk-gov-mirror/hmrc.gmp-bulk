@@ -24,9 +24,8 @@ import org.scalatest.{BeforeAndAfter, RecoverMethods}
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.libs.json.Json
-import play.api.test.Helpers.{BAD_REQUEST, OK, await}
+import play.api.test.Helpers.{BAD_REQUEST, OK}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.WireMockHelper
 
 import scala.concurrent.{ExecutionContext, Future}
