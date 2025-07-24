@@ -37,15 +37,15 @@ val lockId = "bulkcompletion"
 
 
   def checkForComplete(): Future[Unit] = {
-    logger.debug("[BulkCompletionService] Starting..")
+    logger.info("[BulkCompletionService] Starting..")
     lockService.withLock {
-      logger.debug("[BulkCompletionService] Got lock")
+      logger.info("[BulkCompletionService] Got lock")
       repository.findAndComplete()
     }.map {
       case Some(_) =>
-        logger.debug("[BulkCompletionService][receive] Obtained mongo lock")
+        logger.info("[BulkCompletionService][receive] Obtained mongo lock")
       // $COVERAGE-OFF$
-      case _ => logger.debug("[BulkCompletionService][receive] Failed to obtain mongo lock")
+      case _ => logger.info("[BulkCompletionService][receive] Failed to obtain mongo lock")
       // $COVERAGE-ON$
     }
   }

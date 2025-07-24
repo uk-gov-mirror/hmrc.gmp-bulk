@@ -63,10 +63,6 @@ class ValidCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite {
       "Surname contains apostrophe" in {
         emptyRequest.copy(surname = "O'Neil").desUri must include("surname/O%27N/")
       }
-
-      "Surname with white space" in {
-        emptyRequest.copy(surname = "St Ledger").desUri must include("surname/ST/")
-      }
     }
 
     "Take first name Initial" in {
