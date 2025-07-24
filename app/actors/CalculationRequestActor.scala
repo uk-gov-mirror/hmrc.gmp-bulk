@@ -23,10 +23,13 @@ import config.{AppConfig, ApplicationConfiguration}
 import connectors.{DesConnector, DesGetHiddenRecordResponse, HipConnector, IFConnector}
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, HipCalculationRequest, HipCalculationResponse, ProcessReadyCalculationRequest}
+import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
+import play.api.http.Status
 import play.api.Logging
 import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, SERVICE_UNAVAILABLE}
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -106,6 +109,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
 //                TODO: Add tests for FORBIDDEN similar to BAD_REQUEST
                 case e: UpstreamErrorResponse if List(BAD_REQUEST, FORBIDDEN /*, NOT_FOUND , SERVICE_UNAVAILABLE*/).contains(e.reportAs) => { //commenting the extra error code added for now. can be enabled as part of testing.
+                case e: UpstreamErrorResponse if e.reportAs == Status.BAD_REQUEST => {
 
                   // $COVERAGE-OFF$
                   logger.error(s"[CalculationRequestActor] Inserting Failure response failed with error: $e")
@@ -132,7 +136,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
               f match {
 
-                case UpstreamErrorResponse(message, responseCode, _, _) if responseCode == INTERNAL_SERVER_ERROR => {
+                case UpstreamErrorResponse(message, responseCode, _, _) if responseCode == 500 => {
                   // $COVERAGE-OFF$
                   logger.error(s"[CalculationRequestActor] Error : ${message} Exception: $f")
                   // $COVERAGE-ON$
@@ -170,8 +174,8 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
     case STOP => {
       // $COVERAGE-OFF$
-      logger.debug(s"[CalculationRequestActor] stop message")
-      logger.debug("sender: " + sender().getClass)
+      logger.info(s"[CalculationRequestActor] stop message")
+      logger.info("sender: " + sender().getClass)
       // $COVERAGE-ON$
       sender() ! STOP
     }
@@ -179,8 +183,8 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
     case e => {
       // $COVERAGE-OFF$
-      logger.debug(s"[CalculationRequestActor] Invalid Message : { message : $e}")
-      logger.debug("sender: " + sender().getClass)
+      logger.info(s"[CalculationRequestActor] Invalid Message : { message : $e}")
+      logger.info("sender: " + sender().getClass)
       // $COVERAGE-ON$
       sender() ! org.apache.pekko.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
     }

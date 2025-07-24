@@ -127,6 +127,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
     updateResponse(bulkId, lineId, calculationResponse).map {
       lastError => logTimer(startTime)
         logger.debug(s"[BulkCalculationRepository][insertResponseByReference] bulkResponse: $calculationResponse, result : $lastError ")
+        logger.info(s"[BulkCalculationRepository][insertResponseByReference] insert complete")
         true
     } recover {
       // $COVERAGE-OFF$
@@ -154,7 +155,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
       case Some(br) => logTimer(startTime)
         findByCsvFilterAndRequest(br, csvFilter)
       case _ => logTimer(startTime)
-        logger.debug(s"[BulkCalculationRepository][findByReference] uploadReference: $uploadReference, result: No ProcessedBulkCalculationRequest found  ")
+        logger.info(s"[BulkCalculationRepository][findByReference] uploadReference: $uploadReference, result: No ProcessedBulkCalculationRequest found  ")
         Future.successful(None)
     }
   }
@@ -242,7 +243,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
 
     result.map { bulkRequest =>
       logTimer(startTime)
-      logger.debug(s"[BulkCalculationRepository][findByUserId] userId : $userId, result: ${bulkRequest.size}")
+      logger.info(s"[BulkCalculationRepository][findByUserId] userId : $userId, result: ${bulkRequest.size}")
       Some(bulkRequest)
     }.recover {
       case e => logTimer(startTime)
@@ -272,7 +273,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
         logTimer(startTime)
         res
       }
-      logger.debug(s"[BulkCalculationRepository][findRequestsToProcess] SUCCESS")
+      logger.info(s"[BulkCalculationRepository][findRequestsToProcess] SUCCESS")
       sequenced
     }
       .recover {
@@ -301,12 +302,14 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
 
     val startTime = System.currentTimeMillis()
     implicit val hc = HeaderCarrier()
-    logger.debug("[BulkCalculationRepository][findAndComplete]: starting ")
+    logger.info("[BulkCalculationRepository][findAndComplete]: starting ")
     val result: Future[Boolean] = for {
       processedBulkCalReqList <- getProcessedBulkCalRequestList(startTime)
+      _ = logger.info(s"[BulkCalculationRepository][findAndComplete]: getProcessedBulkCalRequestList returned ${processedBulkCalReqList.size} records")
       booleanList <-  Future.sequence(processedBulkCalReqList.map { request =>
         val req: ProcessedBulkCalculationRequest = request.getOrElse(sys.error("Processed Bulk calculation Request missing"))
         logger.debug(s"Got request $request")
+        logger.info("[BulkCalculationRepository][findAndComplete]: calling updateRequestAndSendEmailAndEvent with request")
         updateRequestAndSendEmailAndEvent(req)
       })
       boolean = booleanList.foldLeft(true)(_ && _)
@@ -353,18 +356,24 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
   def getProcessedBulkCalRequestList(startTime: Long) = for {
     incompleteBulk <- findIncompleteBulk()
     _ = logTimer(startTime)
+    _ = logger.info(s"[BulkCalculationRepository][getProcessedBulkCalRequestList]: findIncompleteBulk returned ${incompleteBulk.size} records")
     processedBulkCalcReqOpt <- Future.sequence(incompleteBulk.map { req =>
       for {
         countedDocs <- countChildDocWithValidRequest(req._id)
+        _ = logger.info(s"[BulkCalculationRepository][getProcessedBulkCalRequestList]: countChildDocWithValidRequest returned ${countedDocs} for id ${req._id}")
         processedBulkCalcOpt <- if (countedDocs == 0) updateCalculationRequestsForProcessedBulkReq(req) else Future.successful(None)
       } yield (processedBulkCalcOpt)
     })
-  } yield processedBulkCalcReqOpt.filter(_.isDefined)
+  } yield {
+    logger.info(s"[BulkCalculationRepository][getProcessedBulkCalRequestList]: updateCalculationRequestsForProcessedBulkReq returned ${processedBulkCalcReqOpt.size} records")
+    processedBulkCalcReqOpt.filter(_.isDefined)
+  }
 
   private def updateCalculationRequestsForProcessedBulkReq(req: ProcessedBulkCalculationRequest ) = {
     val childrenStartTime = System.currentTimeMillis()
     for {
       processedChildren <- findProcessedChildren(req._id)
+      _ = logger.info(s"[BulkCalculationRepository][updateCalculationRequestsForProcessedBulkReq]: findProcessedChildren returned ${processedChildren.size} for id ${req._id}")
       _ = metrics.findAndCompleteChildrenTimer(System.currentTimeMillis() - childrenStartTime, TimeUnit.MILLISECONDS)
     } yield Some(req.copy(calculationRequests = processedChildren))
 
@@ -374,6 +383,8 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
     Filters.eq("isParent", true),
     Filters.eq("complete", false)))
     .sort(Sorts.ascending("_id"))
+    //      TODO: Will remove or change depending on success of this in restarting processing
+    .limit(10)
     .collect()
     .toFuture().map(_.toList)
 
@@ -435,7 +446,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
 
     findDuplicateUploadReference(bulkCalculationRequest.uploadReference).flatMap {
       case true =>
-        logger.debug(s"[BulkCalculationRepository][insertBulkDocument] Duplicate request found (${bulkCalculationRequest.uploadReference})")
+        logger.info(s"[BulkCalculationRepository][insertBulkDocument] Duplicate request found (${bulkCalculationRequest.uploadReference})")
         Future.successful(false)
       case false =>
         insertProcessedBulkCal(bulkCalculationRequest)
@@ -443,7 +454,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
             insertManyResultOpt.fold(false) { insertManyResult =>
               logTimer(startTime)
               if (insertManyResult.wasAcknowledged()) {
-                logger.debug(s"[BulkCalculationRepository][insertBulkDocument] $insertManyResult")
+                logger.info(s"[BulkCalculationRepository][insertBulkDocument] $insertManyResult")
                 true
               } else {
                 logger.error("Error inserting document")
@@ -506,7 +517,7 @@ class BulkCalculationMongoRepository @Inject()(override val metrics: Application
     bulkCalcReqCollection.find(Filters.equal("uploadReference", uploadReference))
       .toFuture().map(_.toList)
       .map { result =>
-        logger.debug(s"[BulkCalculationRepository][findDuplicateUploadReference] uploadReference : $uploadReference, result: ${result.nonEmpty}")
+        logger.info(s"[BulkCalculationRepository][findDuplicateUploadReference] uploadReference : $uploadReference, result: ${result.nonEmpty}")
         result.nonEmpty
       }.recover {
       case e =>  logger.error(s"[BulkCalculationRepository][findDuplicateUploadReference] ${e.getMessage} ($uploadReference)", e)
