@@ -16,21 +16,18 @@
 
 package actors
 
-import java.util.concurrent.TimeUnit
-import org.apache.pekko.actor._
 import com.google.inject.Inject
 import config.{AppConfig, ApplicationConfiguration}
 import connectors.{DesConnector, DesGetHiddenRecordResponse, HipConnector, IFConnector}
 import metrics.ApplicationMetrics
 import models.{CalculationResponse, GmpBulkCalculationResponse, HipCalculationRequest, HipCalculationResponse, ProcessReadyCalculationRequest}
-import models.{CalculationResponse, GmpBulkCalculationResponse, ProcessReadyCalculationRequest}
-import play.api.http.Status
+import org.apache.pekko.actor._
 import play.api.Logging
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, SERVICE_UNAVAILABLE}
+import play.api.http.Status
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
@@ -72,7 +69,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
             } else if (appConfig.isHipEnabled) {
               val hipRequest = HipCalculationRequest.from(request.validCalculationRequest.get)
               hipConnector.calculate(hipRequest)
-            } else {
+            } else{
               desConnector.calculate(request.validCalculationRequest.get)
             }
           }
@@ -92,18 +89,20 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                     }
                   }
                 }
-
                 case hipResponse: HipCalculationResponse => {
                   repository.insertResponseByReference(request.bulkId, request.lineId, GmpBulkCalculationResponse.createFromHipCalculationResponse(hipResponse)).map {
 
                     result => {
+                      // $COVERAGE-OFF$
                       metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
                       logger.debug(s"[CalculationRequestActor] InsertResponse : $result")
+                      // $COVERAGE-ON$
                       origSender ! result
                     }
                   }
                 }
               }.recover {
+
                 case e: UpstreamErrorResponse if e.reportAs == Status.BAD_REQUEST => {
 
                   // $COVERAGE-OFF$
@@ -192,6 +191,6 @@ class DefaultCalculationRequestActor @Inject()(override val repository : BulkCal
                                                override val hipConnector: HipConnector,
                                                override val metrics : ApplicationMetrics,
                                                override val applicationConfig: ApplicationConfiguration,
-                                               override val appConfig: AppConfig,
+                                               override val appConfig: AppConfig
                                               ) extends CalculationRequestActor with CalculationRequestActorComponent {
 }
