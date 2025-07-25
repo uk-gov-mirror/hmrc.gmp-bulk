@@ -106,9 +106,6 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                   }
                 }
               }.recover {
-
-//                TODO: Add tests for FORBIDDEN similar to BAD_REQUEST
-               // case e: UpstreamErrorResponse if List(BAD_REQUEST/*,  FORBIDDEN, NOT_FOUND , SERVICE_UNAVAILABLE*/).contains(e.reportAs) => { //commenting the extra error code added for now. can be enabled as part of testing.
                 case e: UpstreamErrorResponse if e.reportAs == Status.BAD_REQUEST => {
 
                   // $COVERAGE-OFF$
