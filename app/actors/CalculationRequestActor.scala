@@ -97,10 +97,8 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                   repository.insertResponseByReference(request.bulkId, request.lineId, GmpBulkCalculationResponse.createFromHipCalculationResponse(hipResponse)).map {
 
                     result => {
-                      // $COVERAGE-OFF$
                       metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
                       logger.debug(s"[CalculationRequestActor] InsertResponse : $result")
-                      // $COVERAGE-ON$
                       origSender ! result
                     }
                   }
