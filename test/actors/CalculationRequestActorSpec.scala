@@ -43,7 +43,9 @@ class CalculationRequestActorMock(val desConnector: DesConnector,
                                   val repository: BulkCalculationMongoRepository,
                                   val metrics: ApplicationMetrics,
                                   val applicationConfig: ApplicationConfiguration)
-  extends CalculationRequestActor with CalculationRequestActorComponent
+  extends CalculationRequestActor with CalculationRequestActorComponent {
+  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+}
 
 class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationActorSystem")) with AnyWordSpecLike with MockitoSugar
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with ActorUtils with BeforeAndAfter {

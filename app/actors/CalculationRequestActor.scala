@@ -16,7 +16,6 @@
 
 package actors
 
-import com.google.inject.Inject
 import config.ApplicationConfiguration
 import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import metrics.ApplicationMetrics
@@ -28,7 +27,7 @@ import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import java.util.concurrent.TimeUnit
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
 trait CalculationRequestActorComponent {
@@ -44,11 +43,12 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
   self: CalculationRequestActorComponent =>
 
   override def receive: Receive = {
+
     case request: ProcessReadyCalculationRequest => {
 
       val origSender = sender()
       val startTime = System.currentTimeMillis()
-
+      implicit val ec : ExecutionContext = context.dispatcher
       desConnector.getPersonDetails(request.validCalculationRequest.get.nino) map {
         case DesGetHiddenRecordResponse =>
 
@@ -166,9 +166,10 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
       sender() ! org.apache.pekko.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
     }
   }
+
 }
 
-class DefaultCalculationRequestActor @Inject()(override val repository : BulkCalculationMongoRepository,
+class DefaultCalculationRequestActor (override val repository : BulkCalculationMongoRepository,
                                                override val desConnector : DesConnector,
                                                override val ifConnector: IFConnector,
                                                override val metrics : ApplicationMetrics,
