@@ -44,7 +44,7 @@ class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationL
                           desConnector : DesConnector,
                           hipConnector: HipConnector,
                           ifConnector: IFConnector,
-                          metrics : ApplicationMetrics
+                          metrics : ApplicationMetrics,appConfig: AppConfig
                          )(implicit val ec: ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
 
   lazy val scheduledJobs: Seq[ScheduledJob] = {
@@ -57,7 +57,7 @@ class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationL
         desConnector,
         ifConnector,
         hipConnector,
-        metrics
+        metrics,appConfig
       ), "processing-supervisor")
 
       override def name: String = "BulkProcesssingService"

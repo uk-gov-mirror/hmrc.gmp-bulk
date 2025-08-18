@@ -38,7 +38,7 @@ class HipConnector @Inject()(http: HttpClientV2,
                              appConfig: ApplicationConfiguration,
                              config: AppConfig) extends UsingCircuitBreaker {
   val hipBaseUrl: String = config.hipUrl
-  val calcURI = s"$hipBaseUrl/pension/gmp/calculation"
+  val calcURI = s"$hipBaseUrl/ni/gmp/calculation"
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
   def calculate(request: HipCalculationRequest): Future[HipCalculationResponse] = {

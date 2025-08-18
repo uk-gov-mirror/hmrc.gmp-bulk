@@ -49,7 +49,7 @@ class HipConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wi
   "HipConnector" should {
     implicit val hc = HeaderCarrier()
     "for calculate" should {
-      val calculateUrl: String = "http://localhost:9943/pension/gmp/calculation"
+      val calculateUrl: String = "http://localhost:9943/ni/gmp/calculation"
       "return successful response for status 200" in new SUT {
         when(calcURI).thenReturn(calculateUrl)
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),

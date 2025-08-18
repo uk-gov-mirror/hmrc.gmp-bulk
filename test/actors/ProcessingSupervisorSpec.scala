@@ -19,7 +19,7 @@ package actors
 import actors.Throttler.SetTarget
 import org.apache.pekko.actor.{ActorSystem, Props}
 import org.apache.pekko.testkit._
-import config.ApplicationConfiguration
+import config.{AppConfig, ApplicationConfiguration}
 import connectors.{DesConnector, HipConnector, IFConnector}
 import helpers.RandomNino
 import metrics.ApplicationMetrics
@@ -56,7 +56,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
   val metrics = mock[ApplicationMetrics]
   val hipConnector = mock[HipConnector]
   val mockRepository = mock[BulkCalculationMongoRepository]
-
+  val appConfig  = mock[AppConfig]
 
   override def beforeAll(): Unit = {
     when(applicationConfig.bulkProcessingBatchSize).thenReturn(1)
@@ -108,7 +108,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
       val throttlerProbe = TestProbe()
       val calculationActorProbe = TestProbe()
 
-      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig, mockRepository, mongoApi, desConnector, ifConnector,hipConnector,metrics) {
+      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig, mockRepository, mongoApi, desConnector, ifConnector,hipConnector,metrics,appConfig ) {
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref
         override lazy val repository = mockRepository
@@ -129,7 +129,7 @@ class ProcessingSupervisorSpec extends TestKit(ActorSystem("TestProcessingSystem
       val throttlerProbe = TestProbe()
       val calculationActorProbe = TestProbe()
 
-      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig, mockRepository, mongoApi, desConnector, ifConnector, hipConnector,metrics) {
+      val processingSupervisor = TestActorRef(Props(new ProcessingSupervisor(applicationConfig, mockRepository, mongoApi, desConnector, ifConnector, hipConnector,metrics,appConfig) {
 
         override lazy val throttler = throttlerProbe.ref
         override lazy val requestActor = calculationActorProbe.ref

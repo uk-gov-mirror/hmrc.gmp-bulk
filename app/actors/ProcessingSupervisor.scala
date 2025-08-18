@@ -19,7 +19,7 @@ package actors
 import actors.Throttler.{RateInt, SetTarget}
 import org.apache.pekko.actor._
 import com.github.ghik.silencer.silent
-import config.ApplicationConfiguration
+import config.{AppConfig, ApplicationConfiguration}
 import connectors.{DesConnector, HipConnector, IFConnector}
 import metrics.ApplicationMetrics
 import play.api.Logging
@@ -39,7 +39,7 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
                                      desConnector : DesConnector,
                                      ifConnector: IFConnector,
                                      hipConnector: HipConnector,
-                                     metrics : ApplicationMetrics)
+                                     metrics : ApplicationMetrics, appConfig: AppConfig)
   extends Actor with ActorUtils with TimePeriodLockService with Logging {
 
   override val lockRepository: LockRepository = mongoLockRepository
@@ -55,7 +55,8 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
     ifConnector,
     hipConnector,
     metrics,
-    applicationConfig
+    applicationConfig,
+    appConfig
   ), "calculation-requester")
 
   lazy val throttler: ActorRef = context.actorOf(Props(classOf[TimerBasedThrottler],
