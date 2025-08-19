@@ -20,18 +20,20 @@ import com.google.inject.Inject
 import config.{AppConfig, ApplicationConfiguration, Constants}
 import metrics.ApplicationMetrics
 import models.{HipCalculationRequest, HipCalculationResponse}
-import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR, OK}
+import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
 import play.api.i18n.Lang.logger
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneOffset}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 class HipConnector @Inject()(http: HttpClientV2,
                              val metrics: ApplicationMetrics,
@@ -49,17 +51,56 @@ class HipConnector @Inject()(http: HttpClientV2,
       .withBody(Json.toJson(request)).execute[HttpResponse].map { response =>
         metrics.registerStatusCode(response.status.toString)
         metrics.hipConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-        response.json.validate[HipCalculationResponse] match {
-          case JsSuccess(value, _) =>
-            response.status match {
-              case OK => value
-              case BAD_REQUEST => logger.info("[HipConnector][calculate] : NPS returned code 400")
-                HipCalculationResponse(request.nationalInsuranceNumber, BAD_REQUEST.toString, "", None, None, Some(request.schemeContractedOutNumber), Nil)
-              case errorStatus: Int => logger.error(s"[HipConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
-                throw UpstreamErrorResponse("HIP connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
+        response.status match {
+          case OK =>
+            response.json.validate[HipCalculationResponse] match {
+              case JsSuccess(value, _) => value
+              case JsError(errors) =>
+                val errorFields = errors.map(_._1.toString()).mkString(", ")
+                val responseCode = response.status
+                val responseBody = response.body.take(1000) // truncate if very long
+                val detailedMsg =
+                  s"HIP returned invalid JSON (status: $responseCode). Failed to parse fields: $errorFields. Body: $responseBody"
+                logger.error(s"[HipConnector][calculate] $detailedMsg")
+                throw new RuntimeException(detailedMsg)
             }
-          case JsError(errors) => logger.error(s"[HipConnector][calculate] JSON validation failed: $errors")
-            throw new RuntimeException("Invalid JSON response from HIP")
+          case BAD_REQUEST => logger.warn(s"[HipConnector][calculate] : HIP returned 400 (Bad Request). Body: ${response.body}")
+            HipCalculationResponse(
+              request.nationalInsuranceNumber,
+              BAD_REQUEST.toString,
+              "The request was invalid — please check the provided details.",
+              None,
+              None,
+              Some(request.schemeContractedOutNumber),
+              Nil
+            )
+          case FORBIDDEN =>
+            logger.warn(s"[HipConnector][calculate] : HIP returned 403 (Forbidden). Body: ${response.body}")
+            HipCalculationResponse(
+              request.nationalInsuranceNumber,
+              FORBIDDEN.toString,
+              "You are not authorised to perform this calculation.",
+              None,
+              None,
+              Some(request.schemeContractedOutNumber),
+              Nil
+            )
+
+          case NOT_FOUND =>
+            logger.warn(s"[HipConnector][calculate] : HIP returned 404 (Not Found). Body: ${response.body}")
+            HipCalculationResponse(
+              request.nationalInsuranceNumber,
+              NOT_FOUND.toString,
+              "The requested calculation could not be found.",
+              None,
+              None,
+              Some(request.schemeContractedOutNumber),
+              Nil
+            )
+
+          case errorStatus: Int =>
+            logger.error(s"[HipConnector][calculate] : HIP returned $errorStatus and response body: ${response.body}")
+            throw UpstreamErrorResponse("HIP connector calculation failed", errorStatus, INTERNAL_SERVER_ERROR)
         }
       }
     )

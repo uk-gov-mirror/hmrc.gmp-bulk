@@ -24,7 +24,7 @@ import org.scalatest.{BeforeAndAfter, RecoverMethods}
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.libs.json.Json
-import play.api.test.Helpers.{BAD_REQUEST, OK}
+import play.api.test.Helpers.{BAD_REQUEST, OK, FORBIDDEN, NOT_FOUND}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
 import utils.WireMockHelper
 
@@ -80,6 +80,27 @@ class HipConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wi
         requestBuilderExecute(Future.successful(httpResponse))
         calculate(request).map { result =>
           httpResponse.status mustBe 400
+        }
+      }
+
+      "return fallback HipCalculationResponse for 403 Bad Request" in new SUT{
+        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
+        val httpResponse = HttpResponse(FORBIDDEN, Json.toJson(successResponse).toString())
+        val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        requestBuilderExecute(Future.successful(httpResponse))
+        calculate(request).map { result =>
+          httpResponse.status mustBe 403
+        }
+      }
+      "return fallback HipCalculationResponse for 404 Bad Request" in new SUT{
+        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
+        val httpResponse = HttpResponse(NOT_FOUND, Json.toJson(successResponse).toString())
+        val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        requestBuilderExecute(Future.successful(httpResponse))
+        calculate(request).map { result =>
+          httpResponse.status mustBe 404
         }
       }
 
