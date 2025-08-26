@@ -34,7 +34,7 @@ import uk.gov.hmrc.mongo.lock.{Lock, MongoLockRepository, TimePeriodLockService}
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
