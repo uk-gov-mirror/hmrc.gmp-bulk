@@ -33,27 +33,29 @@ trait RunningOfScheduledJobs extends Logging {
 
   lazy val scheduler: Scheduler = application.actorSystem.scheduler
 
-  val scheduledJobs: Seq[ScheduledJob]
+  lazy val scheduledJobs: Seq[ScheduledJob]
 
   val applicationLifecycle: ApplicationLifecycle
 
   private[scheduling] var cancellables: Seq[Cancellable] = Seq.empty
 
   cancellables = scheduledJobs.map { job =>
-    scheduler.schedule(job.initialDelay, job.interval) {
+    scheduler.scheduleAtFixedRate(job.initialDelay, job.interval)(new Runnable {
+      override def run(): Unit = {
         val stopWatch = new StopWatch
         stopWatch.start()
         logger.info(s"Executing job ${job.name}")
 
-      job.execute.onComplete {
-        case Success(job.Result(message)) =>
-          stopWatch.stop()
-          logger.info(s"Completed job ${job.name} in $stopWatch: $message")
-        case Failure(throwable) =>
-          stopWatch.stop()
-          logger.error(s"Exception running job ${job.name} after $stopWatch", throwable)
+        job.execute.onComplete {
+          case Success(job.Result(message)) =>
+            stopWatch.stop()
+            logger.info(s"Completed job ${job.name} in $stopWatch: $message")
+          case Failure(throwable) =>
+            stopWatch.stop()
+            logger.error(s"Exception running job ${job.name} after $stopWatch", throwable)
+        }
       }
-    }
+    })
   }
 
   applicationLifecycle.addStopHook { () =>

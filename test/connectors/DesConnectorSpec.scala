@@ -32,7 +32,7 @@ import utils.WireMockHelper
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.http.client.HttpClientV2
 
-import java.net.{URL, URLEncoder}
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}

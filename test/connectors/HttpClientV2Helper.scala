@@ -16,19 +16,17 @@
 
 package connectors
 
-import org.mockito.ArgumentCaptor
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.mockito.MockitoSugar
-import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.*
+import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
-
+import play.api.libs.json.JsValue
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads}
 import java.net.URL
 import scala.concurrent.{ExecutionContext, Future}
-
 
 trait HttpClientV2Helper extends PlaySpec with MockitoSugar with ScalaFutures {
 
@@ -44,14 +42,14 @@ trait HttpClientV2Helper extends PlaySpec with MockitoSugar with ScalaFutures {
   when(mockHttp.put(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   when(requestBuilder.transform(any())).thenReturn(requestBuilder)
   when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
-  when(requestBuilder.withBody(any[JsValue])(any(), any(), any())).thenReturn(requestBuilder)
-  when(requestBuilder.withBody(requestCaptor.capture())(any(), any(), any())).thenReturn(requestBuilder)
-  when(requestBuilder.withBody(jsonCaptor.capture())(any(), any(), any())).thenReturn(requestBuilder)
-
+  when(requestBuilder.withBody(any[JsValue])(using ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(requestBuilder)
+  when(requestBuilder.withBody(requestCaptor.capture())(using ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(requestBuilder)
+  when(requestBuilder.withBody(jsonCaptor.capture())(using ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(requestBuilder)
 
 
   def requestBuilderExecute[A](result: Future[A]): Unit = {
-    when(requestBuilder.execute[A](any[HttpReads[A]], any[ExecutionContext]))
-      .thenReturn(result)
+    when(
+      requestBuilder.execute[A](using any[HttpReads[A]], any[ExecutionContext])
+    ).thenReturn(result)
   }
 }

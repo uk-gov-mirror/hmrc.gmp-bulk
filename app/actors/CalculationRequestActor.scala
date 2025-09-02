@@ -59,7 +59,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
           }
 
-        case x => {
+        case _ => {
 
           val tryCallingDes = Try {
             if(applicationConfig.ifEnabled) {
@@ -120,7 +120,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
                   // Record the response as a failure, which will help out with cyclic processing of messages
                   repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), responseCode, None, None, None, containsErrors = true)).map { result =>
+                    GmpBulkCalculationResponse(List(), responseCode, None, None, None, containsErrors = true)).map { _ =>
 
                     origSender ! org.apache.pekko.actor.Status.Failure(f)
                   }

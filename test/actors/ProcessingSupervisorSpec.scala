@@ -18,24 +18,24 @@ package actors
 
 import actors.Throttler.SetTarget
 import org.apache.pekko.actor.{ActorSystem, Props}
-import org.apache.pekko.testkit._
+import org.apache.pekko.testkit.*
 import config.ApplicationConfiguration
 import connectors.{DesConnector, IFConnector}
 import helpers.RandomNino
 import metrics.ApplicationMetrics
 import models.{ProcessReadyCalculationRequest, ValidCalculationRequest}
 import org.mockito.ArgumentMatchers.{any, anyString}
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.mockito.MockitoSugar
 import repositories.BulkCalculationMongoRepository
-import uk.gov.hmrc.mongo.lock.{Lock, MongoLockRepository, TimePeriodLockService}
+import uk.gov.hmrc.mongo.lock.{Lock, MongoLockRepository}
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.language.postfixOps
 
 

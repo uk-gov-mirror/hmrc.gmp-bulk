@@ -39,7 +39,7 @@ class AuthAction @Inject()(override val authConnector: AuthConnector,
     authorised(ConfidenceLevel.L50) {
       block(request)
     } recover {
-      case ex: NoActiveSession =>
+      case _: NoActiveSession =>
         Status(UNAUTHORIZED)
     }
   }
