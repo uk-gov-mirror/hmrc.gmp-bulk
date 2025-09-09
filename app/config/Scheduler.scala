@@ -46,7 +46,7 @@ class Scheduler @Inject()(override val applicationLifecycle: DefaultApplicationL
                           metrics : ApplicationMetrics
                          )(implicit val ec : ExecutionContext) extends RunningOfScheduledJobs with ActorUtils {
 
-  lazy val scheduledJobs: Seq[ScheduledJob] = {
+lazy val scheduledJobs: Seq[ScheduledJob] = {
     Seq(new ExclusiveScheduledJob {
       lazy val processingSupervisor = actorSystem.actorOf(Props(
         classOf[ProcessingSupervisor],

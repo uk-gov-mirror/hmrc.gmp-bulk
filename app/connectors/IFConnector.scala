@@ -90,7 +90,7 @@ class IFConnector @Inject()(
     val startTime = System.currentTimeMillis()
 
     http.get(new URL(url))
-      .setHeader(ifsHeaders:_*)
+      .setHeader(ifsHeaders*)
       .execute[HttpResponse]
       .map { response =>
 

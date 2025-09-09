@@ -25,6 +25,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.client.HttpClientV2
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
 import java.time.format.DateTimeFormatter
 import scala.concurrent.{ExecutionContext , Future}
@@ -73,7 +74,7 @@ class EmailConnector @Inject()(http: HttpClientV2,
     logger.debug(s"[EmailConnector] Sending email to ${request.to.mkString(", ")}")
 
     http.post(url"$url")
-      .setHeader(Seq(("Content-Type", "application/json")):_*)
+      .setHeader(Seq(("Content-Type", "application/json"))*)
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .map { response =>

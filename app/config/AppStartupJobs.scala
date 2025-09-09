@@ -19,7 +19,7 @@ package config
 import models.{ProcessReadyCalculationRequest, ProcessedBulkCalculationRequest}
 import org.apache.pekko.actor.ActorSystem
 import org.mongodb.scala.MongoCollection
-import org.mongodb.scala.model.{Filters, Projections, Sorts}
+import org.mongodb.scala.model.{Filters, Projections}
 import play.api.{Configuration, Logging}
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
@@ -30,6 +30,7 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import org.mongodb.scala.bson.BsonDocument
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.ObservableFuture
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -143,13 +144,13 @@ trait AppStartupJobs extends Logging {
           collection = processReadyCalsReqCollection,
           filter = missingCreatedAtFilter,
           description = "child documents missing createdAt"
-        )(ec)
+        )(using ec)
 
         _ <- logCount(
             collection = processedBulkCalsReqCollection,
             filter = incompleteParentsFilter,
             description = "incomplete parent documents (complete = false)"
-          )(ec)
+          )(using ec)
 
         _ <- parentsMissingCreatedAtAndChildren()
         _ <- logOldestCreatedAt()

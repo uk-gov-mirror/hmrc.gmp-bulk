@@ -18,7 +18,6 @@ package actors
 
 import actors.Throttler.{RateInt, SetTarget}
 import org.apache.pekko.actor._
-import com.github.ghik.silencer.silent
 import config.ApplicationConfiguration
 import connectors.{DesConnector, IFConnector}
 import metrics.ApplicationMetrics
@@ -28,8 +27,10 @@ import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository, TimePeriodLo
 
 import javax.inject.Singleton
 import scala.concurrent.duration._
+import scala.annotation.nowarn
 
-@silent
+
+@nowarn
 @Singleton
 class ProcessingSupervisor (applicationConfig: ApplicationConfiguration,
                                      bulkCalculationMongoRepository : BulkCalculationMongoRepository,
@@ -94,16 +95,16 @@ class ProcessingSupervisor (applicationConfig: ApplicationConfiguration,
         }
     }
   }
-
-  def receiveWhenProcessRunning : Receive = {
+  
+  def receiveWhenProcessRunning: Receive = {
     // $COVERAGE-OFF$
-    case START => logger.info("[ProcessingSupervisor][received while processing] START ignored")
+    case START =>
+      logger.info("[ProcessingSupervisor][received while processing] START ignored")
     // $COVERAGE-ON$
 
     case STOP =>
-      import scala.language.postfixOps
       logger.info("[ProcessingSupervisor][received while processing] STOP received")
-      context unbecome
+      context.unbecome()
   }
 
 }
