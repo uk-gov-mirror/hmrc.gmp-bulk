@@ -4,17 +4,17 @@ import sbt.*
 object AppDependencies {
 
   private val playSuffix = "-play-30"
-  private val bootstrapVersion = "10.1.0"
-  private val hmrcMongoVersion = "2.7.0"
+  private val bootstrapVersion = "10.2.0"
+  private val hmrcMongoVersion = "2.9.0"
   private val pekkoVersion = "1.2.0"
 
   val compile: Seq[ModuleID] = Seq(
     ws,
     "uk.gov.hmrc.mongo"                          %% s"hmrc-mongo$playSuffix"        % hmrcMongoVersion,
     "uk.gov.hmrc"                                %% s"bootstrap-backend$playSuffix" % bootstrapVersion,
-    "uk.gov.hmrc"                                %% s"domain$playSuffix"            % "10.0.0",
-    "uk.gov.hmrc"                                %% "reactive-circuit-breaker"      % "6.0.0",
-    "uk.gov.hmrc"                                %% "tax-year"                      % "5.0.0"
+    "uk.gov.hmrc"                                %% s"domain$playSuffix"            % "13.0.0",
+    "uk.gov.hmrc"                                %% "reactive-circuit-breaker"      % "6.1.0",
+    "uk.gov.hmrc"                                %% "tax-year"                      % "6.0.0"
   )
 
   val test: Seq[ModuleID] = Seq(
@@ -22,7 +22,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-test$playSuffix" % hmrcMongoVersion,
     "org.scalatestplus.play" %% "scalatestplus-play"          % "7.0.2",
     "org.scalatestplus"      %% "mockito-5-18"                % "3.2.19.0",
-    "org.apache.pekko"       %% "pekko-testkit"               % "1.2.0"
+    "org.apache.pekko"       %% "pekko-testkit"               % "1.2.1"
   ).map(_ % "test")
 
   val jacksonVersion         = "2.17.2"
