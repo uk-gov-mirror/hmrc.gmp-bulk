@@ -6,7 +6,7 @@ object AppDependencies {
   private val playSuffix = "-play-30"
   private val bootstrapVersion = "10.2.0"
   private val hmrcMongoVersion = "2.9.0"
-  private val pekkoVersion = "1.2.0"
+  private val pekkoVersion = "1.2.1"
 
   val compile: Seq[ModuleID] = Seq(
     ws,
