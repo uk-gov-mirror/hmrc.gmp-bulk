@@ -169,7 +169,7 @@ object TimerBasedThrottler {
   *   // A simple actor that prints whatever it receives
   *   class Printer extends Actor {
   *     def receive = {
-  *       case x => println(x)
+  *
   *     }
   *   }
   *

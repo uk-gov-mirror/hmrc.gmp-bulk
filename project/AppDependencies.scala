@@ -4,8 +4,8 @@ import sbt.*
 object AppDependencies {
 
   private val playSuffix = "-play-30"
-  private val bootstrapVersion = "10.1.0"
-  private val hmrcMongoVersion = "2.7.0"
+  private val bootstrapVersion = "10.3.0"
+  private val hmrcMongoVersion = "2.10.0"
   private val pekkoVersion = "1.2.0"
 
   val compile: Seq[ModuleID] = Seq(
@@ -13,7 +13,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"                          %% s"hmrc-mongo$playSuffix"        % hmrcMongoVersion,
     "uk.gov.hmrc"                                %% s"bootstrap-backend$playSuffix" % bootstrapVersion,
     "uk.gov.hmrc"                                %% s"domain$playSuffix"            % "10.0.0",
-    "uk.gov.hmrc"                                %% "reactive-circuit-breaker"      % "6.0.0",
+    "uk.gov.hmrc"                                %% "reactive-circuit-breaker"      % "6.1.0",
     "uk.gov.hmrc"                                %% "tax-year"                      % "5.0.0"
   )
 
