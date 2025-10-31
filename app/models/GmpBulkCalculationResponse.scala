@@ -22,13 +22,13 @@ import play.api.libs.json.{Json, OFormat}
 import utils.HipErrorCodeMapper
 
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
-
 object ContributionsAndEarnings {
   implicit val formats: OFormat[ContributionsAndEarnings] = Json.format[ContributionsAndEarnings]
+  private val contributionsAndEarningsBefore1987 = 1987
 
   def createFromNpsLcntearn(earnings: NpsLcntearn): ContributionsAndEarnings = {
     ContributionsAndEarnings(earnings.rattd_tax_year, earnings.rattd_tax_year match {
-      case x if x < 1987 => f"${earnings.contributions_earnings}%1.2f"
+      case x if x < contributionsAndEarningsBefore1987 => f"${earnings.contributions_earnings}%1.2f"
       case _ => {
         val formatter = java.text.NumberFormat.getIntegerInstance
         formatter.setGroupingUsed(false)
@@ -40,7 +40,7 @@ object ContributionsAndEarnings {
   //HIP Transformation
   def createFromHipDetails(details: ContributionsAndEarningsDetails): ContributionsAndEarnings = {
     ContributionsAndEarnings(details.taxYear, details.taxYear match {
-      case x if x < 1987 => f"${details.contributionOrEarningsAmount}%1.2f"
+      case x if x < contributionsAndEarningsBefore1987 => f"${details.contributionOrEarningsAmount}%1.2f"
       case _ => {
         val formatter = java.text.NumberFormat.getIntegerInstance
         formatter.format(details.contributionOrEarningsAmount)
@@ -96,7 +96,6 @@ object CalculationPeriod {
   }
 
   def mapRevaluationRate(rate: String): Int = rate match {
-    case "(NONE)" => 0
     case "S148"   => 1
     case "FIXED"  => 2
     case "LIMITED"=> 3
@@ -174,12 +173,24 @@ object GmpBulkCalculationResponse {
     val calcPeriod = hipResponse.GuaranteedMinimumPensionDetailsList.map(CalculationPeriod.createFromHipGmpDetails)
     GmpBulkCalculationResponse(
       calculationPeriods = calcPeriod,
-      globalErrorCode = HipErrorCodeMapper.mapRejectionReason(hipResponse.rejectionReason),
+      globalErrorCode = 0,
       spaDate = hipResponse.statePensionAgeDate.map(LocalDate.parse(_)),
       payableAgeDate= hipResponse.payableAgeDate.map(LocalDate.parse(_)),
       dateOfDeath= hipResponse.dateOfDeath.map(LocalDate.parse(_)),
-      containsErrors = calcPeriod.exists(_.errorCode>0)|| HipErrorCodeMapper.mapRejectionReason(hipResponse.rejectionReason) >0
+      containsErrors = calcPeriod.exists(_.errorCode > 0)
 
+    )
+  }
+
+  def createFromHipFailuresResponse(failures: HipCalculationFailuresResponse): GmpBulkCalculationResponse = {
+    val global = failures.failures.headOption.map(_.code).getOrElse(422)
+    GmpBulkCalculationResponse(
+      calculationPeriods = List.empty,
+      globalErrorCode = global,
+      spaDate = None,
+      payableAgeDate = None,
+      dateOfDeath = None,
+      containsErrors = true
     )
   }
 

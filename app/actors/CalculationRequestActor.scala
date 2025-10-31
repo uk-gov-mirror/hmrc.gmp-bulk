@@ -20,13 +20,12 @@ import com.google.inject.Inject
 import config.{AppConfig, ApplicationConfiguration}
 import connectors.{DesConnector, DesGetHiddenRecordResponse, HipConnector, IFConnector}
 import metrics.ApplicationMetrics
-import models.{CalculationResponse, GmpBulkCalculationResponse, HipCalculationRequest, HipCalculationResponse, ProcessReadyCalculationRequest}
+import models.{CalculationResponse, GmpBulkCalculationResponse, HipCalculationFailuresResponse, HipCalculationRequest, HipCalculationResponse, ProcessReadyCalculationRequest}
 import org.apache.pekko.actor._
 import play.api.Logging
 import play.api.http.Status
 import repositories.BulkCalculationMongoRepository
-import uk.gov.hmrc.http.UpstreamErrorResponse
-
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -68,7 +67,7 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
               ifConnector.calculate(request.validCalculationRequest.get)
             } else if (appConfig.isHipEnabled) {
               val hipRequest = HipCalculationRequest.from(request.validCalculationRequest.get)
-              hipConnector.calculate(hipRequest)
+              hipConnector.calculateOutcome(userId = "system", hipRequest)(HeaderCarrier())
             } else{
               desConnector.calculate(request.validCalculationRequest.get)
             }
@@ -89,13 +88,25 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                     }
                   }
                 }
-                case hipResponse: HipCalculationResponse => {
+                case Right(hipResponse: HipCalculationResponse) => {
                   repository.insertResponseByReference(request.bulkId, request.lineId, GmpBulkCalculationResponse.createFromHipCalculationResponse(hipResponse)).map {
 
                     result => {
                       // $COVERAGE-OFF$
                       metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
                       logger.debug(s"[CalculationRequestActor] InsertResponse : $result")
+                      // $COVERAGE-ON$
+                      origSender ! result
+                    }
+                  }
+                }
+                case Left(hipFailures: HipCalculationFailuresResponse) => {
+                  repository.insertResponseByReference(request.bulkId, request.lineId, GmpBulkCalculationResponse.createFromHipFailuresResponse(hipFailures)).map {
+
+                    result => {
+                      // $COVERAGE-OFF$
+                      metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+                      logger.debug(s"[CalculationRequestActor] InsertResponse (422) : $result")
                       // $COVERAGE-ON$
                       origSender ! result
                     }

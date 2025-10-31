@@ -24,8 +24,10 @@ import org.scalatest.{BeforeAndAfter, RecoverMethods}
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.libs.json.Json
-import play.api.test.Helpers.{BAD_REQUEST, OK, FORBIDDEN, NOT_FOUND}
+import play.api.test.Helpers.{BAD_REQUEST, FORBIDDEN, NOT_FOUND, OK}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.audit.model.DataEvent
 import utils.WireMockHelper
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,6 +37,7 @@ class HipConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wi
   val mockApplicationConfiguration: ApplicationConfiguration = mock[ApplicationConfiguration]
   val mockAppConfig: AppConfig = mock[AppConfig]
   val mockMetrics: ApplicationMetrics = mock[ApplicationMetrics]
+  val mockAudit: AuditConnector = mock[AuditConnector]
 
   // AppConfig mocks
   when(mockAppConfig.hipUrl).thenReturn("http://localhost:9999")
@@ -44,101 +47,88 @@ class HipConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wi
   when(mockAppConfig.hipEnvironmentHeader).thenReturn("Environment" -> "local")
   when(mockAppConfig.isHipEnabled).thenReturn(true)
 
-  class SUT extends HipConnector(mockHttp, mockMetrics, mockApplicationConfiguration, mockAppConfig) {
-  }
+  class SUT extends HipConnector(
+    appConfig = mockAppConfig,
+    metrics = mockMetrics,
+    http = mockHttp,
+    auditConnector = mockAudit,
+    applicationConfig = mockApplicationConfiguration
+  ) {}
   "HipConnector" should {
     implicit val hc = HeaderCarrier()
-    "for calculate" should {
-      val calculateUrl: String = "http://localhost:9943/ni/gmp/calculation"
-      "return successful response for status 200" in new SUT {
-        when(calcURI).thenReturn(calculateUrl)
+    // Avoid NPE from doAudit by stubbing a successful audit result
+    when(
+      mockAudit.sendEvent(
+        org.mockito.ArgumentMatchers.any[DataEvent]
+      )(org.mockito.ArgumentMatchers.any[HeaderCarrier], org.mockito.ArgumentMatchers.any[scala.concurrent.ExecutionContext])
+    ).thenReturn(scala.concurrent.Future.successful(AuditResult.Success))
+    "for calculateOutcome" should {
+      "return Right for status 200" in new SUT {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
+        val successResponse = HipCalculationResponse("", "S2123456B", None, Some(""), Some(""), List.empty)
         val httpResponse = HttpResponse(OK, Json.toJson(successResponse).toString())
         requestBuilderExecute(Future.successful(httpResponse))
-        calculate(request).map{
-          result => result.schemeContractedOutNumberDetails mustBe "S2123456B"
+        calculateOutcome("system", request).map{
+          case Right(result) => result.schemeContractedOutNumberDetails mustBe "S2123456B"
+          case _ => fail("Expected Right for 200")
         }
       }
-      "return a response for status 400" in new SUT{
+      "return Left for status 422" in new SUT {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(BAD_REQUEST, Json.toJson(successResponse).toString())
+        val failuresJson = Json.obj("failures" -> Json.arr(Json.obj("reason" -> "No Match", "code" -> "63119")))
+        val httpResponse = HttpResponse(422, failuresJson.toString())
         requestBuilderExecute(Future.successful(httpResponse))
-        calculate(request).map { result =>
-          result mustBe ""
+        calculateOutcome("system", request).map{
+          case Left(f) => f.failures.head.code mustBe 63119
+          case _ => fail("Expected Left for 422")
         }
       }
-
-      "return fallback HipCalculationResponse for 400 Bad Request" in new SUT{
-        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(BAD_REQUEST, Json.toJson(successResponse).toString())
+      "throw UpstreamErrorResponse for 400/403/404" in new SUT{
         val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-        requestBuilderExecute(Future.successful(httpResponse))
-        calculate(request).map { result =>
-          httpResponse.status mustBe 400
+        val statuses = Seq(BAD_REQUEST, FORBIDDEN, NOT_FOUND)
+        statuses.foreach { st =>
+          val httpResponse = HttpResponse(st, Json.obj().toString())
+          requestBuilderExecute(Future.successful(httpResponse))
+          RecoverMethods.recoverToExceptionIf[UpstreamErrorResponse] {
+            calculateOutcome("system", request)
+          }.map { ex => ex.statusCode mustBe st }
         }
       }
-
-      "return fallback HipCalculationResponse for 403 Bad Request" in new SUT{
-        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(FORBIDDEN, Json.toJson(successResponse).toString())
-        val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-        requestBuilderExecute(Future.successful(httpResponse))
-        calculate(request).map { result =>
-          httpResponse.status mustBe 403
-        }
-      }
-      "return fallback HipCalculationResponse for 404 Bad Request" in new SUT{
-        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(NOT_FOUND, Json.toJson(successResponse).toString())
-        val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-        requestBuilderExecute(Future.successful(httpResponse))
-        calculate(request).map { result =>
-          httpResponse.status mustBe 404
-        }
-      }
-
       "fail the future if HTTP call fails" in new SUT{
         val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
         requestBuilderExecute(Future.failed(new RuntimeException("Connection error")))
         RecoverMethods.recoverToExceptionIf[RuntimeException] {
-          calculate(request)
+          calculateOutcome("system", request)
         }.map {
           ex => ex.getMessage must include("Connection error")
         }
       }
-
       "throw UpstreamErrorResponse for error status code 500" in new SUT {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(500, Json.toJson(successResponse).toString())
+        val httpResponse = HttpResponse(500, Json.obj().toString())
         requestBuilderExecute(Future.successful(httpResponse))
         RecoverMethods.recoverToExceptionIf[UpstreamErrorResponse] {
-          calculate(request)
+          calculateOutcome("system", request)
         }.map { exception =>
           exception.statusCode mustBe 500
           exception.reportAs mustBe INTERNAL_SERVER_ERROR
         }
       }
-
-      "throw RuntimeException when JSON validation fails" in new SUT{
+      "throw UpstreamErrorResponse when JSON validation fails for 200" in new SUT{
         val invalidJson = Json.obj("unexpectedField" -> "unexpectedValue")
         val httpResponse = HttpResponse(OK, invalidJson.toString())
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
         requestBuilderExecute(Future.successful(httpResponse))
-        RecoverMethods.recoverToExceptionIf[RuntimeException] {
-          calculate(request)
-        }.map{
-          exception => exception.getMessage must include("Invalid JSON response from HIP")
+        RecoverMethods.recoverToExceptionIf[UpstreamErrorResponse] {
+          calculateOutcome("system", request)
+        }.map{ exception =>
+          exception.statusCode mustBe 502
         }
       }
     }

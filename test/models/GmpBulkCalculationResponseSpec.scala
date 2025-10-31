@@ -208,10 +208,10 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
       val earnings = period.contsAndEarnings.get.head
       earnings.taxYear mustBe 2022
       earnings.contEarnings mustBe "11" // Note: For >=1987, no decimals and rounding to nearest integer
-      gmpResponse.globalErrorCode mustBe 63119
+      gmpResponse.globalErrorCode mustBe 0
       gmpResponse.containsErrors mustBe true
       gmpResponse.hasErrors mustBe true
-      gmpResponse.errorCodes must contain (gmpResponse.globalErrorCode)
+      all (gmpResponse.errorCodes) must be > 0
       gmpResponse.errorCodes must contain (period.errorCode)
 
 

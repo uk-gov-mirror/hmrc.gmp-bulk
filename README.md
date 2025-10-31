@@ -3,15 +3,6 @@ GMP-BULK
 
 Guaranteed Minimum Pension Bulk micro service
 
-[![Build Status](https://travis-ci.org/hmrc/gmp-bulk.svg)](https://travis-ci.org/hmrc/gmp-bulk) [ ![Download](https://api.bintray.com/packages/hmrc/releases/gmp-bulk/images/download.svg) ](https://bintray.com/hmrc/releases/gmp-bulk/_latestVersion)
-
-##API
-
-### Dependency Upgrades
-
-use command dependencyUpdates in SBT to give a list of all potential dependency upgrades.
-
-addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.5.0")
 
 | PATH | Supported Methods | Description |
 |------|-------------------|-------------|
@@ -73,14 +64,154 @@ Post multiple validated calculations to be evaluated.
               }
 ```
 
-Run the application locally
----------------------------
+## HIP API Integration (Spec 1.0.5)
+
+- **Success (200 OK)**: HIP returns `HipCalculationResponse`. We transform it via `GmpBulkCalculationResponse.createFromHipResponse(...)`.
+  - `globalErrorCode = 0` for 200 success.
+  - Any errors are represented by period-level error codes inside `calculationPeriods`.
+
+- **Failures (422 Unprocessable Entity)**: HIP returns `HipCalculationFailuresResponse`. We transform it via `GmpBulkCalculationResponse.createFromHipFailuresResponse(...)`.
+  - `globalErrorCode = first HIP failure code` (e.g., 63123).
+  - `calculationPeriods` is empty in this case.
+
+### Request mapping to HIP
+- Source model: `models/ValidCalculationRequest` → `models/HipCalculationRequest` (see `app/models/HipCalculationRequest.scala`).
+- Mappings:
+  - `revaluationRate`: 0 → `(NONE)`, 1 → `S148`, 2 → `FIXED`, 3 → `LIMITED`.
+  - `calctype`: 0 → `DOL`, 1 → `Revaluation`, 2 → `PayableAge`, 3 → `Survivor`, 4 → `SPA`.
+  - Missing dates map to the literal string `"(NONE)"`.
+  - `dualCalc`: `Some(1)` → `includeDualCalculation = true`; otherwise `false`.
+
+### Error code mapping
+- Only GMP error message strings are mapped to integers via `HipErrorCodeMapper.mapGmpErrorCode` (`app/utils/HipErrorCodeMapper.scala`).
+- Legacy rejection-reason mapping is removed; 422 failures use the dedicated failures model.
+
+### HIP headers and authentication
+Defined in `app/connectors/HipConnector.scala`:
+- `gov-uk-originator-id` (from config), `correlationId` (UUID), `Authorization: Basic <token>`.
+- Environment header, `X-Originating-System`, `X-Receipt-Date`, `X-Transmitting-System`.
+
+### Circuit breaker and error handling
+- Circuit breaker trips on 5xx/timeouts from HIP (`UsingCircuitBreaker`).
+- `429` rate limiting logs a warning and short-circuits via breaker.
+- Non-200/422 responses are converted to `UpstreamErrorResponse` with appropriate `reportAs` codes.
+
+### Auditing
+- Requests are audited with `AuditConnector.sendEvent(DataEvent(...))`; audit failures are logged as warnings.
+
+### Logging and redaction
+- Response/request bodies are redacted before logging via `utils.LoggingUtils.redactCalculationData`:
+  - Masks `nino`, `scon`, and any fields containing `name`/`surname`.
+  - Non-JSON fallback masks digits, emails and limits length to 100 chars.
+
+### Examples
+
+- **ValidCalculationRequest → HipCalculationRequest**
+
+```json
+// ValidCalculationRequest (input)
+{
+  "scon": "S1234567T",
+  "nino": "AA123456A",
+  "surname": "lewis",
+  "firstForename": "stan",
+  "memberReference": "MEM1",
+  "calctype": 2,
+  "revaluationRate": 1,
+  "revaluationDate": "2022-06-01",
+  "terminationDate": "2022-06-30",
+  "dualCalc": 1
+}
+
+// HipCalculationRequest (sent to HIP)
+{
+  "schemeContractedOutNumber": "S1234567T",
+  "nationalInsuranceNumber": "AA123456A",
+  "surname": "lewis",
+  "firstForename": "stan",
+  "secondForename": null,
+  "revaluationRate": "S148",
+  "calculationRequestType": "Payable Age Calculation",
+  "revaluationDate": "2022-06-01",
+  "terminationDate": "2022-06-30",
+  "includeContributionAndEarnings": true,
+  "includeDualCalculation": true
+}
+```
+
+- **HIP 200 success → GmpBulkCalculationResponse**
+
+```json
+// HIP 200 success (HipCalculationResponse)
+{
+  "nationalInsuranceNumber": "AA123456A",
+  "schemeContractedOutNumberDetails": "S1234567T",
+  "payableAgeDate": null,
+  "statePensionAgeDate": null,
+  "dateOfDeath": null,
+  "GuaranteedMinimumPensionDetailsList": [
+    {
+      "schemeMembershipStartDate": null,
+      "schemeMembershipEndDate": "2022-06-30",
+      "revaluationRate": "S148",
+      "post1988GMPContractedOutDeductionsValue": 0,
+      "gmpContractedOutDeductionsAllRateValue": 0,
+      "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+      "revaluationCalculationSwitchIndicator": false,
+      "post1990GMPContractedOutTrueSexTotal": null,
+      "post1990GMPContractedOutOppositeSexTotal": null,
+      "inflationProofBeyondDateofDeath": false,
+      "contributionsAndEarningsDetailsList": [
+        { "taxYear": 2022, "contributionOrEarningsAmount": 11.2 }
+      ]
+    }
+  ]
+}
+
+// Transformed GmpBulkCalculationResponse (globalErrorCode = 0; period error populated)
+{
+  "periods": [
+    {
+      "errorCode": 63123,
+      "contsAndEarnings": [ { "taxYear": 2022, "contEarnings": "11" } ]
+    }
+  ],
+  "globalErrorCode": 0,
+  "containsErrors": true
+}
+```
+
+- **HIP 422 failures → GmpBulkCalculationResponse**
+
+```json
+// HIP 422 (HipCalculationFailuresResponse)
+{
+  "failures": [
+    { "reason": "No Match for person details provided", "code": 63119 }
+  ]
+}
+
+// Transformed GmpBulkCalculationResponse (globalErrorCode = first failure; no periods)
+{
+  "periods": [],
+  "globalErrorCode": 63119,
+  "containsErrors": true
+}
+```
+
 
 Use service manager to run all the required services:
-
 ```
 sm2 --start GMP_ALL
 ```
+## Testing and Coverage
+
+- Run tests and generate coverage:
+  ```bash
+  sbt clean coverage test coverageReport
+  ```
+- Open the HTML report:
+  `target/scala-2.13/scoverage-report/index.html`
 
 To run the application execute
 ```

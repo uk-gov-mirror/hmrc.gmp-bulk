@@ -145,6 +145,68 @@ class HipCalculationRequestSpec extends PlaySpec with GuiceOneAppPerSuite{
       hipRequest.includeDualCalculation must be (true)
     }
 
+    "map all revaluationRate enum branches" in {
+      val base = ValidCalculationRequest(
+        scon = "S1234567T",
+        nino = "AA123456A",
+        surname = "lewis",
+        firstForename = "stan",
+        memberReference = Some("TET123"),
+        revaluationDate = Some("2022-06-01"),
+        calctype = Some(0),
+        terminationDate = Some("2022-06-30"),
+        memberIsInScheme = Some(true),
+        dualCalc = Some(0)
+      )
+
+      HipCalculationRequest.from(base.copy(revaluationRate = Some(1)))
+        .revaluationRate mustBe Some(EnumRevaluationRate.S148)
+
+      HipCalculationRequest.from(base.copy(revaluationRate = Some(2)))
+        .revaluationRate mustBe Some(EnumRevaluationRate.FIXED)
+
+      HipCalculationRequest.from(base.copy(revaluationRate = Some(3)))
+        .revaluationRate mustBe Some(EnumRevaluationRate.LIMITED)
+    }
+
+    "map all calculationRequestType enum branches" in {
+      val base = ValidCalculationRequest(
+        scon = "S1234567T",
+        nino = "AA123456A",
+        surname = "lewis",
+        firstForename = "stan",
+        memberReference = Some("TET123"),
+        revaluationDate = Some("2022-06-01"),
+        calctype = Some(0),
+        terminationDate = Some("2022-06-30"),
+        memberIsInScheme = Some(true),
+        dualCalc = Some(0)
+      )
+
+      HipCalculationRequest.from(base.copy(calctype = Some(0))).calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
+      HipCalculationRequest.from(base.copy(calctype = Some(1))).calculationRequestType mustBe Some(EnumCalcRequestType.Revaluation)
+      HipCalculationRequest.from(base.copy(calctype = Some(2))).calculationRequestType mustBe Some(EnumCalcRequestType.PayableAge)
+      HipCalculationRequest.from(base.copy(calctype = Some(3))).calculationRequestType mustBe Some(EnumCalcRequestType.Survivor)
+      HipCalculationRequest.from(base.copy(calctype = Some(4))).calculationRequestType mustBe Some(EnumCalcRequestType.SPA)
+    }
+
+    "set includeDualCalculation to false when dualCalc is 0 or None" in {
+      val base = ValidCalculationRequest(
+        scon = "S1234567T",
+        nino = "AA123456A",
+        surname = "lewis",
+        firstForename = "stan",
+        memberReference = Some("TET123"),
+        calctype = Some(0),
+        revaluationDate = Some("2022-06-01"),
+        terminationDate = Some("2022-06-30"),
+        memberIsInScheme = Some(true)
+      )
+
+      HipCalculationRequest.from(base.copy(dualCalc = Some(0))).includeDualCalculation mustBe false
+      HipCalculationRequest.from(base.copy(dualCalc = None)).includeDualCalculation mustBe false
+    }
+
   }
 
   "EnumCalcRequestType" should {

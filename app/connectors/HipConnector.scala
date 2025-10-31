@@ -16,125 +16,221 @@
 
 package connectors
 
-import com.google.inject.Inject
-import config.{AppConfig, ApplicationConfiguration, Constants}
-import metrics.ApplicationMetrics
-import models.{HipCalculationRequest, HipCalculationResponse}
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
-import play.api.i18n.Lang.logger
-import play.api.libs.json.{JsError, JsSuccess, Json}
-import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
-import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneOffset}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import com.google.inject.{Inject, Singleton}
+import config.{AppConfig, ApplicationConfiguration, Constants}
+import metrics.ApplicationMetrics
+import models.{HipCalculationFailuresResponse, HipCalculationRequest, HipCalculationResponse}
 
-class HipConnector @Inject()(http: HttpClientV2,
-                             val metrics: ApplicationMetrics,
-                             appConfig: ApplicationConfiguration,
-                             config: AppConfig) extends UsingCircuitBreaker {
-  val hipBaseUrl: String = config.hipUrl
-  val calcURI = s"$hipBaseUrl/ni/gmp/calculation"
-  private implicit val hc: HeaderCarrier = HeaderCarrier()
+import play.api.Logging
+import play.api.http.Status
+import play.api.http.Status.{BAD_GATEWAY, BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK, TOO_MANY_REQUESTS}
+import play.api.libs.json.{JsError, JsSuccess, Json}
+import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
+import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
+import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpReads, HttpResponse, StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.play.audit.AuditExtensions._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
+import utils.LoggingUtils
 
-  def calculate(request: HipCalculationRequest): Future[HipCalculationResponse] = {
-    logger.info(s"[calculate] contacting HIP at $calcURI")
-    val startTime = System.currentTimeMillis()
-    withCircuitBreaker(http.post(url"$calcURI")
-      .setHeader(buildHeadersV1(hc): _*)
-      .withBody(Json.toJson(request)).execute[HttpResponse].map { response =>
-        metrics.registerStatusCode(response.status.toString)
-        metrics.hipConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-        response.status match {
-          case OK =>
-            response.json.validate[HipCalculationResponse] match {
-              case JsSuccess(value, _) => value
-              case JsError(errors) =>
-                val errorFields = errors.map(_._1.toString()).mkString(", ")
-                val responseCode = response.status
-                val responseBody = response.body.take(1000) // truncate if very long
-                val detailedMsg =
-                  s"HIP returned invalid JSON (status: $responseCode). Failed to parse fields: $errorFields. Body: $responseBody"
-                logger.error(s"[HipConnector][calculate] $detailedMsg")
-                throw new RuntimeException(detailedMsg)
-            }
-          case BAD_REQUEST => logger.warn(s"[HipConnector][calculate] : HIP returned 400 (Bad Request). Body: ${response.body}")
-            HipCalculationResponse(
-              request.nationalInsuranceNumber,
-              BAD_REQUEST.toString,
-              "The request was invalid — please check the provided details.",
-              None,
-              None,
-              Some(request.schemeContractedOutNumber),
-              Nil
-            )
-          case FORBIDDEN =>
-            logger.warn(s"[HipConnector][calculate] : HIP returned 403 (Forbidden). Body: ${response.body}")
-            HipCalculationResponse(
-              request.nationalInsuranceNumber,
-              FORBIDDEN.toString,
-              "You are not authorised to perform this calculation.",
-              None,
-              None,
-              Some(request.schemeContractedOutNumber),
-              Nil
-            )
+import java.time.format.DateTimeFormatter
+import scala.concurrent.{ExecutionContext, Future}
 
-          case NOT_FOUND =>
-            logger.warn(s"[HipConnector][calculate] : HIP returned 404 (Not Found). Body: ${response.body}")
-            HipCalculationResponse(
-              request.nationalInsuranceNumber,
-              NOT_FOUND.toString,
-              "The requested calculation could not be found.",
-              None,
-              None,
-              Some(request.schemeContractedOutNumber),
-              Nil
-            )
+@Singleton
+class HipConnector @Inject()(
+  appConfig: AppConfig,
+  metrics: ApplicationMetrics,
+  http: HttpClientV2,
+  auditConnector: AuditConnector,
+  applicationConfig: ApplicationConfiguration
+)(implicit ec: ExecutionContext) extends Logging with UsingCircuitBreaker {
 
-          case errorStatus: Int =>
-            logger.error(s"[HipConnector][calculate] : HIP returned $errorStatus and response body: ${response.body}")
-            throw UpstreamErrorResponse("HIP connector calculation failed", errorStatus, INTERNAL_SERVER_ERROR)
-        }
-      }
-    )
-  }
+  private val hipBaseUrl: String = appConfig.hipUrl
+  private val calcURI = s"$hipBaseUrl/ni/gmp/calculation"
+  private val MaxBodyLengthForLogging = 300
+  class BreakerException extends Exception
 
-  private def buildHeadersV1(hc: HeaderCarrier): Seq[(String, String)] =
+  private def buildHeadersV1: Seq[(String, String)] =
     Seq(
-      Constants.OriginatorIdKey -> config.originatorIdValue,
+      Constants.OriginatorIdKey -> appConfig.originatorIdValue,
       "correlationId" -> getCorrelationId,
-      "Authorization" -> s"Basic ${config.hipAuthorisationToken}",
-      config.hipEnvironmentHeader,
+      "Authorization" -> s"Basic ${appConfig.hipAuthorisationToken}",
+      appConfig.hipEnvironmentHeader,
       "X-Originating-System" -> Constants.XOriginatingSystemHeader,
       "X-Receipt-Date" -> DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
       "X-Transmitting-System" -> Constants.XTransmittingSystemHeader
     )
 
-  private def getCorrelationId: String =
-    UUID.randomUUID().toString
+  private def getCorrelationId: String = UUID.randomUUID().toString
 
   override protected def circuitBreakerConfig: CircuitBreakerConfig = {
-    CircuitBreakerConfig("HipConnector",
-      appConfig.numberOfCallsToTriggerStateChange,
-      appConfig.unavailablePeriodDuration,
-      appConfig.unstablePeriodDuration)
+    CircuitBreakerConfig(
+      "HipConnector",
+      applicationConfig.numberOfCallsToTriggerStateChange,
+      applicationConfig.unavailablePeriodDuration,
+      applicationConfig.unstablePeriodDuration
+    )
   }
+
+  
 
   override protected def breakOnException(t: Throwable): Boolean = {
     t match {
       case _: BreakerException => true
       case _: BadGatewayException => true
       case _: GatewayTimeoutException => true
+      case e: UpstreamErrorResponse if e.statusCode >= 500 && e.statusCode < 600 => true
       case _ => false
     }
   }
 
-  class BreakerException extends Exception
+  // Returns Right(success) for 200 and Left(failures) for 422
+  def calculateOutcome(userId: String, request: HipCalculationRequest)(implicit hc: HeaderCarrier): Future[Either[HipCalculationFailuresResponse, HipCalculationResponse]] = {
+    doAudit(
+      "gmpCalculation",
+      userId,
+      request.schemeContractedOutNumber,
+      Some(request.nationalInsuranceNumber),
+      Some(request.surname),
+      Some(request.firstForename)
+    )
+
+    val startTime = System.currentTimeMillis()
+    val headers = buildHeadersV1
+
+    withCircuitBreaker(
+      http.post(url"$calcURI")
+        .setHeader(headers: _*)
+        .withBody(Json.toJson(request))
+        .execute[HttpResponse]
+        .map[Either[HipCalculationFailuresResponse, HipCalculationResponse]] { response =>
+          val took = System.currentTimeMillis() - startTime
+          metrics.hipConnectionTime(took, TimeUnit.MILLISECONDS)
+          metrics.hipRegisterStatusCode(response.status.toString)
+
+          val cid = response.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
+          logger.debug(s"[HipConnector][calculate] Response status: ${response.status}, correlationId: $cid")
+
+          response.status match {
+            case OK =>
+              metrics.hipRegisterSuccessfulRequest()
+              Right(parseHipCalculationSuccess(response))
+            case Status.UNPROCESSABLE_ENTITY =>
+              metrics.hipRegisterSuccessfulRequest()
+              Left(parseHipFailures(response))
+            case _ =>
+              metrics.hipRegisterFailedRequest()
+              throw toUpstreamError(response)
+          }
+        }
+    )
+  }
+
+  private def parseHipCalculationSuccess(response: HttpResponse): HipCalculationResponse = {
+    logger.debug(s"[HipConnector][calculate] Response body: ${LoggingUtils.redactCalculationData(response.body)}")
+
+    scala.util.Try(Json.parse(response.body)).toOption match {
+      case Some(js) =>
+        js.validate[HipCalculationResponse] match {
+          case JsSuccess(value, _) =>
+            logger.debug(s"[HipConnector] Successfully parsed HIP calculation response")
+            value
+          case JsError(errors) =>
+            val errorFields = errors.map(_._1.toString).mkString(", ")
+            val detailedMsg = s"HIP returned invalid JSON (status: ${response.status}). Failed to parse fields: $errorFields"
+            logger.error(s"[HipConnector][calculate] $detailedMsg")
+            metrics.hipRegisterFailedRequest()
+            throw UpstreamErrorResponse(detailedMsg, BAD_GATEWAY, BAD_GATEWAY)
+        }
+      case None =>
+        val detailedMsg = s"HIP returned non-JSON body with ${response.status}. Body: ${response.body.take(MaxBodyLengthForLogging)}"
+        logger.error(s"[HipConnector][calculate] $detailedMsg")
+        metrics.hipRegisterFailedRequest()
+        throw UpstreamErrorResponse(detailedMsg, BAD_GATEWAY, BAD_GATEWAY)
+    }
+  }
+
+  private def parseHipFailures(response: HttpResponse): HipCalculationFailuresResponse = {
+    logger.debug(s"[HipConnector][calculate][422] Response body: ${LoggingUtils.redactCalculationData(response.body)}")
+    scala.util.Try(Json.parse(response.body)).toOption match {
+      case Some(js) =>
+        js.validate[HipCalculationFailuresResponse] match {
+          case JsSuccess(value, _) => value
+          case JsError(errors) =>
+            val errorFields = errors.map(_._1.toString).mkString(", ")
+            val detailedMsg = s"HIP 422 returned invalid JSON. Failed to parse fields: $errorFields"
+            logger.error(s"[HipConnector][calculate] $detailedMsg")
+            throw UpstreamErrorResponse(detailedMsg, BAD_GATEWAY, BAD_GATEWAY)
+        }
+      case None =>
+        val detailedMsg = s"HIP returned non-JSON body with 422. Body: ${response.body.take(MaxBodyLengthForLogging)}"
+        logger.error(s"[HipConnector][calculate] $detailedMsg")
+        throw UpstreamErrorResponse(detailedMsg, BAD_GATEWAY, BAD_GATEWAY)
+    }
+  }
+
+  private def toUpstreamError(response: HttpResponse): UpstreamErrorResponse = {
+    val status = response.status
+    val (message, reportAs) = status match {
+      case BAD_REQUEST => ("Bad Request", BAD_REQUEST)
+      case FORBIDDEN   => ("Forbidden", FORBIDDEN)
+      case NOT_FOUND   => ("Not Found", NOT_FOUND)
+      case TOO_MANY_REQUESTS => 
+        logger.warn(s"[HipConnector] Rate limited by HIP service")
+        throw new BreakerException
+      case status if status >= 500 && status < 600 => 
+        logger.error(s"[HipConnector] HIP service error: ${response.body.take(500)}")
+        (s"Unexpected error (Status: $status)", INTERNAL_SERVER_ERROR)
+      case s => (s"Client error (Status: $s)", s)
+    }
+
+    val errorResponse = UpstreamErrorResponse(
+      message = s"HIP connector calculate failed: $message",
+      statusCode = status,
+      reportAs = reportAs,
+      headers = response.headers
+    )
+
+    // For server errors, throw BreakerException to trigger circuit breaker
+    if (status >= 500 && status < 600) {
+      logger.error(s"[HipConnector] Failing fast with circuit breaker due to HTTP $status")
+      throw new BreakerException
+    }
+
+    errorResponse
+  }
+
+  private def doAudit(
+    auditTag: String,
+    userId: String,
+    scon: String,
+    nino: Option[String],
+    surname: Option[String],
+    firstForename: Option[String]
+  )(implicit hc: HeaderCarrier): Unit = {
+    val correlationId = hc.requestId.map(_.value).orElse(hc.sessionId.map(_.value)).getOrElse("unknown")
+    val auditDetails: Map[String, String] = Map(
+      "userId" -> userId,
+      "scon" -> scon,
+      "nino" -> nino.getOrElse(""),
+      "firstName" -> firstForename.getOrElse(""),
+      "surname" -> surname.getOrElse(""),
+      "correlationId" -> correlationId
+    )
+
+    auditConnector.sendEvent(
+      DataEvent(
+        auditSource = "gmp-bulk",
+        auditType = EventTypes.Succeeded,
+        tags = hc.toAuditTags(auditTag, "N/A"),
+        detail = hc.toAuditDetails() ++ auditDetails
+      )
+    ).failed.foreach {
+      case e: Throwable => logger.warn("[HipConnector][doAudit] Audit failed", e)
+    }
+  }
 }
