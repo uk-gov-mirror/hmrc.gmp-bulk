@@ -166,6 +166,30 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                   }
                 }
 
+                // HIP circuit-breaker path (e.g., 503 mapped to breaker in HipConnector)
+                case be: connectors.HipConnector#BreakerException if appConfig.isHipEnabled => {
+                  // $COVERAGE-OFF$
+                  logger.error(s"[CalculationRequestActor] HIP 503 Service Unavailable via circuit breaker. Error: $be")
+                  // $COVERAGE-ON$
+
+                  repository.insertResponseByReference(request.bulkId, request.lineId,
+                    GmpBulkCalculationResponse(List(), Status.SERVICE_UNAVAILABLE, None, None, None, containsErrors = true)).map { result =>
+                    origSender ! result
+                  }
+                }
+
+                // Fallback: match BreakerException by class name to guard against type mismatch
+                case e if appConfig.isHipEnabled && e.getClass.getName.endsWith("HipConnector$BreakerException") => {
+                  // $COVERAGE-OFF$
+                  logger.error(s"[CalculationRequestActor] HIP 503 Service Unavailable via circuit breaker (fallback match). Error: $e")
+                  // $COVERAGE-ON$
+
+                  repository.insertResponseByReference(request.bulkId, request.lineId,
+                    GmpBulkCalculationResponse(List(), Status.SERVICE_UNAVAILABLE, None, None, None, containsErrors = true)).map { result =>
+                    origSender ! result
+                  }
+                }
+
                 case e =>
                   // $COVERAGE-OFF$
                   logger.error(s"[CalculationRequestActor] Inserting Failure response failed with error :$e")
@@ -178,26 +202,34 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
               f match {
 
-                case UpstreamErrorResponse(message, responseCode, _, _) if responseCode == 500 => {
+                // HIP circuit breaker thrown synchronously before Future is returned
+                case be: connectors.HipConnector#BreakerException if appConfig.isHipEnabled =>
                   // $COVERAGE-OFF$
-                  logger.error(s"[CalculationRequestActor] Error : ${message} Exception: $f")
+                  logger.error(s"[CalculationRequestActor] HIP 503 Service Unavailable via circuit breaker (sync). Error: $be")
                   // $COVERAGE-ON$
 
-                  // Record the response as a failure, which will help out with cyclic processing of messages
+                  // Record the response as a failure to allow cyclic processing
                   repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), responseCode, None, None, None, containsErrors = true)).map { result =>
+                    GmpBulkCalculationResponse(List(), Status.SERVICE_UNAVAILABLE, None, None, None, containsErrors = true)).map { _ =>
+                      origSender ! true
+                    }
 
-                    origSender ! org.apache.pekko.actor.Status.Failure(f)
-                  }
-                }
+                // Fallback match by class name in case of type erasure/mismatch
+                case e if appConfig.isHipEnabled && e.getClass.getName.endsWith("HipConnector$BreakerException") =>
+                  // $COVERAGE-OFF$
+                  logger.error(s"[CalculationRequestActor] HIP 503 Service Unavailable via circuit breaker (sync fallback). Error: $e")
+                  // $COVERAGE-ON$
 
-                case _ => {
+                  repository.insertResponseByReference(request.bulkId, request.lineId,
+                    GmpBulkCalculationResponse(List(), Status.SERVICE_UNAVAILABLE, None, None, None, containsErrors = true)).map { _ =>
+                      origSender ! true
+                    }
+
+                case _ =>
                   // $COVERAGE-OFF$
                   logger.error(s"[CalculationRequestActor] Calling DES failed with error: ${ f.getMessage }")
                   // $COVERAGE-ON$
                   origSender ! org.apache.pekko.actor.Status.Failure(f)
-
-                }
               }
             }
 
