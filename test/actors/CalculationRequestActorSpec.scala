@@ -183,10 +183,46 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
         within(testTimeout) {
 
           actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
-          expectMsgClass(classOf[org.apache.pekko.actor.Status.Failure])
-          //verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 500, None, None, None, containsErrors = true))
+          expectMsg(true)
+          verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 500, None, None, None, containsErrors = true))
         }
 
+      }
+
+      "insert a failed response when a 403 code is returned from HIP" in {
+        val exObj = UpstreamErrorResponse("Forbidden", 403, 403)
+
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+        when(mockHipConnector.calculateOutcome(ArgumentMatchers.eq("system"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]()))
+          .thenReturn(Future.failed(exObj))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
+
+        val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockHipConnector,mockMetrics, mockApplicationConfig,mockAppConfig))
+
+        within(testTimeout) {
+          actorRef ! ProcessReadyCalculationRequest("test", 2, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
+          expectMsg(true)
+          verify(mockRepository).insertResponseByReference("test", 2, GmpBulkCalculationResponse(List(), 403, None, None, None, containsErrors = true))
+        }
+      }
+
+      "insert a failed response when a 404 code is returned from HIP" in {
+        val exObj = UpstreamErrorResponse("Not Found", 404, 404)
+
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+        when(mockHipConnector.calculateOutcome(ArgumentMatchers.eq("system"), ArgumentMatchers.any())(ArgumentMatchers.any[HeaderCarrier]()))
+          .thenReturn(Future.failed(exObj))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
+
+        val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockHipConnector,mockMetrics, mockApplicationConfig,mockAppConfig))
+
+        within(testTimeout) {
+          actorRef ! ProcessReadyCalculationRequest("test", 3, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
+          expectMsg(true)
+          verify(mockRepository).insertResponseByReference("test", 3, GmpBulkCalculationResponse(List(), 404, None, None, None, containsErrors = true))
+        }
       }
     }
 
@@ -244,7 +280,7 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
         }
       }
 
-      "insert a failed response when a 500 code is returned from DES" in {
+      "insert a failed response when a 500 code is returned from IF" in {
         val exObj = UpstreamErrorResponse("Call to Individual Pension calculation on NPS Service failed with status code 500", 500, 500)
 
         when(mockDesConnector.getPersonDetails(ArgumentMatchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
@@ -256,12 +292,26 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
 
         within(testTimeout) {
 
-          actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
+          actorRef ! ProcessReadyCalculationRequest("test", 10, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
           expectMsgClass(classOf[org.apache.pekko.actor.Status.Failure])
-
-          //verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 500, None, None, None, containsErrors = true))
         }
 
+      }
+
+      "insert a failed response when a 503 code is returned from IF" in {
+        val exObj = UpstreamErrorResponse("Service Unavailable", 503, 503)
+
+        when(mockDesConnector.getPersonDetails(ArgumentMatchers.any())) thenReturn Future.successful(DesGetSuccessResponse)
+        when(mockAppConfig.isIfsEnabled).thenReturn(true)
+        when(mockIFConnector.calculate(ArgumentMatchers.any())).thenReturn(Future.failed(exObj))
+        when(mockRepository.insertResponseByReference(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(Future.successful(true))
+
+        val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockHipConnector,mockMetrics, mockApplicationConfig,mockAppConfig))
+
+        within(testTimeout) {
+          actorRef ! ProcessReadyCalculationRequest("test", 11, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
+          expectMsgClass(classOf[org.apache.pekko.actor.Status.Failure])
+        }
       }
     }
 
@@ -349,14 +399,11 @@ class CalculationRequestActorSpec extends TestKit(ActorSystem("TestCalculationAc
         val actorRef = system.actorOf(Props(classOf[DefaultCalculationRequestActor], mockRepository, mockDesConnector, mockIFConnector, mockHipConnector,mockMetrics, mockApplicationConfig,mockAppConfig))
 
         within(testTimeout) {
-
-          actorRef ! ProcessReadyCalculationRequest("test", 1, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
+          actorRef ! ProcessReadyCalculationRequest("test", 99, Some(ValidCalculationRequest("S1401234Q", RandomNino.generate, "Smith", "Bill", None, None, None, None, None, None)), None, None)
           expectMsgClass(classOf[org.apache.pekko.actor.Status.Failure])
-
-          //verify(mockRepository).insertResponseByReference("test", 1, GmpBulkCalculationResponse(List(), 500, None, None, None, containsErrors = true))
         }
-
       }
+
     }
 
     "the message is the wrong type should get failure" in {

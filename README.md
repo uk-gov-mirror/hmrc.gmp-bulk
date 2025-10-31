@@ -12,10 +12,13 @@ Guaranteed Minimum Pension Bulk micro service
 Post multiple validated calculations to be evaluated.
 
 ### Responds with
-| Status                                                   |  Description                                   |
-|----------------------------------------------------------|------------------------------------------------|
-| 400                                                      |  Bad Request                                   |
-| 200                                                      |  Successful Post of a bulk calculation request |
+| Status | Description |
+|--------|-------------|
+| 200 | Successful post of a bulk calculation request |
+| 400 | Bad Request (invalid/malformed JSON or body validation failure) |
+| 401 | Unauthorized (auth failure via `AuthAction`) |
+| 403 | Forbidden (user not permitted to access resource) |
+| 5xx | Internal Server Error |
 
 ##### Example of usage
 
@@ -92,9 +95,19 @@ Defined in `app/connectors/HipConnector.scala`:
 - Environment header, `X-Originating-System`, `X-Receipt-Date`, `X-Transmitting-System`.
 
 ### Circuit breaker and error handling
-- Circuit breaker trips on 5xx/timeouts from HIP (`UsingCircuitBreaker`).
+- Circuit breaker trips on 5xx/timeouts from HIP/IF (`UsingCircuitBreaker`).
 - `429` rate limiting logs a warning and short-circuits via breaker.
-- Non-200/422 responses are converted to `UpstreamErrorResponse` with appropriate `reportAs` codes.
+- Non-200/422 responses surface as `UpstreamErrorResponse` with appropriate `reportAs` codes.
+
+### HIP error handling parity (service behavior)
+- On HIP responses, the service now persists a failure row with `globalErrorCode` equal to the status for:
+  - 400, 403, 404, 500, 503
+- HIP 422 (`HipCalculationFailuresResponse`) is transformed via `GmpBulkCalculationResponse.createFromHipFailuresResponse(...)` with:
+  - `globalErrorCode = first HIP failure code`
+  - `calculationPeriods = []`
+- 200 HIP success is transformed via `GmpBulkCalculationResponse.createFromHipCalculationResponse(...)` with:
+  - `globalErrorCode = 0`, period-level errors mapped from HIP messages
+- Correlation ID (if present) from HIP/IF responses is logged alongside failures for troubleshooting.
 
 ### Auditing
 - Requests are audited with `AuditConnector.sendEvent(DataEvent(...))`; audit failures are logged as warnings.
@@ -103,6 +116,24 @@ Defined in `app/connectors/HipConnector.scala`:
 - Response/request bodies are redacted before logging via `utils.LoggingUtils.redactCalculationData`:
   - Masks `nino`, `scon`, and any fields containing `name`/`surname`.
   - Non-JSON fallback masks digits, emails and limits length to 100 chars.
+
+## Legacy Mode (DES / IF)
+
+This service can operate against legacy backends when HIP is disabled.
+
+### Routing and feature flags
+- Controlled in `app/actors/CalculationRequestActor.scala`.
+- Preference:
+  1. IF when `appConfig.isIfsEnabled = true` → `app/connectors/IFConnector.scala`
+  2. HIP when `appConfig.isHipEnabled = true` → `app/connectors/HipConnector.scala`
+  3. Otherwise DES → `app/connectors/DesConnector.scala`
+
+### Responses and persistence
+- Success (DES/IF): mapped via `GmpBulkCalculationResponse.createFromCalculationResponse(...)` (DES) or HIP paths above.
+- Failures:
+  - HIP: 400/403/404/500/503 persisted as failure rows (as above).
+  - DES: 400/500 persisted; 423 Hidden Record handled via `getPersonDetails` and persisted.
+  - Other errors may bubble as failures depending on connector behavior.
 
 ### Examples
 

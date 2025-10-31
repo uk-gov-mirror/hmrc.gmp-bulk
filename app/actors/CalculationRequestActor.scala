@@ -117,7 +117,8 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
                 case e: UpstreamErrorResponse if e.reportAs == Status.BAD_REQUEST => {
 
                   // $COVERAGE-OFF$
-                  logger.error(s"[CalculationRequestActor] Inserting Failure response failed with error: $e")
+                  val cid = e.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
+                  logger.error(s"[CalculationRequestActor] HIP/IF 400 Bad Request (cid: $cid). Error: $e")
                   // $COVERAGE-ON$
 
                   // Record the response as a failure, which will help out with cyclic processing of messages
@@ -126,6 +127,42 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
 
                     origSender ! result
 
+                  }
+                }
+
+                case e: UpstreamErrorResponse if appConfig.isHipEnabled && e.reportAs == Status.FORBIDDEN => {
+                  // $COVERAGE-OFF$
+                  val cid = e.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
+                  logger.error(s"[CalculationRequestActor] HIP 403 Forbidden (cid: $cid). Error: $e")
+                  // $COVERAGE-ON$
+
+                  repository.insertResponseByReference(request.bulkId, request.lineId,
+                    GmpBulkCalculationResponse(List(), 403, None, None, None, containsErrors = true)).map { result =>
+                    origSender ! result
+                  }
+                }
+
+                case e: UpstreamErrorResponse if appConfig.isHipEnabled && e.reportAs == Status.NOT_FOUND => {
+                  // $COVERAGE-OFF$
+                  val cid = e.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
+                  logger.error(s"[CalculationRequestActor] HIP 404 Not Found (cid: $cid). Error: $e")
+                  // $COVERAGE-ON$
+
+                  repository.insertResponseByReference(request.bulkId, request.lineId,
+                    GmpBulkCalculationResponse(List(), 404, None, None, None, containsErrors = true)).map { result =>
+                    origSender ! result
+                  }
+                }
+
+                case e: UpstreamErrorResponse if appConfig.isHipEnabled && (e.reportAs == Status.INTERNAL_SERVER_ERROR || e.reportAs == Status.SERVICE_UNAVAILABLE) => {
+                  // $COVERAGE-OFF$
+                  val cid = e.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
+                  logger.error(s"[CalculationRequestActor] HIP ${e.reportAs} Server Error (cid: $cid). Error: $e")
+                  // $COVERAGE-ON$
+
+                  repository.insertResponseByReference(request.bulkId, request.lineId,
+                    GmpBulkCalculationResponse(List(), e.reportAs, None, None, None, containsErrors = true)).map { result =>
+                    origSender ! result
                   }
                 }
 
