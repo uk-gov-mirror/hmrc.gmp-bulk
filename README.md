@@ -95,9 +95,10 @@ Defined in `app/connectors/HipConnector.scala`:
 - Environment header, `X-Originating-System`, `X-Receipt-Date`, `X-Transmitting-System`.
 
 ### Circuit breaker and error handling
-- Circuit breaker trips on 5xx/timeouts from HIP/IF (`UsingCircuitBreaker`).
+- Circuit breaker trips on 5xx/timeouts from HIP (`UsingCircuitBreaker`).
 - `429` rate limiting logs a warning and short-circuits via breaker.
 - Non-200/422 responses surface as `UpstreamErrorResponse` with appropriate `reportAs` codes.
+- HIP 503 is persisted as a failure even when surfaced via circuit breaker (globalErrorCode = 503).
 
 ### HIP error handling parity (service behavior)
 - On HIP responses, the service now persists a failure row with `globalErrorCode` equal to the status for:

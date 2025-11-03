@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,14 +20,15 @@ import com.google.inject.Inject
 import config.{AppConfig, ApplicationConfiguration}
 import connectors.{DesConnector, DesGetHiddenRecordResponse, HipConnector, IFConnector}
 import metrics.ApplicationMetrics
-import models.{CalculationResponse, GmpBulkCalculationResponse, HipCalculationFailuresResponse, HipCalculationRequest, HipCalculationResponse, ProcessReadyCalculationRequest}
+import models.{CalculationResponse, GmpBulkCalculationResponse, HipCalculationFailuresResponse, HipCalculationRequest, HipCalculationResponse, ProcessReadyCalculationRequest, ValidCalculationRequest}
 import org.apache.pekko.actor._
 import play.api.Logging
-import play.api.http.Status
+import play.api.http.Status._
 import repositories.BulkCalculationMongoRepository
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 trait CalculationRequestActorComponent {
@@ -45,222 +46,122 @@ class CalculationRequestActor extends Actor with ActorUtils with Logging {
   self: CalculationRequestActorComponent =>
 
   override def receive: Receive = {
-    case request: ProcessReadyCalculationRequest => {
-
+    case request: ProcessReadyCalculationRequest =>
       val origSender = sender()
       val startTime = System.currentTimeMillis()
 
-      desConnector.getPersonDetails(request.validCalculationRequest.get.nino) map {
+      val backend: String =
+        if (appConfig.isIfsEnabled) "IF"
+        else if (appConfig.isHipEnabled) "HIP"
+        else "DES"
+
+      val processingFuture = desConnector.getPersonDetails(request.validCalculationRequest.get.nino).flatMap {
         case DesGetHiddenRecordResponse =>
+          // Handle hidden record case
+          Future.successful(GmpBulkCalculationResponse(List(), LOCKED, None, None, None, containsErrors = true))
 
-          repository.insertResponseByReference(request.bulkId, request.lineId,
-            GmpBulkCalculationResponse(List(), 423, None, None, None, containsErrors = true)).map { result =>
-
-            origSender ! result
-
+        case _ =>
+          // 2. Choose and call the appropriate backend for calculation
+          callBackend(request.validCalculationRequest.get).map {
+            // 3a. Handle successful calculation from DES/IF
+            case x: CalculationResponse =>
+              GmpBulkCalculationResponse.createFromCalculationResponse(x)
+            // 3b. Handle successful calculation from HIP
+            case Right(hipResponse: HipCalculationResponse) =>
+              GmpBulkCalculationResponse.createFromHipCalculationResponse(hipResponse)
+            // 3c. Handle business validation failure from HIP
+            case Left(hipFailures: HipCalculationFailuresResponse) =>
+              GmpBulkCalculationResponse.createFromHipFailuresResponse(hipFailures)
           }
-
-        case x => {
-
-          val tryCallingDes = Try {
-            if(appConfig.isIfsEnabled) {
-              ifConnector.calculate(request.validCalculationRequest.get)
-            } else if (appConfig.isHipEnabled) {
-              val hipRequest = HipCalculationRequest.from(request.validCalculationRequest.get)
-              hipConnector.calculateOutcome(userId = "system", hipRequest)(HeaderCarrier())
-            } else{
-              desConnector.calculate(request.validCalculationRequest.get)
-            }
-          }
-
-          tryCallingDes match {
-            case Success(successfulCall) => {
-              successfulCall.map {
-                case x: CalculationResponse => {
-                  repository.insertResponseByReference(request.bulkId, request.lineId, GmpBulkCalculationResponse.createFromCalculationResponse(x)).map {
-
-                    result => {
-                      // $COVERAGE-OFF$
-                      metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-                      logger.debug(s"[CalculationRequestActor] InsertResponse : $result")
-                      // $COVERAGE-ON$
-                      origSender ! result
-                    }
-                  }
-                }
-                case Right(hipResponse: HipCalculationResponse) => {
-                  repository.insertResponseByReference(request.bulkId, request.lineId, GmpBulkCalculationResponse.createFromHipCalculationResponse(hipResponse)).map {
-
-                    result => {
-                      // $COVERAGE-OFF$
-                      metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-                      logger.debug(s"[CalculationRequestActor] InsertResponse : $result")
-                      // $COVERAGE-ON$
-                      origSender ! result
-                    }
-                  }
-                }
-                case Left(hipFailures: HipCalculationFailuresResponse) => {
-                  repository.insertResponseByReference(request.bulkId, request.lineId, GmpBulkCalculationResponse.createFromHipFailuresResponse(hipFailures)).map {
-
-                    result => {
-                      // $COVERAGE-OFF$
-                      metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-                      logger.debug(s"[CalculationRequestActor] InsertResponse (422) : $result")
-                      // $COVERAGE-ON$
-                      origSender ! result
-                    }
-                  }
-                }
-              }.recover {
-
-                case e: UpstreamErrorResponse if e.reportAs == Status.BAD_REQUEST => {
-
-                  // $COVERAGE-OFF$
-                  val cid = e.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
-                  logger.error(s"[CalculationRequestActor] HIP/IF 400 Bad Request (cid: $cid). Error: $e")
-                  // $COVERAGE-ON$
-
-                  // Record the response as a failure, which will help out with cyclic processing of messages
-                  repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), 400, None, None, None, containsErrors = true)).map { result =>
-
-                    origSender ! result
-
-                  }
-                }
-
-                case e: UpstreamErrorResponse if appConfig.isHipEnabled && e.reportAs == Status.FORBIDDEN => {
-                  // $COVERAGE-OFF$
-                  val cid = e.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
-                  logger.error(s"[CalculationRequestActor] HIP 403 Forbidden (cid: $cid). Error: $e")
-                  // $COVERAGE-ON$
-
-                  repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), 403, None, None, None, containsErrors = true)).map { result =>
-                    origSender ! result
-                  }
-                }
-
-                case e: UpstreamErrorResponse if appConfig.isHipEnabled && e.reportAs == Status.NOT_FOUND => {
-                  // $COVERAGE-OFF$
-                  val cid = e.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
-                  logger.error(s"[CalculationRequestActor] HIP 404 Not Found (cid: $cid). Error: $e")
-                  // $COVERAGE-ON$
-
-                  repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), 404, None, None, None, containsErrors = true)).map { result =>
-                    origSender ! result
-                  }
-                }
-
-                case e: UpstreamErrorResponse if appConfig.isHipEnabled && (e.reportAs == Status.INTERNAL_SERVER_ERROR || e.reportAs == Status.SERVICE_UNAVAILABLE) => {
-                  // $COVERAGE-OFF$
-                  val cid = e.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
-                  logger.error(s"[CalculationRequestActor] HIP ${e.reportAs} Server Error (cid: $cid). Error: $e")
-                  // $COVERAGE-ON$
-
-                  repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), e.reportAs, None, None, None, containsErrors = true)).map { result =>
-                    origSender ! result
-                  }
-                }
-
-                // HIP circuit-breaker path (e.g., 503 mapped to breaker in HipConnector)
-                case be: connectors.HipConnector#BreakerException if appConfig.isHipEnabled => {
-                  // $COVERAGE-OFF$
-                  logger.error(s"[CalculationRequestActor] HIP 503 Service Unavailable via circuit breaker. Error: $be")
-                  // $COVERAGE-ON$
-
-                  repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), Status.SERVICE_UNAVAILABLE, None, None, None, containsErrors = true)).map { result =>
-                    origSender ! result
-                  }
-                }
-
-                // Fallback: match BreakerException by class name to guard against type mismatch
-                case e if appConfig.isHipEnabled && e.getClass.getName.endsWith("HipConnector$BreakerException") => {
-                  // $COVERAGE-OFF$
-                  logger.error(s"[CalculationRequestActor] HIP 503 Service Unavailable via circuit breaker (fallback match). Error: $e")
-                  // $COVERAGE-ON$
-
-                  repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), Status.SERVICE_UNAVAILABLE, None, None, None, containsErrors = true)).map { result =>
-                    origSender ! result
-                  }
-                }
-
-                case e =>
-                  // $COVERAGE-OFF$
-                  logger.error(s"[CalculationRequestActor] Inserting Failure response failed with error :$e")
-                  origSender ! org.apache.pekko.actor.Status.Failure(e)
-                // $COVERAGE-ON$
-              }
-            }
-
-            case Failure(f) => {
-
-              f match {
-
-                // HIP circuit breaker thrown synchronously before Future is returned
-                case be: connectors.HipConnector#BreakerException if appConfig.isHipEnabled =>
-                  // $COVERAGE-OFF$
-                  logger.error(s"[CalculationRequestActor] HIP 503 Service Unavailable via circuit breaker (sync). Error: $be")
-                  // $COVERAGE-ON$
-
-                  // Record the response as a failure to allow cyclic processing
-                  repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), Status.SERVICE_UNAVAILABLE, None, None, None, containsErrors = true)).map { _ =>
-                      origSender ! true
-                    }
-
-                // Fallback match by class name in case of type erasure/mismatch
-                case e if appConfig.isHipEnabled && e.getClass.getName.endsWith("HipConnector$BreakerException") =>
-                  // $COVERAGE-OFF$
-                  logger.error(s"[CalculationRequestActor] HIP 503 Service Unavailable via circuit breaker (sync fallback). Error: $e")
-                  // $COVERAGE-ON$
-
-                  repository.insertResponseByReference(request.bulkId, request.lineId,
-                    GmpBulkCalculationResponse(List(), Status.SERVICE_UNAVAILABLE, None, None, None, containsErrors = true)).map { _ =>
-                      origSender ! true
-                    }
-
-                case _ =>
-                  // $COVERAGE-OFF$
-                  logger.error(s"[CalculationRequestActor] Calling DES failed with error: ${ f.getMessage }")
-                  // $COVERAGE-ON$
-                  origSender ! org.apache.pekko.actor.Status.Failure(f)
-              }
-            }
-
-          }
-
-        }
-      } recover {
-        case e =>
-          // $COVERAGE-OFF$
-          logger.error(s"[CalculationRequestActor] Calling getPersonDetails failed with error: ${ e.getMessage }")
-        // $COVERAGE-ON$
       }
 
+      processingFuture.onComplete {
+        // 4. Centralized completion handling (success and failure)
+        case Success(gmpResponse) =>
+          insertAndReply(request.bulkId, request.lineId, gmpResponse, startTime, origSender)
 
-    }
+        case Failure(e: UpstreamErrorResponse) =>
+          val cid = e.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
+          logger.error(s"[CalculationRequestActor] Upstream failure (cid: $cid). Status: ${e.reportAs}, Error: $e")
+          backend match {
+            case "HIP" =>
+              // Always insert an error response for HIP upstream failures (per spec expectations)
+              val resp = createErrorResponse(e.reportAs)
+              insertAndReply(request.bulkId, request.lineId, resp, startTime, origSender)
+            case "IF" =>
+              e.reportAs match {
+                case BAD_REQUEST =>
+                  insertAndReply(request.bulkId, request.lineId, createErrorResponse(BAD_REQUEST), startTime, origSender)
+                case SERVICE_UNAVAILABLE | INTERNAL_SERVER_ERROR =>
+                  origSender ! org.apache.pekko.actor.Status.Failure(e)
+                case _ =>
+                  origSender ! org.apache.pekko.actor.Status.Failure(e)
+              }
+            case _ /* DES */ =>
+              e.reportAs match {
+                case BAD_REQUEST =>
+                  insertAndReply(request.bulkId, request.lineId, createErrorResponse(BAD_REQUEST), startTime, origSender)
+                case INTERNAL_SERVER_ERROR =>
+                  origSender ! org.apache.pekko.actor.Status.Failure(e)
+                case _ =>
+                  origSender ! org.apache.pekko.actor.Status.Failure(e)
+              }
+          }
 
-    case STOP => {
-      // $COVERAGE-OFF$
-      logger.info(s"[CalculationRequestActor] stop message")
-      logger.info("sender: " + sender().getClass)
-      // $COVERAGE-ON$
+        case Failure(be: connectors.HipConnector#BreakerException) =>
+          logger.error(s"[CalculationRequestActor] HIP circuit breaker open. Error: $be")
+          val resp = createErrorResponse(SERVICE_UNAVAILABLE)
+          insertAndReply(request.bulkId, request.lineId, resp, startTime, origSender)
+
+        // Fallback for circuit breaker to guard against type mismatch
+        case Failure(e) if e.getClass.getName.endsWith("HipConnector$BreakerException") =>
+          logger.error(s"[CalculationRequestActor] HIP circuit breaker open (fallback match). Error: $e")
+          val resp = createErrorResponse(SERVICE_UNAVAILABLE)
+          insertAndReply(request.bulkId, request.lineId, resp, startTime, origSender)
+
+        case Failure(e) =>
+          logger.error(s"[CalculationRequestActor] Unexpected error during processing: $e", e)
+          origSender ! org.apache.pekko.actor.Status.Failure(e)
+      }
+    case STOP =>
+      logger.info(s"[CalculationRequestActor] stop message received from ${sender()}")
       sender() ! STOP
+
+    case e =>
+      logger.warn(s"[CalculationRequestActor] received unknown message: $e")
+      sender() ! org.apache.pekko.actor.Status.Failure(new IllegalArgumentException("Unsupported message type"))
+  }
+
+  private def callBackend(request: ValidCalculationRequest): Future[Any] = {
+    Try {
+      if (appConfig.isIfsEnabled) {
+        ifConnector.calculate(request)
+      } else if (appConfig.isHipEnabled) {
+        val hipRequest = HipCalculationRequest.from(request)
+        hipConnector.calculateOutcome(userId = "system", hipRequest)(HeaderCarrier())
+      } else {
+        desConnector.calculate(request)
+      }
+    } match {
+      case Success(future) => future
+      case Failure(e) => Future.failed(e) // Promote synchronous error to a failed Future
     }
+  }
 
+  private def createErrorResponse(status: Int): GmpBulkCalculationResponse = {
+    GmpBulkCalculationResponse(List(), status, None, None, None, containsErrors = true)
+  }
 
-    case e => {
-      // $COVERAGE-OFF$
-      logger.info(s"[CalculationRequestActor] Invalid Message : { message : $e}")
-      logger.info("sender: " + sender().getClass)
-      // $COVERAGE-ON$
-      sender() ! org.apache.pekko.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
+  private def insertAndReply(bulkId: String, lineId: Int, response: GmpBulkCalculationResponse, startTime: Long, recipient: ActorRef): Unit = {
+    repository.insertResponseByReference(bulkId, lineId, response).map { result =>
+      metrics.processRequest(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+      logger.debug(s"[CalculationRequestActor] Inserted response for bulkId: $bulkId, lineId: $lineId. Result: $result")
+      recipient ! result
+
+    }.recover {
+      case e =>
+        logger.error(s"[CalculationRequestActor] Failed to insert response for bulkId: $bulkId, lineId: $lineId. Error: $e", e)
+        recipient ! org.apache.pekko.actor.Status.Failure(e) // Notify supervisor of DB failure
     }
   }
 }
