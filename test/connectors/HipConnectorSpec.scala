@@ -107,16 +107,15 @@ class HipConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wi
           ex => ex.getMessage must include("Connection error")
         }
       }
-      "throw UpstreamErrorResponse for error status code 500" in new SUT {
+      "throw BreakerException for error status code 500 (triggers circuit breaker)" in new SUT {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
         val httpResponse = HttpResponse(500, Json.obj().toString())
         requestBuilderExecute(Future.successful(httpResponse))
-        RecoverMethods.recoverToExceptionIf[UpstreamErrorResponse] {
+        RecoverMethods.recoverToExceptionIf[Exception] {
           calculateOutcome("system", request)
         }.map { exception =>
-          exception.statusCode mustBe 500
-          exception.reportAs mustBe INTERNAL_SERVER_ERROR
+          exception.getClass.getSimpleName mustBe "BreakerException"
         }
       }
       "throw UpstreamErrorResponse when JSON validation fails for 200" in new SUT{
@@ -129,6 +128,55 @@ class HipConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wi
           calculateOutcome("system", request)
         }.map{ exception =>
           exception.statusCode mustBe 502
+        }
+      }
+
+      "throw UpstreamErrorResponse when body is non-JSON for 200" in new SUT {
+        val httpResponse = HttpResponse(OK, "not-json-body")
+        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        requestBuilderExecute(Future.successful(httpResponse))
+        RecoverMethods.recoverToExceptionIf[UpstreamErrorResponse] {
+          calculateOutcome("system", request)
+        }.map { exception =>
+          exception.statusCode mustBe 502
+        }
+      }
+
+      "throw UpstreamErrorResponse when 422 JSON is invalid for HipCalculationFailuresResponse" in new SUT {
+        val bad422 = Json.obj("bad" -> "shape")
+        val httpResponse = HttpResponse(422, bad422.toString())
+        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        requestBuilderExecute(Future.successful(httpResponse))
+        RecoverMethods.recoverToExceptionIf[UpstreamErrorResponse] {
+          calculateOutcome("system", request)
+        }.map { exception =>
+          exception.statusCode mustBe 502
+        }
+      }
+
+      "throw UpstreamErrorResponse when 422 body is non-JSON" in new SUT {
+        val httpResponse = HttpResponse(422, "plain-text")
+        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        requestBuilderExecute(Future.successful(httpResponse))
+        RecoverMethods.recoverToExceptionIf[UpstreamErrorResponse] {
+          calculateOutcome("system", request)
+        }.map { exception =>
+          exception.statusCode mustBe 502
+        }
+      }
+
+      "throw BreakerException for 429 Too Many Requests" in new SUT {
+        val httpResponse = HttpResponse(429, Json.obj().toString())
+        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        requestBuilderExecute(Future.successful(httpResponse))
+        RecoverMethods.recoverToExceptionIf[Exception] {
+          calculateOutcome("system", request)
+        }.map { exception =>
+          exception.getClass.getSimpleName mustBe "BreakerException"
         }
       }
     }
