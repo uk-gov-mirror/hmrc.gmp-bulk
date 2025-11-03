@@ -28,6 +28,7 @@ import play.api.Logging
 import play.api.http.Status
 import play.api.http.Status.{BAD_GATEWAY, BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK, TOO_MANY_REQUESTS}
 import play.api.libs.json.{JsError, JsSuccess, Json}
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpReads, HttpResponse, StringContextOps, UpstreamErrorResponse}
@@ -104,7 +105,7 @@ class HipConnector @Inject()(
 
     withCircuitBreaker(
       http.post(url"$calcURI")
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .withBody(Json.toJson(request))
         .execute[HttpResponse]
         .map[Either[HipCalculationFailuresResponse, HipCalculationResponse]] { response =>

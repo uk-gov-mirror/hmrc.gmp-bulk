@@ -31,7 +31,7 @@ object HipFailure {
   implicit val reads: Reads[HipFailure] = (
     (JsPath \ "reason").read[String] and
       (JsPath \ "code").read[JsValue].map(parseCode)
-    )(HipFailure.apply _)
+    )(HipFailure.apply)
 
   implicit val writes: OWrites[HipFailure] = Json.writes[HipFailure]
 }

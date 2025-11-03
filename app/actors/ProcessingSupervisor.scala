@@ -18,7 +18,6 @@ package actors
 
 import actors.Throttler.{RateInt, SetTarget}
 import org.apache.pekko.actor._
-import com.github.ghik.silencer.silent
 import config.{AppConfig, ApplicationConfiguration}
 import connectors.{DesConnector, HipConnector, IFConnector}
 import metrics.ApplicationMetrics
