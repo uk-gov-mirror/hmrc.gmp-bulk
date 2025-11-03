@@ -25,10 +25,10 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.client.HttpClientV2
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
 import java.time.format.DateTimeFormatter
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext , Future}
 
 case class ReceivedUploadTemplate(email: String, uploadReference: String)
 
@@ -42,7 +42,8 @@ object SendTemplatedEmailRequest {
 
 class EmailConnector @Inject()(http: HttpClientV2,
                                val runModeConfiguration: Configuration,
-                               servicesConfig: ServicesConfig) extends Logging {
+                               servicesConfig: ServicesConfig,
+                               implicit val ec: ExecutionContext) extends Logging {
 
   def sendReceivedTemplatedEmail(template: ReceivedUploadTemplate)(implicit hc: HeaderCarrier): Future[Boolean] = {
 
@@ -73,7 +74,7 @@ class EmailConnector @Inject()(http: HttpClientV2,
     logger.debug(s"[EmailConnector] Sending email to ${request.to.mkString(", ")}")
 
     http.post(url"$url")
-      .setHeader(Seq(("Content-Type", "application/json")):_*)
+      .setHeader(Seq(("Content-Type", "application/json"))*)
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .map { response =>

@@ -26,14 +26,14 @@ import play.api.Logging
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository, TimePeriodLockService}
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits.global
+import javax.inject.Singleton
 import scala.concurrent.duration._
+import scala.annotation.nowarn
 
-@silent
+
+@nowarn
 @Singleton
-class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration,
+class ProcessingSupervisor (applicationConfig: ApplicationConfiguration,
                                      bulkCalculationMongoRepository : BulkCalculationMongoRepository,
                                      val mongoLockRepository: MongoLockRepository,
                                      desConnector : DesConnector,
@@ -67,45 +67,48 @@ class ProcessingSupervisor @Inject()(applicationConfig: ApplicationConfiguration
   // $COVERAGE-ON$
 
   override def receive: Receive = {
+    implicit val ec = context.dispatcher
 
-    case STOP =>
-      logger.info("[ProcessingSupervisor] received while not processing: STOP received")
-    case START =>
-      withRenewedLock {
-        context become receiveWhenProcessRunning
-        logger.info("Starting Processing")
+    {
+      case STOP =>
+        logger.info("[ProcessingSupervisor] received while not processing: STOP received")
+      case START =>
+        withRenewedLock {
+          context become receiveWhenProcessRunning
+          logger.info("Starting Processing")
 
-        repository.findRequestsToProcess().map {
+          repository.findRequestsToProcess().map {
 
-          case Some(requests) if requests.nonEmpty =>
-            logger.info(s"[ProcessingSupervisor][receive] took ${requests.size} request/s")
-            for (request <- requests.take(applicationConfig.bulkProcessingBatchSize)) {
-              throttler ! request
-            }
-            throttler ! STOP
+            case Some(requests) if requests.nonEmpty =>
+              logger.info(s"[ProcessingSupervisor][receive] took ${requests.size} request/s")
+              for (request <- requests.take(applicationConfig.bulkProcessingBatchSize)) {
+                throttler ! request
+              }
+              throttler ! STOP
 
-          case _ =>
-            logger.info(s"[ProcessingSupervisor][receive] no requests pending")
-            this.context.unbecome()
-            throttler ! STOP
+            case _ =>
+              logger.info(s"[ProcessingSupervisor][receive] no requests pending")
+              this.context.unbecome()
+              throttler ! STOP
+          }
+        }.map {
+          case Some(res) => logger.info(s"[ProcessingSupervisor][receive] Finished with $res. Mongo Lock has been renewed.")
+          // $COVERAGE-OFF$
+          case _ => logger.info(s"[ProcessingSupervisor][receive] Failed to obtain mongo lock")
+          // $COVERAGE-ON$
         }
-      }.map{
-        case Some(res) => logger.info(s"[ProcessingSupervisor][receive] Finished with $res. Mongo Lock has been renewed.")
-        // $COVERAGE-OFF$
-        case _ => logger.info(s"[ProcessingSupervisor][receive] Failed to obtain mongo lock")
-        // $COVERAGE-ON$
-      }
+    }
   }
 
-  def receiveWhenProcessRunning : Receive = {
+  def receiveWhenProcessRunning: Receive = {
     // $COVERAGE-OFF$
-    case START => logger.info("[ProcessingSupervisor][received while processing] START ignored")
+    case START =>
+      logger.info("[ProcessingSupervisor][received while processing] START ignored")
     // $COVERAGE-ON$
 
     case STOP =>
-      import scala.language.postfixOps
       logger.info("[ProcessingSupervisor][received while processing] STOP received")
-      context unbecome
+      context.unbecome()
   }
 
 }

@@ -19,22 +19,21 @@ package controllers
 import connectors.{EmailConnector, ReceivedUploadTemplate}
 import controllers.auth.FakeAuthAction
 import helpers.RandomNino
-import models._
+import models.*
 
 import java.time.{LocalDate, LocalDateTime}
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 import play.api.i18n.{Messages, MessagesImpl}
 import play.api.libs.json.{JsString, Json}
-import play.api.mvc._
-import play.api.test.Helpers._
+import play.api.mvc.*
+import play.api.test.Helpers.*
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import repositories.{BulkCalculationMongoRepository, BulkCalculationRepository}
 import uk.gov.hmrc.auth.core.AuthConnector
-
 import scala.concurrent.{ExecutionContext, Future}
 
 class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
@@ -49,7 +48,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
   val fakeAuthAction = FakeAuthAction(authConnector)
   lazy val mockRepository = mock[BulkCalculationMongoRepository]
 
-  object TestBulkController extends BulkController(fakeAuthAction, mockEmailConnector, csvGenerator, stubMessagesControllerComponents(), mockRepository) {
+  object TestBulkController extends BulkController(fakeAuthAction, mockEmailConnector, csvGenerator, stubMessagesControllerComponents(), mockRepository, ExecutionContext.global) {
     override lazy val repository = mockRepo
   }
 
@@ -141,6 +140,7 @@ class BulkControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
         "send a file received notification email to the user" in {
           val c = ArgumentCaptor.forClass(classOf[ReceivedUploadTemplate])
           when(mockEmailConnector.sendReceivedTemplatedEmail(ArgumentMatchers.any())(ArgumentMatchers.any())).thenReturn(Future.successful(true))
+
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(json))
           TestBulkController.post("USER_ID")(fakeRequest)
           verify(mockEmailConnector).sendReceivedTemplatedEmail(c.capture())(ArgumentMatchers.any())

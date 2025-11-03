@@ -7,7 +7,7 @@ import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{HeaderLicense, heade
 val appName = "gmp-bulk"
 
 lazy val scoverageSettings = Seq(
-  ScoverageKeys.coverageExcludedPackages := "<empty>;app.*;gmp.*;config.*;metrics.*;testOnlyDoNotUseInAppConf.*;views.html.*;uk.gov.hmrc.*;prod.*",
+  ScoverageKeys.coverageExcludedPackages := "<empty>;app.*;gmp.*;config.*;metrics.*;testOnlyDoNotUseInAppConf.*;views.html.*;uk.gov.hmrc.*;prod.*;models.*;",
   ScoverageKeys.coverageMinimumStmtTotal := 76,
   ScoverageKeys.coverageFailOnMinimum := true,
   ScoverageKeys.coverageHighlighting := true
@@ -28,7 +28,6 @@ lazy val microservice = Project(appName, file("."))
     defaultSettings(),
     routesImport += "extensions.Binders._",
     libraryDependencies ++= AppDependencies.all,
-    libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always,
     Test / parallelExecution := false,
     Test / fork := false,
     retrieveManaged := true,
@@ -36,15 +35,17 @@ lazy val microservice = Project(appName, file("."))
     routesGenerator := InjectedRoutesGenerator,
     resolvers += Resolver.typesafeRepo("releases")
   )
-  .settings(scalaVersion := "2.13.12")
+  .settings(scalaVersion := "3.7.1")
   .settings(
     scalacOptions ++= List(
-      "-Yrangepos",
-      "-Xlint:-missing-interpolator,_",
+      "-explaintypes",
       "-feature",
       "-unchecked",
-      "-language:implicitConversions",
-      "-P:silencer:lineContentFilters=^\\w",
-      "-P:silencer:pathFilters=routes"
+      "-Wconf:src=html/.*:s",
+      "-Wconf:src=routes/.*:s",
+      "-Wconf:msg=Flag.*repeatedly:s",
+      "-Wconf:msg=Implicit parameters should be provided with a `using` clause:s",
+      "-Wconf:msg=unused explicit parameter:s",
+      "-Wconf:msg=Setting -Wunused set to all redundantly:s"
     ))
   

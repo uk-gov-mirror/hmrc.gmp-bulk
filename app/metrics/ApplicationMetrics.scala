@@ -77,12 +77,12 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
 
   def metricTimer(diff: Long, unit: duration.TimeUnit, name : String) : Unit = {
     Try{registry.timer(name).update(diff, unit)}
-      .failed.foreach(ex => logger.warn(s"$name failed : Metrics may be disabled" ))
+      .failed.foreach(_ => logger.warn(s"$name failed : Metrics may be disabled" ))
   }
 
   def metricCounter(name : String) : Unit = {
     Try{registry.counter(name).inc()}
-      .failed.foreach(ex => logger.warn(s"$name failed : Metrics may be disabled" ))
+      .failed.foreach(_ => logger.warn(s"$name failed : Metrics may be disabled" ))
   }
 
   def processRequest(diff: Long, unit: duration.TimeUnit): Unit = metricTimer(diff, unit, "processRequest-timer")

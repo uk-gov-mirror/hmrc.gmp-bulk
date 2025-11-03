@@ -18,21 +18,23 @@ package controllers.auth
 
 import org.apache.pekko.util.Timeout
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.{OK, UNAUTHORIZED}
 import play.api.mvc.{Action, AnyContent}
-import com.google.inject.Inject
 import play.api.mvc.{BaseController, ControllerComponents}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{status, stubMessagesControllerComponents}
+import uk.gov.hmrc.auth.core.authorise.Predicate
+import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.auth.core.{AuthConnector, MissingBearerToken}
+import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
@@ -50,8 +52,15 @@ class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar
 
         val mockMicroserviceAuthConnector = mock[AuthConnector]
 
-        when(mockMicroserviceAuthConnector.authorise(any(),any())(any(), any()))
-          .thenReturn(Future.failed(new MissingBearerToken))
+        when(
+          mockMicroserviceAuthConnector.authorise[Unit](
+            any[Predicate],
+            any[Retrieval[Unit]]
+          )(
+            using any[HeaderCarrier],
+            any[ExecutionContext]
+          )
+        ).thenReturn(Future.failed(new MissingBearerToken))
 
         val authAction = new AuthAction(mockMicroserviceAuthConnector, stubMessagesControllerComponents())
         val controller = new Harness(authAction)
@@ -65,8 +74,25 @@ class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar
       "must return the request" in {
         val mockMicroserviceAuthConnector = mock[AuthConnector]
 
-        when(mockMicroserviceAuthConnector.authorise[Unit](any(),any())(any(), any()))
-          .thenReturn(Future.successful(()))
+        when(
+          mockMicroserviceAuthConnector.authorise[Unit](
+            any[Predicate],
+            any[Retrieval[Unit]]
+          )(
+            using any[HeaderCarrier],
+            any[ExecutionContext]
+          )
+        ).thenReturn(Future.successful(()))
+
+        when(
+          mockMicroserviceAuthConnector.authorise[Unit](
+            any[Predicate],
+            any[Retrieval[Unit]]
+          )(
+            using any[HeaderCarrier],
+            any[ExecutionContext]
+          )
+        ).thenReturn(Future.successful(()))
 
         val authAction = new AuthAction(mockMicroserviceAuthConnector, stubMessagesControllerComponents())
         val controller = new Harness(authAction)

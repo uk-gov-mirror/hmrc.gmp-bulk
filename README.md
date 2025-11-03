@@ -247,7 +247,7 @@ sm2 --start GMP_ALL
 
 To run the application execute
 ```
-sbt run -Dapplication.router=testOnlyDoNotUseInAppConf.Routes
+sbt run
 ```
 
 ### License

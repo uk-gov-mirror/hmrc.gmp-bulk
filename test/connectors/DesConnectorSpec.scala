@@ -32,10 +32,10 @@ import utils.WireMockHelper
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.http.client.HttpClientV2
 
-import java.net.{URL, URLEncoder}
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class DesConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite with WireMockHelper with BeforeAndAfter {
 
@@ -62,7 +62,7 @@ class DesConnectorSpec extends HttpClientV2Helper with GuiceOneServerPerSuite wi
     )
   }
 
-  class SUT(httpC:HttpClientV2 = http) extends DesConnector(app.configuration, httpC, mockMetrics, servicesConfig, applicationConfig) {
+  class SUT(httpC:HttpClientV2 = http) extends DesConnector(app.configuration, httpC, mockMetrics, servicesConfig, applicationConfig, ExecutionContext.global) {
     override lazy val serviceURL: String = "http://localhost:" + server.port()
     override lazy val citizenDetailsUrl: String = serviceURL
   }

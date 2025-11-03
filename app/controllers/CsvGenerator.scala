@@ -16,17 +16,15 @@
 
 package controllers
 
-import models._
+import models.*
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import play.api.i18n.Messages
 
 import scala.collection.mutable.ListBuffer
-import com.github.ghik.silencer.silent
-
 import java.text.SimpleDateFormat
-import java.time.temporal.TemporalAccessor
+import scala.annotation.nowarn
 
 class CsvGenerator {
 
@@ -48,7 +46,7 @@ class CsvGenerator {
 
     val cells: Iterable[Cell]
 
-    @silent
+    @nowarn
     def toCsvString(cellCount: Int)(implicit csvFilter: CsvFilter) = {
       cells map {
         _.text
@@ -130,7 +128,7 @@ class CsvGenerator {
     def build: Row = ResponseRow(cells, Some(errorCell), Some(errorResolutionCell))
   }
 
-  @silent
+  @nowarn
   class ResponseRowBuilder(request: ProcessReadyCalculationRequest)(implicit filter: CsvFilter, messages: Messages) extends RowBuilder {
 
     request.validCalculationRequest match {
@@ -215,15 +213,13 @@ class CsvGenerator {
           case _ =>
         }
 
-        request.getGlobalErrorMessageReason match {
-          case Some(msg) => setErrorCell(TextCell(msg))
-          case _ =>
-        }
+        request.getGlobalErrorMessageReason().foreach(msg =>
+          setErrorCell(TextCell(msg))
+        )
 
-        request.getGlobalErrorMessageWhat match {
-          case Some(msg) => setErrorResolutionCell(TextCell(msg))
-          case _ =>
-        }
+        request.getGlobalErrorMessageWhat().foreach(msg =>
+          setErrorResolutionCell(TextCell(msg))
+        )
 
       case _ if request.validationErrors.isDefined =>
 
@@ -379,13 +375,13 @@ class CsvGenerator {
     addFilteredCell({
         case CsvFilter.All => Messages("gmp.status") // Add status column only for all
       })
-      .addCell(Messages("gmp.bulk.csv.headers") split ",") // headers for all
+      .addCell(Messages("gmp.bulk.csv.headers").split(",")) // headers for all
       .addFilteredCells({
-        case CsvFilter.All | CsvFilter.Successful => Messages("gmp.bulk.totals.headers") split "," // totals for all
+        case CsvFilter.All | CsvFilter.Successful => Messages("gmp.bulk.totals.headers").split(",") // totals for all
       })
       .addRows(generatePeriodHeaders(periodCount))
       .addFilteredCells({
-        case CsvFilter.All | CsvFilter.Failed => Messages("gmp.bulk.csv.globalerror.headers") split "," // global errors for all and failed
+        case CsvFilter.All | CsvFilter.Failed => Messages("gmp.bulk.csv.globalerror.headers").split(",") // global errors for all and failed
       })
 
     private def generatePeriodHeaders(periodCount: Int) = {
@@ -438,12 +434,14 @@ class CsvGenerator {
     implicit val filter = csvFilter.get
 
     val maxPeriods: Int = result.calculationRequests match {
-      case calcRequests @ h :: tail => calcRequests.map {
-        _.calculationResponse match {
-          case Some(x: GmpBulkCalculationResponse) if x.calculationPeriods.nonEmpty => x.calculationPeriods.size
-          case _ => 0
-        }
-      }.max
+      case calcRequests@_ :: _ =>
+        calcRequests.map { req =>
+          req.calculationResponse match {
+            case Some(x: GmpBulkCalculationResponse) if x.calculationPeriods.nonEmpty =>
+              x.calculationPeriods.size
+            case _ => 0
+          }
+        }.max
       case Nil => 0
     }
 

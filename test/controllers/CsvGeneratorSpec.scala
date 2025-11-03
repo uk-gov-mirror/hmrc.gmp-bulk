@@ -17,17 +17,20 @@
 package controllers
 
 import helpers.RandomNino
-import models._
+import models.*
 
 import java.time.{LocalDate, LocalDateTime}
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
-import play.api.i18n.{Messages, MessagesImpl}
+import play.api.i18n.MessagesImpl
 import play.api.test.Helpers.stubMessagesControllerComponents
+import play.api.i18n.{Messages, MessagesApi, Lang}
+import play.api.test.Helpers.stubMessagesApi
 
 import java.time.format.DateTimeFormatter
+
 
 class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
@@ -69,7 +72,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
   val bulkCalculationRequestWithNpsError = ProcessedBulkCalculationRequest("1", "abcd", "mail@mail.com", "reference1", calculationRequestWithNpsError, "userId", LocalDateTime.now, true, 1, 0)
 
   def firstCsvDataLine(result: String): Array[String] = {
-    val dataLine = result split "\n" drop CSV_HEADER_ROWS
+    val dataLine = result.split("\n") drop CSV_HEADER_ROWS
     dataLine(0).split(",", -1) map { _.trim }
   }
 
@@ -91,7 +94,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val columnHeaders = s"gmp.status,${messages("gmp.bulk.csv.headers")},${messages("gmp.bulk.totals.headers")},$periodColumns"
       val guidanceText = s"${messages("gmp.bulk.csv.guidance")},,,,,,,,,,,,"
 
-      val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)) split "\n"
+      val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)).split("\n")
 
       lines.head must be(guidanceText)
       lines.drop(1).head must be(columnHeaders)
@@ -241,10 +244,16 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
       val bulkCalculationRequest = ProcessedBulkCalculationRequest("1", "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now, true, 1, 0)
 
-      val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)) split "\n"
-      val cells = lines.drop(2).head split ","
+      val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)).split("\n") 
+      val cells = lines.drop(2).head.split(",")
 
-      cells.slice(15, 18) mustBe Seq("", LocalDate.now.format(DateTimeFormatter.ofPattern(DEFAULT_DATE_FORMAT)), "3.12")
+      val expected = Seq(
+        "",
+        LocalDate.now.format(DateTimeFormatter.ofPattern(DEFAULT_DATE_FORMAT)),
+        "3.12"
+      )
+
+      cells.slice(15, 18).toSeq mustBe expected
 
     }
 
@@ -258,7 +267,7 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       val calculationRequests = List(ProcessReadyCalculationRequest("1", 1, Some(validCalculationRequest), None, Some(gmpBulkCalculationResponse)))
       val bulkCalculationRequest = ProcessedBulkCalculationRequest("1", "abcd", "mail@mail.com", "reference1", calculationRequests, "userId", LocalDateTime.now, true, 1, 0)
 
-      val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)) split "\n"
+      val lines = TestCsvGenerator.generateCsv(bulkCalculationRequest, Some(CsvFilter.All)).split("\n")
 
       lines.drop(2).head must startWith(Messages("gmp.error"))
     }
@@ -386,10 +395,15 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(3), None, None, None, Some("2016-05-24"), Some(true))
 
-      when(calcRequest.validCalculationRequest) thenReturn Some(validCalc)
-      when(calcRequest.calculationResponse) thenReturn Some(response)
-      when(bulkRequest.calculationRequests) thenReturn List(calcRequest)
-      when(bulkRequest.userId) thenReturn "userId"
+      val messagesApi: MessagesApi = stubMessagesApi()
+      given Messages = messagesApi.preferred(Seq(Lang.defaultLang))
+
+      when(calcRequest.validCalculationRequest).thenReturn(Some(validCalc))
+      when(calcRequest.calculationResponse).thenReturn(Some(response))
+      when(bulkRequest.calculationRequests).thenReturn(List(calcRequest))
+      when(bulkRequest.userId).thenReturn("userId")
+      when(calcRequest.getGlobalErrorMessageWhat()).thenReturn(None)
+      when(calcRequest.getGlobalErrorMessageReason()).thenReturn(None)
 
       val result = TestCsvGenerator.generateCsv(bulkRequest, Some(CsvFilter.All))
 
@@ -407,10 +421,16 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(4), None, None, None, Some("2016-05-24"), Some(true))
 
-      when(calcRequest.validCalculationRequest) thenReturn Some(validCalc)
-      when(calcRequest.calculationResponse) thenReturn Some(response)
-      when(bulkRequest.calculationRequests) thenReturn List(calcRequest)
-      when(bulkRequest.userId) thenReturn "userId"
+      val messagesApi: MessagesApi = stubMessagesApi()
+      given Messages = messagesApi.preferred(Seq(Lang.defaultLang))
+
+      when(calcRequest.validCalculationRequest).thenReturn(Some(validCalc))
+      when(calcRequest.calculationResponse).thenReturn(Some(response))
+      when(bulkRequest.calculationRequests).thenReturn(List(calcRequest))
+      when(bulkRequest.userId).thenReturn("userId")
+
+      when(calcRequest.getGlobalErrorMessageWhat()).thenReturn(None)
+      when(calcRequest.getGlobalErrorMessageReason()).thenReturn(None)
 
       val result = TestCsvGenerator.generateCsv(bulkRequest, Some(CsvFilter.All))
 
@@ -428,10 +448,15 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(2), None, None, None, Some("2016-05-24"), Some(true))
 
-      when(calcRequest.validCalculationRequest) thenReturn Some(validCalc)
-      when(calcRequest.calculationResponse) thenReturn Some(response)
-      when(bulkRequest.calculationRequests) thenReturn List(calcRequest)
-      when(bulkRequest.userId) thenReturn "userId"
+      val messagesApi: MessagesApi = stubMessagesApi()
+      given Messages = messagesApi.preferred(Seq(Lang.defaultLang))
+
+      when(calcRequest.validCalculationRequest).thenReturn(Some(validCalc))
+      when(calcRequest.calculationResponse).thenReturn(Some(response))
+      when(bulkRequest.calculationRequests).thenReturn(List(calcRequest))
+      when(bulkRequest.userId).thenReturn("userId")
+      when(calcRequest.getGlobalErrorMessageWhat()).thenReturn(None)
+      when(calcRequest.getGlobalErrorMessageReason()).thenReturn(None)
 
       val result = TestCsvGenerator.generateCsv(bulkRequest, Some(CsvFilter.All))
 
@@ -449,10 +474,15 @@ class CsvGeneratorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       val validCalc = ValidCalculationRequest("S2730000B", nino, "Smith", "John", Some("ref1"), Some(3), Some("2018-05-10"), None, None, Some("2016-08-24"), None)
 
-      when(calcRequest.validCalculationRequest) thenReturn Some(validCalc)
-      when(calcRequest.calculationResponse) thenReturn Some(response)
-      when(bulkRequest.calculationRequests) thenReturn List(calcRequest)
-      when(bulkRequest.userId) thenReturn "userId"
+      val messagesApi: MessagesApi = stubMessagesApi()
+      given Messages = messagesApi.preferred(Seq(Lang.defaultLang))
+
+      when(calcRequest.validCalculationRequest).thenReturn(Some(validCalc))
+      when(calcRequest.calculationResponse).thenReturn(Some(response))
+      when(bulkRequest.calculationRequests).thenReturn(List(calcRequest))
+      when(bulkRequest.userId).thenReturn("userId")
+      when(calcRequest.getGlobalErrorMessageWhat()).thenReturn(None)
+      when(calcRequest.getGlobalErrorMessageReason()).thenReturn(None)
 
       val result = TestCsvGenerator.generateCsv(bulkRequest, Some(CsvFilter.All))
 

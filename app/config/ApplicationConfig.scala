@@ -32,16 +32,20 @@ trait ApplicationConfig {
   val unstablePeriodDuration: Int
   val bulkProcessingTps: Int
   val bulkProcessingInterval: Int
+  val ifEnabled: Boolean
+  val logParentsChildrenEnabled: Boolean
 }
 
 class ApplicationConfiguration@Inject()(configuration: Configuration) extends ApplicationConfig {
 
-  override lazy val bulkProcessingBatchSize = configuration.getOptional[Int](s"bulk-batch-size").getOrElse(100)
-  override lazy val bulkProcessingTps = configuration.getOptional[Int](s"bulk-processing-tps").getOrElse(10)
+  override val bulkProcessingBatchSize = configuration.getOptional[Int](s"bulk-batch-size").getOrElse(100)
+  override val bulkProcessingTps = configuration.getOptional[Int](s"bulk-processing-tps").getOrElse(10)
   override val bulkProcessingInterval: Int = divide(bulkProcessingBatchSize, bulkProcessingTps, RoundingMode.UP)
   override val numberOfCallsToTriggerStateChange = configuration.getOptional[Int](s"circuit-breaker.number-of-calls-to-trigger-state-change").getOrElse(10)
   override val unavailablePeriodDuration: Int = configuration.getOptional[Int](s"circuit-breaker.unavailable-period-duration").getOrElse(300)
   override val unstablePeriodDuration: Int = configuration.getOptional[Int](s"circuit-breaker.unstable-period-duration").getOrElse(60)
+  override val ifEnabled: Boolean = configuration.getOptional[Boolean]("ifs-enabled").getOrElse(false)
+  override val logParentsChildrenEnabled: Boolean = configuration.getOptional[Boolean]("log-parents-children-enabled").getOrElse(false)
 }
 @Singleton
 class AppConfig @Inject()(implicit

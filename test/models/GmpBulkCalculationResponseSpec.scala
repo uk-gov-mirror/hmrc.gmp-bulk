@@ -41,7 +41,7 @@ class GmpBulkCalculationResponseSpec extends PlaySpec with GuiceOneAppPerSuite w
 
   implicit override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(additionalConfiguration)
-    .bindings(bindModules:_*).in(Mode.Test)
+    .bindings(bindModules*).in(Mode.Test)
     .build()
 
   val nino = RandomNino.generate

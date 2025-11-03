@@ -29,8 +29,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 
 import java.net.URL
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait DesGetResponse
 
@@ -50,7 +49,9 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
                              http: HttpClientV2,
                              val metrics: ApplicationMetrics,
                              servicesConfig: ServicesConfig,
-                             applicationConfig: ApplicationConfiguration) extends UsingCircuitBreaker {
+                             applicationConfig: ApplicationConfiguration,
+                             implicit val ec: ExecutionContext) extends UsingCircuitBreaker {
+
 
   val logger: Logger = Logger(this.getClass)
 
@@ -80,18 +81,18 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
     withCircuitBreaker(http.get(new URL(url))
-      .setHeader(npsHeaders:_*)
+      .setHeader(npsHeaders*)
       .execute[HttpResponse]
       .map { response =>
         metrics.registerStatusCode(response.status.toString)
         metrics.desConnectionTime(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
-      response.status match {
+        response.status match {
         case OK | UNPROCESSABLE_ENTITY =>
           metrics.registerSuccessfulRequest()
           response.json.as[CalculationResponse]
 
-        case errorStatus: Int => {
+        case errorStatus: Int =>
           logger.error(s"[calculate] DES URI $url returned code $errorStatus and response body: ${response.body}")
           metrics.registerFailedRequest()
 
@@ -104,7 +105,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
           }
         }
       }
-    })
+    )
   }
 
   private def npsHeaders =Seq(
@@ -144,7 +145,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     logger.info(s"[getPersonDetails] Contacting DES at $url")
 
     http.get(url"$url")
-      .setHeader(desHeaders:_*)
+      .setHeader(desHeaders*)
       .execute[HttpResponse]
       .map { response =>
         metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
