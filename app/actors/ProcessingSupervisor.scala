@@ -55,7 +55,8 @@ class ProcessingSupervisor (applicationConfig: ApplicationConfiguration,
     hipConnector,
     metrics,
     applicationConfig,
-    appConfig
+    appConfig,
+    context.dispatcher
   ), "calculation-requester")
 
   lazy val throttler: ActorRef = context.actorOf(Props(classOf[TimerBasedThrottler],
