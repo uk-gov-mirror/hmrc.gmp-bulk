@@ -16,7 +16,9 @@
 
 package models
 
-import play.api.libs.json._
+import play.api.libs.json.*
+
+import java.net.URLEncoder
 
 object EnumRevaluationRate extends Enumeration {
   type EnumRevaluationRate = Value
@@ -86,8 +88,8 @@ object HipCalculationRequest {
     HipCalculationRequest(
       schemeContractedOutNumber = calcReq.scon,
       nationalInsuranceNumber = calcReq.nino,
-      surname = calcReq.surname,
-      firstForename = calcReq.firstForename,
+      surname = URLEncoder.encode(calcReq.surname.take(3).toUpperCase.trim, "UTF-8"),
+      firstForename = URLEncoder.encode(calcReq.firstForename.charAt(0).toUpper.toString, "UTF-8"),
       secondForename = None,
       revaluationRate = revalEnum,
       calculationRequestType = calcTypeEnum,
